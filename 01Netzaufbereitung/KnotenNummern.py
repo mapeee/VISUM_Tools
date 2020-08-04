@@ -2,7 +2,7 @@
 #!/usr/bin/python
 
 #-------------------------------------------------------------------------------
-# Name:        VISUM einfügen von Knoten, Haltestellen, HstBereichen und Haltepunkten
+# Name:        Different changes in VISUM networks
 # Purpose:
 #
 # Author:      mape
@@ -11,45 +11,66 @@
 # Copyright:   (c) mape 2014
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
-
-#---Vorbereitung---#
 import win32com.client.dynamic
-import xlrd ##nur zum lesen von Excel-Daten
+import xlrd
 import time
-start_time = time.clock() ##Ziel: am Ende die Berechnungsdauer ausgeben
+start_time = time.time()
 
 from pathlib import Path
 path = Path.home() / 'python32' / 'python_dir.txt'
 f = open(path, mode='r')
 for i in f: path = i
-path = Path.joinpath(Path(r'C:'+path),'VISUM_Tools','Knotennummern.txt')
+path = Path.joinpath(Path(path),'VISUM_Tools','Nummern.txt')
 f = path.read_text()
 f = f.split('\n')
 
-#--Eingabe-Parameter--#
-Netz = 'C:'+f[0]
-XLS = 'C:'+f[1]
+#--Parameter--#
+method = "links" #nodes, stoppoints
 
-#--VISUM öffnen--#
-VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.15")
+Netz = f[0]
+XLS = f[1]
+
+print("excel "+XLS)
+
+#--open VISUM--#
+VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.20")
 VISUM.loadversion(Netz)
 
-#--Hst-Nummer ändern--#
 #Spalten aus xls auswählen
 Dokument = xlrd.open_workbook(XLS)
 Blatt = Dokument.sheet_by_index(0) ##greift auf das erste (0) Tabellenblatt zu
 Zeilen = Blatt.nrows-1 ##-1 wegen Überschriften
 print("Es gibt ",Zeilen,"Zeilen!")
 
-for i in range(Zeilen):
 
 #--Knoten--#
-    Alt = int(Blatt.cell_value(rowx=1+i,colx=0)) ##1+i damit überschriften ignoriert werden
-    Neu= Blatt.cell_value(rowx=1+i,colx=1)
+if method == "nodes":
+    for i in range(Zeilen):
+        Alt = int(Blatt.cell_value(rowx=1+i,colx=0)) ##1+i damit überschriften ignoriert werden
+        Neu = Blatt.cell_value(rowx=1+i,colx=2)
+        
+        if Alt != Neu:
+            VISUM.Net.Nodes.ItemByKey(int(Alt)).SetAttValue("No",int(Neu))
+            
+#--Strecken--#
+if method == "links":
+    for i in range(Zeilen):
+        vonKnoten = int(Blatt.cell_value(rowx=1+i,colx=1)) ##1+i damit überschriften ignoriert werden
+        nachKnoten = int(Blatt.cell_value(rowx=1+i,colx=2)) ##1+i damit überschriften ignoriert werden
+        altStreckNr = int(Blatt.cell_value(rowx=1+i,colx=0))
+        neuStreckNr = int(Blatt.cell_value(rowx=1+i,colx=3))
+        if altStreckNr == neuStreckNr: continue
+
+        try:
+            Link = VISUM.Net.Links.ItemByKey(vonKnoten,nachKnoten)
+            Link.SetNo(neuStreckNr)
+        except:
+            print ("error "+neuStreckNr)
+            continue
 
     ##Haltestelle auswählen
-    print "alt: "+str(int(Alt))
-    print "neu: "+str(int(Neu))
+    # print "alt: "+str(int(Alt))
+    # print "neu: "+str(int(Neu))
     ##VISUM.Net.Nodes.ItemByKey(int(Alt)).SetAttValue("No",int(Neu)) ##222501 ist nur Zufallszahl
 
 ##    if Alt != Neu:
@@ -61,13 +82,13 @@ for i in range(Zeilen):
 ##            VISUM.Net.Nodes.ItemByKey(int(Alt)).SetAttValue("No",int(Neu))
 ##            continue
 
-    try:
-        VISUM.Net.Stops.ItemByKey(int(Alt)).SetAttValue("No",int(Neu))
-        VISUM.Net.StopAreas.ItemByKey(int(Alt)).SetAttValue("No",int(Neu)) ##222501 ist nur Zufallszahl
-        VISUM.Net.StopPoints.ItemByKey(int(Alt)).SetAttValue("No",int(Neu)) ##222501 ist nur Zufallszahl
-        VISUM.Net.Nodes.ItemByKey(int(Alt)).SetAttValue("No",int(Neu)) ##222501 ist nur Zufallszahl
-    except:
-        print "keine Haltestelle vorhanden!"
+    # try:
+    #     VISUM.Net.Stops.ItemByKey(int(Alt)).SetAttValue("No",int(Neu))
+    #     VISUM.Net.StopAreas.ItemByKey(int(Alt)).SetAttValue("No",int(Neu)) ##222501 ist nur Zufallszahl
+    #     VISUM.Net.StopPoints.ItemByKey(int(Alt)).SetAttValue("No",int(Neu)) ##222501 ist nur Zufallszahl
+    #     VISUM.Net.Nodes.ItemByKey(int(Alt)).SetAttValue("No",int(Neu)) ##222501 ist nur Zufallszahl
+    # except:
+    #     print "keine Haltestelle vorhanden!"
 
 ##for i in range(Zeilen):
 ##
@@ -115,24 +136,7 @@ for i in range(Zeilen):
 ##    if HstBer.AttValue("AddVal1") !=0:
 ##        HstBer.SetAttValue("No",HstBer.AttValue("AddVal1"))
 
-#--Strecken--#
-##    vonKnoten = int(Blatt.cell_value(rowx=1+i,colx=0)) ##1+i damit überschriften ignoriert werden
-##    nachKnoten = int(Blatt.cell_value(rowx=1+i,colx=1)) ##1+i damit überschriften ignoriert werden
-##    neuStreckNr = int(Blatt.cell_value(rowx=1+i,colx=3))
-##
-##    try:
-##        print "Aendern"
-##        Link = VISUM.Net.Links.ItemByKey(vonKnoten,nachKnoten)
-##        print neuStreckNr
-##
-##        try:
-##            Link.SetNo(neuStreckNr)
-##        except:
-##            print "error "+neuStreckNr
-##    except:
-##        continue
+##end
+Sekunden = int(time.time() - start_time)
 
-##Ende
-Sekunden = int(time.clock() - start_time)
-
-print "--Scriptdurchlauf erfolgreich nach",Sekunden,"Sekunden!--"
+print("--finished after ",Sekunden,"seconds--")
