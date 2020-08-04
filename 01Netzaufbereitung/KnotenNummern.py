@@ -15,6 +15,8 @@ import win32com.client.dynamic
 import xlrd
 import time
 start_time = time.time()
+from datetime import datetime
+date = datetime.now()
 
 from pathlib import Path
 path = Path.home() / 'python32' / 'python_dir.txt'
@@ -25,12 +27,20 @@ f = path.read_text()
 f = f.split('\n')
 
 #--Parameter--#
-method = "links" #nodes, stoppoints
+method = "nodes" #nodes, stoppoints
 
 Netz = f[0]
 XLS = f[1]
 
 print("excel "+XLS)
+
+#--outputs--#
+f = open("KnotenNummern_"+date.strftime('%m%d%Y')+".txt","w+")
+f.write(time.ctime()+"\n")
+f.write("Input Network: "+Netz+"\n")
+f.write("Change Excel: "+XLS+"\n")
+
+f.write("\n\n\n\n")
 
 #--open VISUM--#
 VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.20")
@@ -40,17 +50,22 @@ VISUM.loadversion(Netz)
 Dokument = xlrd.open_workbook(XLS)
 Blatt = Dokument.sheet_by_index(0) ##greift auf das erste (0) Tabellenblatt zu
 Zeilen = Blatt.nrows-1 ##-1 wegen Überschriften
-print("Es gibt ",Zeilen,"Zeilen!")
+print(" ",Zeilen,"rows!")
 
 
 #--Knoten--#
 if method == "nodes":
     for i in range(Zeilen):
         Alt = int(Blatt.cell_value(rowx=1+i,colx=0)) ##1+i damit überschriften ignoriert werden
-        Neu = Blatt.cell_value(rowx=1+i,colx=2)
+        Neu = Blatt.cell_value(rowx=1+i,colx=1)
         
         if Alt != Neu:
-            VISUM.Net.Nodes.ItemByKey(int(Alt)).SetAttValue("No",int(Neu))
+            try:
+                VISUM.Net.Nodes.ItemByKey(int(Alt)).SetAttValue("No",int(Neu))
+                f.write("node: old: "+str(Alt)+" new: "+str(int(Neu))+"\n")
+            except: 
+                f.write("!!Error: node: old: "+str(Alt)+"\n")
+                print("!!Error: "+str(Alt))
             
 #--Strecken--#
 if method == "links":
@@ -138,5 +153,7 @@ if method == "links":
 
 ##end
 Sekunden = int(time.time() - start_time)
-
 print("--finished after ",Sekunden,"seconds--")
+
+f.write("--finished after "+str(Sekunden)+" seconds--")
+f.close()
