@@ -1,0 +1,32 @@
+Tue Aug  4 16:16:47 2020
+Input Network: D:\01Verkehrsmodell\Modell_Hamburg\Netzintegration\HVB_OV_A0-2018_156_nf-241_Zeitg_Abg.ver
+Change Network: D:\01Verkehrsmodell\Modell_Hamburg\Netzintegration\HVB_IV_A0-2018_192_nf-213_Tag.ver
+
+
+
+
+Node changes 
+node: old: 6 new: 3964801
+node: old: 159 new: 808278
+node: old: 160 new: 516306
+node: old: 161 new: 4637703
+node: old: 162 new: 2756376
+node: old: 166 new: 3672044
+node: old: 167 new: 3249137
+node: old: 168 new: 1726003
+node: old: 195 new: 3851959
+node: old: 196 new: 1894417
+node: old: 197 new: 1682947
+node: old: 198 new: 3309891
+node: old: 199 new: 3380518
+node: old: 221 new: 432584
+node: old: 222 new: 873994
+node: old: 223 new: 2393519
+node: old: 239 new: 4753737
+node: old: 240 new: 1674916
+node: old: 241 new: 1210085
+node: old: 242 new: 1890523
+
+
+
+Link changes 
