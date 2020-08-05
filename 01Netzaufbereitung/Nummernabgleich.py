@@ -14,9 +14,10 @@
 
 import win32com.client.dynamic
 import numpy as np
-
 import time
 start_time = time.time()
+from datetime import datetime
+
 
 from pathlib import Path
 path = Path.home() / 'python32' / 'python_dir.txt'
@@ -34,7 +35,9 @@ Node = True
 Link = True
 
 #--outputs--#
-f = open("Nummernabgleich.txt","w+")
+date = datetime.now()
+txt_name = 'Nummernabgleich_'+date.strftime('%m%d%Y')+'.txt'
+f = open(Path.home() / 'Desktop' / txt_name,'w+')
 f.write(time.ctime()+"\n")
 f.write("Input Network: "+in_net+"\n")
 f.write("Change Network: "+to_change+"\n")

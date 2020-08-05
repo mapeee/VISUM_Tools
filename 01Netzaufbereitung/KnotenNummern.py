@@ -16,7 +16,6 @@ import xlrd
 import time
 start_time = time.time()
 from datetime import datetime
-date = datetime.now()
 
 from pathlib import Path
 path = Path.home() / 'python32' / 'python_dir.txt'
@@ -35,7 +34,9 @@ XLS = f[1]
 print("excel "+XLS)
 
 #--outputs--#
-f = open("KnotenNummern_"+date.strftime('%m%d%Y')+".txt","w+")
+date = datetime.now()
+txt_name = 'KnotenNummern_'+date.strftime('%m%d%Y')+'.txt'
+f = open(Path.home() / 'Desktop' / txt_name,'w+')
 f.write(time.ctime()+"\n")
 f.write("Input Network: "+Netz+"\n")
 f.write("Change Excel: "+XLS+"\n")
