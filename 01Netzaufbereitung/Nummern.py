@@ -35,7 +35,7 @@ print("excel "+XLS)
 
 #--outputs--#
 date = datetime.now()
-txt_name = 'KnotenNummern_'+date.strftime('%m%d%Y')+'.txt'
+txt_name = 'Nummern_'+date.strftime('%m%d%Y')+'.txt'
 f = open(Path.home() / 'Desktop' / txt_name,'w+')
 f.write(time.ctime()+"\n")
 f.write("Input Network: "+Netz+"\n")
@@ -56,6 +56,7 @@ print(" ",Zeilen,"rows!")
 
 #--Knoten--#
 if method == "nodes":
+    f.write("Node changes \n")
     for i in range(Zeilen):
         Alt = int(Blatt.cell_value(rowx=1+i,colx=0)) ##1+i damit überschriften ignoriert werden
         Neu = Blatt.cell_value(rowx=1+i,colx=1)
@@ -66,10 +67,12 @@ if method == "nodes":
                 f.write("node: old: "+str(Alt)+" new: "+str(int(Neu))+"\n")
             except: 
                 f.write("!!Error: node: old: "+str(Alt)+"\n")
-                print("!!Error: "+str(Alt))
+                print("!!Error: "+str(Alt)+"; neu: "+str(Neu))
+    f.write("\n\n\n")
             
 #--Strecken--#
 if method == "links":
+    f.write("Link changes \n")
     for i in range(Zeilen):
         vonKnoten = int(Blatt.cell_value(rowx=1+i,colx=1)) ##1+i damit überschriften ignoriert werden
         nachKnoten = int(Blatt.cell_value(rowx=1+i,colx=2)) ##1+i damit überschriften ignoriert werden
@@ -80,9 +83,12 @@ if method == "links":
         try:
             Link = VISUM.Net.Links.ItemByKey(vonKnoten,nachKnoten)
             Link.SetNo(neuStreckNr)
+            f.write("link: old: "+str(altStreckNr)+" new: "+str(int(neuStreckNr))+"\n")
         except:
+            f.write("!!Error: link: old: "+str(altStreckNr)+" new: "+str(int(neuStreckNr))+"\n")
             print ("error "+neuStreckNr)
             continue
+    f.write("\n\n\n")
 
     ##Haltestelle auswählen
     # print "alt: "+str(int(Alt))
@@ -105,6 +111,16 @@ if method == "links":
     #     VISUM.Net.Nodes.ItemByKey(int(Alt)).SetAttValue("No",int(Neu)) ##222501 ist nur Zufallszahl
     # except:
     #     print "keine Haltestelle vorhanden!"
+
+"""
+#--Haltestellenbereiche--#
+"""
+##for hstbereich in VISUM.Net.Stops:
+##    neu = int(hstbereich.AttValue("Min:StopAreas\No"))
+##    alt = int(hstbereich.AttValue("No"))
+##    if neu != alt:
+##        hstbereich.SetAttValue("No",neu)
+##        print "alt :"+str(alt)+" neu: "+str(neu)
 
 ##for i in range(Zeilen):
 ##
