@@ -2,7 +2,7 @@
 #!/usr/bin/python
 
 #-------------------------------------------------------------------------------
-# Name:        VISUM Strecken Teiler
+# Name:        splitting VISUM links
 # Purpose:
 #
 # Author:      mape
@@ -11,82 +11,65 @@
 # Copyright:   (c) mape 2014
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
-
-#---Vorbereitung---#
 import win32com.client.dynamic
-import xlrd ##nur zum lesen von Excel-Daten
+import xlrd
 import time
-start_time = time.clock() ##Ziel: am Ende die Berechnungsdauer ausgeben
+start_time = time.time()
+from datetime import datetime
 
 from pathlib import Path
 path = Path.home() / 'python32' / 'python_dir.txt'
 f = open(path, mode='r')
 for i in f: path = i
-path = Path.joinpath(Path(r'C:'+path),'VISUM_Tools','Haltestellen.txt')
+path = Path.joinpath(Path(path),'VISUM_Tools','Haltestellen.txt')
 f = path.read_text()
 f = f.split('\n')
 
-#--Eingabe-Parameter--#
-Netz = 'C:'+f[0]
-XLS = 'C:'+f[1]
+#--Parameters--#
+Netz = f[0]
+XLS = f[1]
 
-#--VISUM öffnen--#
-VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.15")
+print("excel "+XLS)
+
+#--outputs--#
+date = datetime.now()
+txt_name = 'StreckeTeilen_'+date.strftime('%m%d%Y')+'.txt'
+f = open(Path.home() / 'Desktop' / txt_name,'w+')
+f.write(time.ctime()+"\n")
+f.write("Input Network: "+Netz+"\n")
+f.write("Change Excel: "+XLS+"\n")
+
+f.write("\n\n\n\n")
+#--open VISUM--#
+VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.20")
 VISUM.loadversion(Netz)
 VISUM.Filters.InitAll()
 
-#--Hst-Nummer ändern--#
-##Spalten aus xls auswählen
+#--open xlsx--#
 Dokument = xlrd.open_workbook(XLS)
-Blatt = Dokument.sheet_by_index(0) ##greift auf das erste (0) Tabellenblatt zu
-Zeilen = Blatt.nrows-1 ##-1 wegen Überschriften
-print "Es gibt ",Zeilen,"Zeilen!"
+Blatt = Dokument.sheet_by_index(0) ##first sheet
+Zeilen = Blatt.nrows-1 ##-1 due to headlines
+print(" ",Zeilen,"rows!")
 
+#--splitting--#
+f.write("Splitting links \n")
 for i in range(Zeilen):
-
-#--Knoten--#
-    VonKnoten = int(Blatt.cell_value(rowx=1+i,colx=1)) ##1+i damit überschriften ignoriert werden
-    ZuKnoten = int(Blatt.cell_value(rowx=1+i,colx=2))
-    KnotenNr = int(Blatt.cell_value(rowx=1+i,colx=0))
-
-    ##Haltestelle auswählen
-    print "Neuer Knoten angebunden: "+str(int(KnotenNr))
+    VonKnoten = int(Blatt.cell_value(rowx=1+i,colx=0)) ##1+i ignoring headlines
+    ZuKnoten = int(Blatt.cell_value(rowx=1+i,colx=1))
+    KnotenNr = int(Blatt.cell_value(rowx=1+i,colx=2))
 
     try:
-##        if VISUM.Net.Nodes.ItemByKey(KnotenNr).AttValue("NumLinks") >0:
-##            if VISUM.Net.Nodes.ItemByKey(KnotenNr).AttValue("Count:StopPoints") >0:
-##                print "gab es schon!!!"
-##                continue
-##            else:
-##                VISUM.Net.Nodes.ItemByKey(KnotenNr).SetAttValue("No",KnotenNr+54698321)
-##                print "neue Nummer vergeben!!!"
-##                continue
         VISUM.Net.Links.SplitViaNode(VonKnoten,ZuKnoten,KnotenNr)
+        f.write("node connected: "+str(KnotenNr)+"\n")
     except:
-        print "Geht nicht!!"
-        continue
+        f.write("!!Error: node: "+str(KnotenNr)+"\n")
+        print("!!Error: node: "+str(KnotenNr)+"\n")
 
+f.write("\n\n\n")
 
+##end
+Sekunden = int(time.time() - start_time)
+print("--finished after ",Sekunden,"seconds--")
 
-
-#--Strecken--#
-##    vonKnoten = int(Blatt.cell_value(rowx=1+i,colx=0)) ##1+i damit überschriften ignoriert werden
-##    nachKnoten = int(Blatt.cell_value(rowx=1+i,colx=1)) ##1+i damit überschriften ignoriert werden
-##    neuStreckNr = int(Blatt.cell_value(rowx=1+i,colx=3))
-##
-##    try:
-##        print "Aendern"
-##        Link = VISUM.Net.Links.ItemByKey(vonKnoten,nachKnoten)
-##        print neuStreckNr
-##
-##        try:
-##            Link.SetNo(neuStreckNr)
-##        except:
-##            print "error "+neuStreckNr
-##    except:
-##        continue
-
-##Ende
-Sekunden = int(time.clock() - start_time)
-
-print "--Scriptdurchlauf erfolgreich nach",Sekunden,"Sekunden!--"
+f.write("--finished after "+str(Sekunden)+" seconds--")
+f.close()
