@@ -181,7 +181,7 @@ if VehicleJourney == 1:
     for Fahrten in VISUM.Net.VehicleJourneys:
         von = Fahrten.AttValue(r"FromStopPoint\Name")
         nach = Fahrten.AttValue(r"ToStopPoint\Name")
-        Nr = int(Fahrten.AttValue("No")) ##Nummer aus Hafas-Daten
+        Nr = int(Fahrten.AttValue("No")) ##Number from HAFAS-Data
         Neu = von+"--"+nach+"("+str(Nr)+")"
         f.write("VehicleJourney: old: "+str(Fahrten.AttValue("Name")+" new: "+str(Neu)+"\n"))      
         Fahrten.SetAttValue("Name",Neu)
