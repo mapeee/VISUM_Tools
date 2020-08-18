@@ -29,8 +29,8 @@ f = f.split('\n')
 
 #--Eingabe-Parameter--#
 Netz = f[0]
-Name_LineRoute = 0
-Name_Line = 0
+Name_LineRoute = 1
+Name_Line = 1
 ValidDay = 0
 VehicleJourney = 1
 
@@ -89,7 +89,7 @@ if Name_LineRoute == 1:
     f.write("LineRoute changes \n")
     l = [] ##list of lines to avoid references to already changed attributes
     for Linien in VISUM.Net.Lines: 
-        # if Linien.AttValue("TSysCode") not in ["BUS","AST","Fuss"]: continue
+        if Linien.AttValue("TSysCode") not in ["BUS","AST"]: continue
         Name = Linien.AttValue("Name")
         l.append((Name))
     
@@ -118,7 +118,7 @@ if Name_Line == 1:
     #--Linename--#
     l = [] ##list of lines to avoid references to already changed attributes
     for Linien in VISUM.Net.Lines: ##loop of lines
-        # if Linien.AttValue("TSysCode") in ["BUS","AST","Fuss"]: continue
+        if Linien.AttValue("TSysCode") not in ["BUS","AST"]: continue
         Name = Linien.AttValue("Name")
         l.append((Name))
     
@@ -126,8 +126,7 @@ if Name_Line == 1:
         Line = VISUM.Net.Lines.ItemByKey(i)
         Name = Line.AttValue("Name")
         Vsys = Line.AttValue("TSysCode")
-        # if Vsys in ("U","S","RV","W","FV"):
-        #     continue
+        if Vsys == "AST": Name = "AST"+Name
         # Betr = Line.AttValue("Operator\Name")
         # Betr = Betr.split(" ")[0]
         try:
