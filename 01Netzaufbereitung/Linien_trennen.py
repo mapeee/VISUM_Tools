@@ -2,116 +2,97 @@
 #!/usr/bin/python
 
 #-------------------------------------------------------------------------------
-# Name:        Skript zum selektieren und trennen doppelter Linien innerhalb einer Linie nach dem HAFAS-Import
-# Purpose:
-#
+# Name:        select and split different lineroutes of different lines within one line after HAFAS-Import
 # Author:      mape
-#
 # Created:     01/03/2017
 # Copyright:   (c) mape 2017
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
-
-#---Vorbereitung---#
 import win32com.client.dynamic
 import time
-import numpy as np
-start_time = time.clock() ##Ziel: am Ende die Berechnungsdauer ausgeben
+start_time = time.time()
+from datetime import datetime
 
 from pathlib import Path
 path = Path.home() / 'python32' / 'python_dir.txt'
 f = open(path, mode='r')
 for i in f: path = i
-path = Path.joinpath(Path(r'C:'+path),'VISUM_Tools','Linien_trennen.txt')
+path = Path.joinpath(Path(path),'VISUM_Tools','Linien_trennen.txt')
 f = path.read_text()
 f = f.split('\n')
 
-"""#--Eingabe-Parameter--#"""
-Netz = 'C:'+f[0]
-VSys = ["BUS","AST"] ##Für die folgenden Verkehrssysteme nicht
+#--Parameter--#
+Netz = f[0]
+new_line = 0
 
+#--outputs--#
+date = datetime.now()
+txt_name = 'line_split_'+date.strftime('%m%d%Y')+'.txt'
+f = open(Path.home() / 'Desktop' / txt_name,'w+')
+f.write(time.ctime()+"\n")
+f.write("Input Network: "+Netz+"\n")
 
+f.write("\n\n\n\n")
 
-#--VISUM öffnen--#
-VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.17")
+#--VISUM--#
+VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.20")
 VISUM.loadversion(Netz)
 VISUM.Filters.InitAll()
 
-"""Linien-Schleife"""
-"""while: Es sollen zwoelf Durchläufe gerechnet werden, da nicht davon auszugehen ist, dass es mehr als sieben Linien in einer Linie vereint sind."""
-Durchlauf = 1
-while Durchlauf < 12:
-    print "--- Beginne mit Durchlauf: "+str(Durchlauf)+" ---"
-    for Line in VISUM.Net.Lines:
-        if Line.AttValue("TSysCode") not in VSys: continue
-        if Durchlauf == 1: pass ##Der erste Durchlauf findet immer statt.
-        else:
-            if "("+str(Durchlauf)+")" not in Line.AttValue("Name"): continue ##Es sollen nur die Linien angeschaut werden, die im Durchlauf zuvor neu angelegt wurden (daher -1).
+#--cheing for all lines--#
+f.write("Splitting lines \n")
+for Line in VISUM.Net.Lines:
+    # if "M" != Line.AttValue("Name")[0]: continue
 
-        #--Linien-Filter--#
-        ##Der Vergleich wird immer nur für alle Fpf. einer Linie durchgeführt
-        Name = Line.AttValue("Name")
-        print "Ueberpruefung fuer die folgende Linie: "+Name
-        VISUM.Filters.InitAll()
-        Linien = VISUM.Filters.LineGroupFilter()
-        Linien.UseFilterForVehJourneys = True ##Wirksam für Fahrplanfahrt-Abschnitte
-        Linien.UseFilterForLines = True ##Wirksam für Fahrplanfahrt-Abschnitte
-        Linien.UseFilterForLineRoutes = True ##Wirksam für Fahrplanfahrt-Abschnitte
-        Linien = Linien.LineFilter()
-        Linien.AddCondition("OP_NONE",False,"Name","EqualVal",Name)##Kein weiterer Filter,nicht komplementär,Szenario,GleichWert,Wert=1
+    ##check for all lineroutes within one line
+    Name = Line.AttValue("Name")
+    print ("checking line: "+Name)
+    VISUM.Filters.InitAll()
+    Linien = VISUM.Filters.LineGroupFilter()
+    Linien.UseFilterForVehJourneys = True
+    Linien.UseFilterForLines = True
+    Linien.UseFilterForLineRoutes = True
+    Linien = Linien.LineFilter()
+    Linien.AddCondition("OP_NONE",False,"Name","EqualVal",Name)
+    #--build table--#
+    Stops = []
+    i = 1
+    for Route in Line.LineRoutes:
+        HP = Route.AttValue("Concatenate:StopPoints\\No")
+        HP = HP.replace(",...","")
+        HP = HP.replace("...","")
+        HP = [int(i) for i in HP.split(",")]
+        Stops.append([HP,int(Route.AttValue("ID")),i])
+        i+=1
+    for i in enumerate(Stops):
+        for e in enumerate(Stops):
+            if any(x in i[1][0] for x in e[1][0]) == True:
+                if i[1][2] <= e[1][2]: Stops[e[0]][2] = i[1][2]
+                else: Stops[i[0]][2] = e[1][2]
+    for i in Stops:
+        Route = VISUM.Net.LineRoutes.ItemByID(i[1])
+        Route.SetAttValue("AddVal1",i[2])
+        if i[2]>1:
+            print("splitting in line: "+Name)
+            f.write("splitting in line: "+Name+"\n")    
 
-        """Alle Routen dieser Linie werden nur mit der laengsten Linienroute dieser Linie verglichen"""
-        #Liste aller Linienrouten dieser Linie mit den zugehoerigen Knoten
-        Anzahl_Knoten = np.array(VISUM.Net.LineRoutes.GetMultiAttValues("NumStopPoints",True))[:,1]
-        Routen_ID = np.array(VISUM.Net.LineRoutes.GetMultiAttValues("ID",True))[:,1]
-        Route_max = VISUM.Net.LineRoutes.ItemByID(np.array(VISUM.Net.LineRoutes.GetMultiAttValues("ID",True))[:,1][np.argmax(Anzahl_Knoten)])
-        Routen_Knoten = []
-        for i in Route_max.LineRouteItems: ##Muss so ausgewählt werden, da der String über Verketten nicht alle Nummern erfasst.
-            Routen_Knoten.append(i.AttValue("StopPoint\StopArea\StopNo"))
+    if new_line == 0:continue
+    for Route in Line.LineRoutes:
+        if Route.AttValue("AddVal1") == 1: continue
+        Text = Name+"("+str(Route.AttValue("AddVal1"))+")"
+        try:            
+            VISUM.Net.AddLine(Text,Line.AttValue("TSysCode"))
+            print ("added new line: "+Text)
+            f.write("added new line: "+Text+"\n")   
+            Route.Line = Text
+        except: #if line already exists
+            Route.Line = Text
 
+f.write("\n\n\n")
 
-        #Waehle die laengste aus
-        z = 0
-        while z < len(Routen_ID): ##nur solange noch neue Linien in die Wolke aufgenommen werden. Wenn nicht, ist z am Ende der Schleife gleich der Anzahl der Linienrouten
-            z = 0
-            for i in Routen_ID:
-                Route = VISUM.Net.LineRoutes.ItemByID(i)
-                Knoten_alle = []
-                for e in Route.LineRouteItems: ##Muss so ausgewählt werden, da der String über Verketten nicht alle Nummern erfasst.
-                    Knoten_alle.append(e.AttValue("StopPoint\StopArea\StopNo"))
-                if Route.AttValue("AddVal1") == 1:
-                    z+=1
-                    continue
-                for Knoten in Knoten_alle:
-                    if Knoten in Routen_Knoten: ##Sobald ein KLnoten in der längsten Route gefunden wurde, wird die schleife verlassen
-                        Route.SetAttValue("AddVal1",1)
-                        Routen_Knoten+= Knoten_alle
-                        break
-                if Route.AttValue("AddVal1") == 1:continue
-                z+=1
+##end
+Sekunden = int(time.time() - start_time)
+print("--finished after ",Sekunden,"seconds--")
 
-        #Neue Linie für alle Routen, die nicht zu der bestehenden Wolke gehören.
-        for i in Routen_ID:
-            Route = VISUM.Net.LineRoutes.ItemByID(i)
-            if Route.AttValue("AddVal1") == 1: continue
-            #Route hat keine Kontaktpunkte zur längsten Route
-            try:
-                if Durchlauf == 1: ##Nur im ersten Durchgang wird die Klammer amgehaengt, dann nur noch ersetzt.
-                    Text = Name+"("+str(Durchlauf+1)+")"
-                    VISUM.Net.AddLine(Text,Line.AttValue("TSysCode"))
-                else:
-                    Text = Name.replace("("+str(Durchlauf)+")","("+str(Durchlauf+1)+")")
-                    VISUM.Net.AddLine(Text,Line.AttValue("TSysCode"))
-                print "Neue Linie "+Text+" eingefuegt."
-                angelegt = "ja"
-                Route.Line = Text
-            except: #'Falls es diese Linie schon gibt.
-                Route.Line = Text
-
-    Durchlauf+=1
-
-
-"""Abschluss"""
-Sekunden = int(time.clock() - start_time)
-
-print "--Scriptdurchlauf erfolgreich nach",Sekunden,"Sekunden!--"
+f.write("--finished after "+str(Sekunden)+" seconds--")
+f.close()
