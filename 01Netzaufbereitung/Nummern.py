@@ -26,7 +26,7 @@ f = path.read_text()
 f = f.split('\n')
 
 #--Parameter--#
-method = "nodes" #nodes, stoppoints
+method = "merge_connect" #nodes, links
 
 Netz = f[0]
 XLS = f[1]
@@ -49,44 +49,55 @@ VISUM.loadversion(Netz)
 
 #Spalten aus xls auswählen
 Dokument = xlrd.open_workbook(XLS)
-Blatt = Dokument.sheet_by_index(0) ##greift auf das erste (0) Tabellenblatt zu
-Zeilen = Blatt.nrows-1 ##-1 wegen Überschriften
+Blatt = Dokument.sheet_by_index(0) ##getting first sheet (0)
+Zeilen = Blatt.nrows-1 ##-1 due to headlines
 print(" ",Zeilen,"rows!")
 
 
-#--Knoten--#
+#--Nodes--#
 if method == "nodes":
     f.write("Node changes \n")
     for i in range(Zeilen):
-        Alt = int(Blatt.cell_value(rowx=1+i,colx=0)) ##1+i damit überschriften ignoriert werden
-        Neu = Blatt.cell_value(rowx=1+i,colx=1)
+        old = int(Blatt.cell_value(rowx=1+i,colx=0)) #+1 to ignore headlines
+        new = Blatt.cell_value(rowx=1+i,colx=1)
         
-        if Alt != Neu:
+        if old != new:
             try:
-                VISUM.Net.Nodes.ItemByKey(int(Alt)).SetAttValue("No",int(Neu))
-                f.write("node: old: "+str(Alt)+" new: "+str(int(Neu))+"\n")
+                VISUM.Net.Nodes.ItemByKey(int(old)).SetAttValue("No",int(new))
+                f.write("node: old: "+str(old)+" new: "+str(int(new))+"\n")
             except: 
-                f.write("!!Error: node: old: "+str(Alt)+"\n")
-                print("!!Error: "+str(Alt)+"; neu: "+str(Neu))
+                f.write("!!Error: node: old: "+str(old)+"\n")
+                print("!!Error: "+str(old)+"; neu: "+str(new))
     f.write("\n\n\n")
-            
-#--Strecken--#
+
+#--Connections--#
+if method == "merge_connect":
+    f.write("Merge nodes of connections \n")
+    for i in range(Zeilen):
+        keepingnode = int(Blatt.cell_value(rowx=1+i,colx=0))
+        dyingnode = Blatt.cell_value(rowx=1+i,colx=1)
+        try:VISUM.Net.Nodes.Merge(int(keepingnode),int(dyingnode))
+        except:pass
+        f.write("keeping node: "+str(keepingnode)+" dying node: "+str(dyingnode)+"\n")
+    f.write("\n\n\n")
+
+#--Links--#
 if method == "links":
     f.write("Link changes \n")
     for i in range(Zeilen):
-        vonKnoten = int(Blatt.cell_value(rowx=1+i,colx=1)) ##1+i damit überschriften ignoriert werden
-        nachKnoten = int(Blatt.cell_value(rowx=1+i,colx=2)) ##1+i damit überschriften ignoriert werden
-        altStreckNr = int(Blatt.cell_value(rowx=1+i,colx=0))
-        neuStreckNr = int(Blatt.cell_value(rowx=1+i,colx=3))
-        if altStreckNr == neuStreckNr: continue
+        fromNode = int(Blatt.cell_value(rowx=1+i,colx=1))
+        toNode = int(Blatt.cell_value(rowx=1+i,colx=2))
+        oldLinkNo = int(Blatt.cell_value(rowx=1+i,colx=0))
+        newLinkNo = int(Blatt.cell_value(rowx=1+i,colx=3))
+        if oldLinkNo == newLinkNo: continue
 
         try:
-            Link = VISUM.Net.Links.ItemByKey(vonKnoten,nachKnoten)
-            Link.SetNo(neuStreckNr)
-            f.write("link: old: "+str(altStreckNr)+" new: "+str(int(neuStreckNr))+"\n")
+            Link = VISUM.Net.Links.ItemByKey(fromNode,toNode)
+            Link.SetNo(newLinkNo)
+            f.write("link: old: "+str(oldLinkNo)+" new: "+str(int(newLinkNo))+"\n")
         except:
-            f.write("!!Error: link: old: "+str(altStreckNr)+" new: "+str(int(neuStreckNr))+"\n")
-            print ("error "+neuStreckNr)
+            f.write("!!Error: link: old: "+str(oldLinkNo)+" new: "+str(int(newLinkNo))+"\n")
+            print ("error "+newLinkNo)
             continue
     f.write("\n\n\n")
 
