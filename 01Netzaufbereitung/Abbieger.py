@@ -12,7 +12,6 @@
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
 import win32com.client.dynamic
-import xlwt
 import xlsxwriter
 import time
 start_time = time.time()
@@ -110,9 +109,9 @@ def UTurn(turn, RowNo):
     Ident = TSysIdent(turn,turn[3],turn[4])
     if turn[5] == turn[7]:
         if turn[9] == 4:setValues(turn,[0,0,0,0,""],RowNo) ##roundabout
-        if turn[9] == 10:setValues(turn,[3,90,0.2,22,Ident[1]],RowNo) ##connection
-        if turn[9] == 12:setValues(turn,[3,45,0.2,22,Ident[1]],RowNo) ##connection
-        if turn[9] == 11:setValues(turn,[0,0,0,0,""],RowNo) ##Ramp-only
+        if turn[9] == 10:setValues(turn,[0,0,0,0,""],RowNo) ##connection
+        if turn[9] == 12:setValues(turn,[3,45,0.2,22,Ident[1]],RowNo) ##connector
+        if turn[9] == 11:setValues(turn,[0,0,0,0,""],RowNo) ##Remaining
         if turn[9] == 13:setValues(turn,[0,0,0,0,""],RowNo) ##Ramp-only
         if turn[9] < 4 or turn[9] == 5:setValues(turn,[3,90,0.2,22,Ident[1]],RowNo) ##LSA
         if 6 <= turn[9] <= 7:setValues(turn,[3,45,0.2,22,Ident[1]],RowNo) ##Main-Priority-Lane
@@ -144,7 +143,7 @@ maxType = VISUM.Net.Nodes.GetMultiAttValues("Max:InLinks\DISPLAYTYPE")
 for i in enumerate(nodes):
     if area[i[0]][1] == 1:continue  ##ist im Untersuchungsraum
     
-    # if nodeType[i[0]][1] != 6: continue
+    if nodeType[i[0]][1] != 1: continue
     
     #LSA#
     if nodeType[i[0]][1] == 1:        
@@ -159,8 +158,8 @@ for i in enumerate(nodes):
             if Ident[0] is False:
                 setValues(turn,[0,0,0.0,0,""],RowNo)
                 continue
-            ## main roads only
-            if maxType[i[0]][1] <= 3:
+            ## highway  only
+            if maxType[i[0]][1] <= 1:
                 setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo)
                 continue
             ##sharp angles
@@ -170,13 +169,16 @@ for i in enumerate(nodes):
             ##right
             if turn[2] > 15 and turn[2] <= 135:
                 if turn[0] == minType[i[0]][1]: ##from main
-                    setValues(turn,[5,99999,1.0,12,Ident[1]],RowNo)
+                    setValues(turn,[5,950,1.0,12,Ident[1]],RowNo)
                     continue
                 else:
                     setValues(turn,[1,350,0.5,18,Ident[1]],RowNo) ##from minor
                     continue
             ##straight
             if turn[2] > 135 and turn[2] <= 225:
+                if turn[0] <= 3: ##from main road
+                    setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo)
+                    continue
                 if turn[0] == minType[i[0]][1]: ##from main
                     setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo)
                     continue
@@ -185,7 +187,7 @@ for i in enumerate(nodes):
                     continue
             ##left
             if turn[2] > 225 and turn[2] <= 345:
-                if turn[0] == minType[i[0]][1]: ##from main
+                if turn[0] <= 5: ##from main
                     setValues(turn,[3,450,1.0,22,Ident[1]],RowNo)
                     continue
                 else:
