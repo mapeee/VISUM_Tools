@@ -27,6 +27,7 @@ f = f.split('\n')
 
 #--Parameter--#
 Netz = f[0]
+Sharp = 0 #writing number of all sharp turns to textfile
 
 #--excel--#
 # wb = xlwt.Workbook()
@@ -113,7 +114,7 @@ def UTurn(turn, RowNo):
         if turn[9] == 12:setValues(turn,[3,45,0.2,22,Ident[1]],RowNo) ##connector
         if turn[9] == 11:setValues(turn,[0,0,0,0,""],RowNo) ##Remaining
         if turn[9] == 13:setValues(turn,[0,0,0,0,""],RowNo) ##Ramp-only
-        if turn[9] < 4 or turn[9] == 5:setValues(turn,[3,90,0.2,22,Ident[1]],RowNo) ##LSA
+        if turn[9] < 4 or turn[9] == 5:setValues(turn,[3,20,0.2,22,Ident[1]],RowNo) ##LSA
         if 6 <= turn[9] <= 7:setValues(turn,[3,45,0.2,22,Ident[1]],RowNo) ##Main-Priority-Lane
         if 8 <= turn[9] <= 9:setValues(turn,[0,0,0,0,""],RowNo) ##Ramp
         return True
@@ -121,7 +122,7 @@ def UTurn(turn, RowNo):
     
 #--outputs--#
 date = datetime.now()
-txt_name = 'Turns_'+date.strftime('%m%d%Y')+'.txt'
+txt_name = 'SharpAngle_'+date.strftime('%m%d%Y')+'.txt'
 f = open(Path.home() / 'Desktop' / txt_name,'w+')
 f.write(time.ctime()+"\n")
 f.write("Input Network: "+Netz+"\n")
@@ -139,12 +140,24 @@ nodeType = VISUM.Net.Nodes.GetMultiAttValues("Kreuzungstyp")
 nLinks = VISUM.Net.Nodes.GetMultiAttValues("NumLinks")
 minType = VISUM.Net.Nodes.GetMultiAttValues("Min:InLinks\DISPLAYTYPE")
 maxType = VISUM.Net.Nodes.GetMultiAttValues("Max:InLinks\DISPLAYTYPE")
+Val1 = VISUM.Net.Nodes.GetMultiAttValues("AddVal1")
 
 for i in enumerate(nodes):
-    if area[i[0]][1] == 1:continue  ##ist im Untersuchungsraum
+    if area[i[0]][1] == 1:continue  ##in focus area
+    if Val1[i[0]][1] == 0:continue  ##only some nodes to change
+    # if minType[i[0]][1] != 1:continue  ##highway only
+    # if minType[i[0]][1] != 2 and minType[i[0]][1] != 3:continue  ##trunk only
+    # if nodeType[i[0]][1] != 1: continue
     
-    if nodeType[i[0]][1] != 1: continue
-    
+    if Sharp == 1:
+        node = VISUM.Net.Nodes.ItemByKey(i[1][1])
+        turns = turnInfo(node)
+        for turn in turns:
+            if (turn[2] <= 5 or turn[2] > 355) and turn[2] != 360:
+                f.write(str(int(i[1][1]))+"\n")
+                break
+        continue
+                
     #LSA#
     if nodeType[i[0]][1] == 1:        
         node = VISUM.Net.Nodes.ItemByKey(i[1][1])
@@ -169,7 +182,7 @@ for i in enumerate(nodes):
             ##right
             if turn[2] > 15 and turn[2] <= 135:
                 if turn[0] == minType[i[0]][1]: ##from main
-                    setValues(turn,[5,950,1.0,12,Ident[1]],RowNo)
+                    setValues(turn,[1,450,0.6,18,Ident[1]],RowNo)
                     continue
                 else:
                     setValues(turn,[1,350,0.5,18,Ident[1]],RowNo) ##from minor
@@ -180,7 +193,7 @@ for i in enumerate(nodes):
                     setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo)
                     continue
                 if turn[0] == minType[i[0]][1]: ##from main
-                    setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo)
+                    setValues(turn,[2,800,1.0,16,Ident[1]],RowNo)
                     continue
                 else:
                     setValues(turn,[2,400,0.5,16,Ident[1]],RowNo) ##from minor
