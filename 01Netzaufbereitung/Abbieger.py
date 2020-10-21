@@ -144,10 +144,10 @@ Val1 = VISUM.Net.Nodes.GetMultiAttValues("AddVal1")
 
 for i in enumerate(nodes):
     if area[i[0]][1] == 1:continue  ##in focus area
-    if Val1[i[0]][1] == 0:continue  ##only some nodes to change
+    # if Val1[i[0]][1] == 0:continue  ##only some nodes to change
     # if minType[i[0]][1] != 1:continue  ##highway only
     # if minType[i[0]][1] != 2 and minType[i[0]][1] != 3:continue  ##trunk only
-    # if nodeType[i[0]][1] != 1: continue
+    if nodeType[i[0]][1] != 1 and nodeType[i[0]][1] != 6 and nodeType[i[0]][1] != 7: continue
     
     if Sharp == 1:
         node = VISUM.Net.Nodes.ItemByKey(i[1][1])
@@ -181,30 +181,39 @@ for i in enumerate(nodes):
                 continue
             ##right
             if turn[2] > 15 and turn[2] <= 135:
-                if turn[0] == minType[i[0]][1]: ##from main
+                if turn[0] <= 3: ##from trunk road
                     setValues(turn,[1,450,0.6,18,Ident[1]],RowNo)
                     continue
-                else:
-                    setValues(turn,[1,350,0.5,18,Ident[1]],RowNo) ##from minor
+                if turn[0] <= 4: ##from main
+                    setValues(turn,[1,350,0.5,18,Ident[1]],RowNo)
                     continue
+                else:
+                    setValues(turn,[1,210,0.3,18,Ident[1]],RowNo) ##from minor
+                    continue                
             ##straight
             if turn[2] > 135 and turn[2] <= 225:
-                if turn[0] <= 3: ##from main road
+                if turn[0] <= 2: ##from trunk road
                     setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo)
                     continue
-                if turn[0] == minType[i[0]][1]: ##from main
+                if turn[0] <= 3: ##from main road
                     setValues(turn,[2,800,1.0,16,Ident[1]],RowNo)
+                    continue
+                if turn[0] <= 4: ##from main
+                    setValues(turn,[2,640,0.8,16,Ident[1]],RowNo)
                     continue
                 else:
                     setValues(turn,[2,400,0.5,16,Ident[1]],RowNo) ##from minor
                     continue
             ##left
             if turn[2] > 225 and turn[2] <= 345:
-                if turn[0] <= 5: ##from main
+                if turn[0] <= 3: ##from main
                     setValues(turn,[3,450,1.0,22,Ident[1]],RowNo)
                     continue
+                if turn[0] <= 4: ##from main
+                    setValues(turn,[3,225,0.5,22,Ident[1]],RowNo)
+                    continue
                 else:
-                    setValues(turn,[3,225,0.5,22,Ident[1]],RowNo) ##from minor
+                    setValues(turn,[3,180,0.4,22,Ident[1]],RowNo) ##from minor
                     continue    
             ##remaining values    
             setValues(turn,[2,99999,999,0,Ident[1]],RowNo)
@@ -320,8 +329,12 @@ for i in enumerate(nodes):
                     setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo)
                     continue
                 else:
-                    setValues(turn,[5,475,0.5,12,Ident[1]],RowNo) ##from minor
-                    continue
+                    if turn[0] <= 4:
+                        setValues(turn,[5,475,0.5,12,Ident[1]],RowNo) ##from minor prior
+                        continue
+                    else:
+                        setValues(turn,[5,285,0.3,12,Ident[1]],RowNo) ##from minor
+                        continue
             ##straight
             if turn[2] > 135 and turn[2] <= 225:
                 if turn[0] == minType[i[0]][1]: ##from main
@@ -337,8 +350,12 @@ for i in enumerate(nodes):
                     else: setValues(turn,[4,475,0.5,7,Ident[1]],RowNo)
                     continue
                 else:
-                    setValues(turn,[6,310,0.4,18,Ident[1]],RowNo) ##from minor
-                    continue    
+                    if turn[0] <= 4:
+                        setValues(turn,[6,310,0.4,18,Ident[1]],RowNo) ##from minor prior
+                        continue  
+                    else:
+                        setValues(turn,[6,155,0.2,18,Ident[1]],RowNo) ##from minor
+                        continue 
             ##remaining values    
             setValues(turn,[2,99999,999,0,Ident[1]],RowNo)
         continue
