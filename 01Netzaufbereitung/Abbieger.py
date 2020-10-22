@@ -144,10 +144,10 @@ Val1 = VISUM.Net.Nodes.GetMultiAttValues("AddVal1")
 
 for i in enumerate(nodes):
     if area[i[0]][1] == 1:continue  ##in focus area
-    # if Val1[i[0]][1] == 0:continue  ##only some nodes to change
+    if Val1[i[0]][1] == 0:continue  ##only some nodes to change
     # if minType[i[0]][1] != 1:continue  ##highway only
     # if minType[i[0]][1] != 2 and minType[i[0]][1] != 3:continue  ##trunk only
-    if nodeType[i[0]][1] != 1 and nodeType[i[0]][1] != 6 and nodeType[i[0]][1] != 7: continue
+    # if nodeType[i[0]][1] != 1 and nodeType[i[0]][1] != 6 and nodeType[i[0]][1] != 7: continue
     
     if Sharp == 1:
         node = VISUM.Net.Nodes.ItemByKey(i[1][1])
@@ -326,7 +326,8 @@ for i in enumerate(nodes):
             ##right
             if turn[2] > 15 and turn[2] <= 135:
                 if turn[0] == minType[i[0]][1]: ##from main
-                    setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo)
+                    if turn[0] <= 4: setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo)
+                    else: setValues(turn,[5,475,0.5,12,Ident[1]],RowNo)
                     continue
                 else:
                     if turn[0] <= 4:
@@ -346,8 +347,9 @@ for i in enumerate(nodes):
             ##left
             if turn[2] > 225 and turn[2] <= 345:
                 if turn[0] == minType[i[0]][1]: ##from main
-                    if turn[0] == minType[i[0]][1]: setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo) #bend                
-                    else: setValues(turn,[4,475,0.5,7,Ident[1]],RowNo)
+                    if turn[0] == minType[i[0]][1] and turn[1] == minType[i[0]][1]: setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo) #bend                
+                    elif turn[0] <= 3 and turn[1] <= 4: setValues(turn,[4,380,0.4,7,Ident[1]],RowNo)
+                    else: setValues(turn,[4,380,0.4,7,Ident[1]],RowNo)
                     continue
                 else:
                     if turn[0] <= 4:
