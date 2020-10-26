@@ -111,10 +111,10 @@ def UTurn(turn, RowNo):
     if turn[5] == turn[7]:
         if turn[9] == 4:setValues(turn,[0,0,0,0,""],RowNo) ##roundabout
         if turn[9] == 10:setValues(turn,[0,0,0,0,""],RowNo) ##connection
-        if turn[9] == 12:setValues(turn,[3,45,0.2,22,Ident[1]],RowNo) ##connector
+        if turn[9] == 12:setValues(turn,[0,0,0,0,""],RowNo) ##connector
         if turn[9] == 11:setValues(turn,[0,0,0,0,""],RowNo) ##Remaining
         if turn[9] == 13:setValues(turn,[0,0,0,0,""],RowNo) ##Ramp-only
-        if turn[9] < 4 or turn[9] == 5:setValues(turn,[3,20,0.2,22,Ident[1]],RowNo) ##LSA
+        if turn[9] < 4 or turn[9] == 5:setValues(turn,[3,20,0.2,22,Ident[1]],RowNo) ##priority to the right or traffic light
         if 6 <= turn[9] <= 7:setValues(turn,[3,45,0.2,22,Ident[1]],RowNo) ##Main-Priority-Lane
         if 8 <= turn[9] <= 9:setValues(turn,[0,0,0,0,""],RowNo) ##Ramp
         return True
