@@ -71,10 +71,12 @@ def turnInfo(node):
     fromNodeType = node.ViaNodeTurns.GetMultiAttValues("FromNode\Kreuzungstyp")
     NodeType = node.ViaNodeTurns.GetMultiAttValues("ViaNode\Kreuzungstyp")
     toNodeType = node.ViaNodeTurns.GetMultiAttValues("ToNode\Kreuzungstyp")
+    turnType = node.ViaNodeTurns.GetMultiAttValues("TypeNo")
     infos=[]
     for i in enumerate(fromType):
         infos.append([fromType[i[0]][1],toType[i[0]][1],angle[i[0]][1],fromTSys[i[0]][1],toTSys[i[0]][1],
-                  fromNode[i[0]][1],viaNode[i[0]][1],toNode[i[0]][1],fromNodeType[i[0]][1],NodeType[i[0]][1],toNodeType[i[0]][1]])
+                  fromNode[i[0]][1],viaNode[i[0]][1],toNode[i[0]][1],fromNodeType[i[0]][1],NodeType[i[0]][1],
+                  toNodeType[i[0]][1],turnType[i[0]][1]])
     return infos
 
 def TSysIdent(turn, fromTSys, toTSys): ##for valid transport systems
@@ -114,8 +116,9 @@ def UTurn(turn, RowNo):
         if turn[9] == 12:setValues(turn,[0,0,0,0,""],RowNo) ##connector
         if turn[9] == 11:setValues(turn,[0,0,0,0,""],RowNo) ##Remaining
         if turn[9] == 13:setValues(turn,[0,0,0,0,""],RowNo) ##Ramp-only
+        if turn[9] == 14:setValues(turn,[1,2000,0,0,Ident[1]],RowNo) ##Rail
         if turn[9] < 4 or turn[9] == 5:setValues(turn,[3,20,0.2,22,Ident[1]],RowNo) ##priority to the right or traffic light
-        if 6 <= turn[9] <= 7:setValues(turn,[3,45,0.2,22,Ident[1]],RowNo) ##Main-Priority-Lane
+        if 6 <= turn[9] <= 7:setValues(turn,[3,20,0.2,22,Ident[1]],RowNo) ##Main-Priority-Lane
         if 8 <= turn[9] <= 9:setValues(turn,[0,0,0,0,""],RowNo) ##Ramp
         return True
     else: return False
@@ -143,11 +146,12 @@ maxType = VISUM.Net.Nodes.GetMultiAttValues("Max:InLinks\DISPLAYTYPE")
 Val1 = VISUM.Net.Nodes.GetMultiAttValues("AddVal1")
 
 for i in enumerate(nodes):
-    if area[i[0]][1] == 1:continue  ##in focus area
-    if Val1[i[0]][1] == 0:continue  ##only some nodes to change
+    # if area[i[0]][1] == 1:continue  ##not in focus area
+    # if Val1[i[0]][1] == 0:continue  ##only some nodes to change
     # if minType[i[0]][1] != 1:continue  ##highway only
     # if minType[i[0]][1] != 2 and minType[i[0]][1] != 3:continue  ##trunk only
     # if nodeType[i[0]][1] != 1 and nodeType[i[0]][1] != 6 and nodeType[i[0]][1] != 7: continue
+    if nodeType[i[0]][1] != 14: continue
     
     if Sharp == 1:
         node = VISUM.Net.Nodes.ItemByKey(i[1][1])
@@ -481,6 +485,27 @@ for i in enumerate(nodes):
                 continue
             ##remaining
             setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo)
+        continue
+    
+    #Raily#
+    if nodeType[i[0]][1] == 14:        
+        node = VISUM.Net.Nodes.ItemByKey(i[1][1])
+        turns = turnInfo(node)
+        for turn in turns:
+            RowNo+=1
+            Ident = TSysIdent(turn,turn[3],turn[4])
+            ##UTurns
+            if UTurn(turn, RowNo) is True: continue
+            ##sharp angles
+            if turn[2] <= 45 or turn[2] > 315:
+                setValues(turn,[0,0,0.0,0,""],RowNo)
+                continue
+            ##closed link for rail systems
+            if Ident[0] is False:
+                setValues(turn,[0,0,0.0,0,""],RowNo)
+                continue
+            ##remaining
+            setValues(turn,[turn[11],2000,0.0,0,Ident[1]],RowNo)
         continue 
     
     #Remaining#
