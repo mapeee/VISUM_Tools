@@ -29,10 +29,13 @@ f = f.split('\n')
 
 #--Eingabe-Parameter--#
 Netz = f[0]
-Name_LineRoute = 1
-Name_Line = 1
+Name_Line = 0
+Name_LineRoute = 0
+Lineroute_Line = 1
 ValidDay = 0
-VehicleJourney = 1
+VehicleJourney = 0
+
+Vsys_c = ["RV","FV", "U", "S"]
 
 
 #--outputs--#
@@ -52,59 +55,30 @@ VISUM.Filters.InitAll()
 
 
 """
-#Linienzuordnung (Vereinigung Linienrouten eigentlich gleicher Linien)
+#Lineroute to Line
 """
-#--Zuordnugn LinienRouten zu Linien--#
-##l = [] ##erstelle Liste mit allen Linien, damit keine Doppelschleifen nach dem Ändern des Namens entstehen
-##
-##for Linien in VISUM.Net.Lines: ##Schleife über alle Linien
-####    if Linien.AttValue("TSysCode") not in ["BUS"]: continue
-##    Name = Linien.AttValue("Name")
-##    l.append((Name))
-##
-##for i in l:
-##    Line = VISUM.Net.Lines.ItemByKey(i)
-####    if Line.AttValue("AddVal1") ==0:
-####        continue
-##    Name = Line.AttValue("Name")
-##    Name_neu = Line.AttValue("Test")
-##    try:
-##        Line.SetAttValue("Name",Name_neu)
-##    except:
-##        for Route in Line.LineRoutes:
-##            try: ##Fals es diesen Linienroutennamen schon gibt.
-##                Route.Line = Name_neu
-##            except:
-##                Routenname = Route.AttValue("Name")
-##                try:
-##                    Route.SetAttValue("Name",str(int(Routenname)+random.randrange(10,800)))
-##                    Route.Line = Name_neu
-##                except:
-##                    Route.SetAttValue("Name",str(int(Routenname)+random.randrange(10,800)))
-##                    Route.Line = Name_neu
-"""
-#Lineroutes
-"""
-if Name_LineRoute == 1:
-    f.write("LineRoute changes \n")
+if Lineroute_Line == 1:
+    f.write("Lineroute to Line changes \n")
     l = [] ##list of lines to avoid references to already changed attributes
-    for Linien in VISUM.Net.Lines: 
-        if Linien.AttValue("TSysCode") not in ["BUS","AST"]: continue
+    for Linien in VISUM.Net.Lines: ##Schleife über alle Linien
+        if Linien.AttValue("TSysCode") not in Vsys_c: continue
         Name = Linien.AttValue("Name")
         l.append((Name))
     
     for i in l:
         Linien = VISUM.Net.Lines.ItemByKey(i)
-    
-        for Routen in Linien.LineRoutes: ##loop of lineroutes
-            Start = Routen.AttValue(r"StartLineRouteItem\StopPoint\Name")
-            Ende = Routen.AttValue(r"EndLineRouteItem\StopPoint\Name")
-            Nr = Routen.AttValue("Name")
-            Neu = Start+"--"+Ende+"("+Nr+")"
-            Routen.SetAttValue("Name",Neu)
-            f.write("lineroute: old: "+str(Nr)+" new: "+str(Neu)+"\n")
+        for Route in Linien.LineRoutes: ##loop of lineroutes
+            if Route.AttValue("Line_neu") == "no": continue
+            Name_new = Route.AttValue("Line_neu")
+            try: Route.Line = Name_new
+            except:
+                Routenname = Route.AttValue("Name")                    
+                Route.SetAttValue("Name",str(Routenname)+" ("+str(random.randrange(100,800))+")")
+                Route.Line = Name_new
+               
+            f.write("line of lineroute: old: "+str(Route.AttValue("LineName"))+" new: "+str(Name_new)+"\n") 
     f.write("\n\n\n")
-
+    
 """
 #Lines
 """
@@ -118,7 +92,7 @@ if Name_Line == 1:
     #--Linename--#
     l = [] ##list of lines to avoid references to already changed attributes
     for Linien in VISUM.Net.Lines: ##loop of lines
-        if Linien.AttValue("TSysCode") not in ["BUS","AST"]: continue
+        if Linien.AttValue("TSysCode") not in Vsys_c: continue
         Name = Linien.AttValue("Name")
         l.append((Name))
     
@@ -144,6 +118,32 @@ if Name_Line == 1:
     
     VISUM.Filters.InitAll() ##Damit dieser Filter später keine Relevanz mehr hat
     f.write("\n\n\n")
+
+"""
+#Lineroutes
+"""
+if Name_LineRoute == 1:
+    f.write("LineRoute changes \n")
+    l = [] ##list of lines to avoid references to already changed attributes
+    for Linien in VISUM.Net.Lines: 
+        if Linien.AttValue("TSysCode") not in Vsys_c: continue
+        Name = Linien.AttValue("Name")
+        l.append((Name))
+    
+    for i in l:
+        Linien = VISUM.Net.Lines.ItemByKey(i)
+        n = 1
+        for Routen in Linien.LineRoutes: ##loop of lineroutes
+            Start = Routen.AttValue(r"StartLineRouteItem\StopPoint\Name")
+            Ende = Routen.AttValue(r"EndLineRouteItem\StopPoint\Name")
+            Nr = Routen.AttValue("Name")
+            Neu = Start+"--"+Ende+"("+str(n)+")"
+            try: Routen.SetAttValue("Name",Neu)
+            except: pass
+            f.write("lineroute: old: "+str(Nr)+" new: "+str(Neu)+"\n")
+            n+=1
+    f.write("\n\n\n")
+
 
 """
 #--ValidDays--#
@@ -178,6 +178,7 @@ if ValidDay == 1:
 if VehicleJourney == 1:
     f.write("VehhicleJourney changes \n")
     for Fahrten in VISUM.Net.VehicleJourneys:
+        if Fahrten.AttValue("TSysCode") not in Vsys_c: continue
         von = Fahrten.AttValue(r"FromStopPoint\Name")
         nach = Fahrten.AttValue(r"ToStopPoint\Name")
         Nr = int(Fahrten.AttValue("No")) ##Number from HAFAS-Data
