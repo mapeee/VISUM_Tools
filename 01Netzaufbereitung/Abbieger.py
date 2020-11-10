@@ -146,12 +146,12 @@ maxType = VISUM.Net.Nodes.GetMultiAttValues("Max:InLinks\DISPLAYTYPE")
 Val1 = VISUM.Net.Nodes.GetMultiAttValues("AddVal1")
 
 for i in enumerate(nodes):
-    # if area[i[0]][1] == 1:continue  ##not in focus area
+    if area[i[0]][1] == 1:continue  ##not in focus area
     # if Val1[i[0]][1] == 0:continue  ##only some nodes to change
     # if minType[i[0]][1] != 1:continue  ##highway only
     # if minType[i[0]][1] != 2 and minType[i[0]][1] != 3:continue  ##trunk only
     # if nodeType[i[0]][1] != 1 and nodeType[i[0]][1] != 6 and nodeType[i[0]][1] != 7: continue
-    if nodeType[i[0]][1] != 14: continue
+    if nodeType[i[0]][1] != 9: continue
     
     if Sharp == 1:
         node = VISUM.Net.Nodes.ItemByKey(i[1][1])
@@ -367,7 +367,7 @@ for i in enumerate(nodes):
         continue
 
     #Ramp#
-    if 8 <= nodeType[i[0]][1] <= 9:        
+    if nodeType[i[0]][1] == 8:        
         node = VISUM.Net.Nodes.ItemByKey(i[1][1])
         turns = turnInfo(node)
         for turn in turns:
@@ -398,6 +398,31 @@ for i in enumerate(nodes):
             ##from fast to slow
             if turn[0] <= 3 and turn[1] > 3:
                 setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo) ##from minor
+                continue
+            ##remaining values    
+            setValues(turn,[2,99999,999,0,Ident[1]],RowNo)
+        continue
+    
+    #fast-fast#
+    if nodeType[i[0]][1] == 9:        
+        node = VISUM.Net.Nodes.ItemByKey(i[1][1])
+        turns = turnInfo(node)
+        for turn in turns:
+            RowNo+=1
+            Ident = TSysIdent(turn,turn[3],turn[4])
+            ##UTurns
+            if UTurn(turn, RowNo) is True: continue
+            ##sharp angles
+            if turn[2] <= 45 or turn[2] > 315:
+                setValues(turn,[0,0,0.0,0,""],RowNo)
+                continue
+            ##closed link for car and walk/bike
+            if Ident[0] is False:
+                setValues(turn,[0,0,0.0,0,""],RowNo)
+                continue
+            ##from fast to fast
+            if turn[0] <= 4 and turn[1] <= 4:
+                setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo)
                 continue
             ##remaining values    
             setValues(turn,[2,99999,999,0,Ident[1]],RowNo)
