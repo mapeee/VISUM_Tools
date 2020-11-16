@@ -54,16 +54,23 @@ print(" ",Zeilen,"rows!")
 #--splitting--#
 f.write("Splitting links \n")
 for i in range(Zeilen):
-    VonKnoten = int(Blatt.cell_value(rowx=1+i,colx=0)) ##1+i ignoring headlines
-    ZuKnoten = int(Blatt.cell_value(rowx=1+i,colx=1))
-    KnotenNr = int(Blatt.cell_value(rowx=1+i,colx=2))
-
+    FromNode = int(Blatt.cell_value(rowx=1+i,colx=0)) ##1+i ignoring headlines
+    ToNode = int(Blatt.cell_value(rowx=1+i,colx=1))
+    NodeNr = int(Blatt.cell_value(rowx=1+i,colx=2))
+    x_coord = Blatt.cell_value(rowx=1+i,colx=3)
+    y_coord = Blatt.cell_value(rowx=1+i,colx=4)
+    
     try:
-        VISUM.Net.Links.SplitViaNode(VonKnoten,ZuKnoten,KnotenNr)
-        f.write("node connected: "+str(KnotenNr)+"\n")
+        VISUM.Net.Links.SplitViaNode(FromNode,ToNode,NodeNr)
+        f.write("node connected: "+str(NodeNr)+"\n")
     except:
-        f.write("!!Error: node: "+str(KnotenNr)+"\n")
-        print("!!Error: node: "+str(KnotenNr)+"\n")
+        f.write("!!Error: node: "+str(NodeNr)+"\n")
+        print("!!Error: node: "+str(NodeNr)+"\n")
+        
+    xynode = VISUM.Net.Nodes.ItemByKey(NodeNr)
+    xynode.SetAttValue("XCoord",x_coord)
+    xynode.SetAttValue("YCoord",y_coord)
+    
 
 f.write("\n\n\n")
 
