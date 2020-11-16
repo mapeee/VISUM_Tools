@@ -14,6 +14,7 @@
 import win32com.client.dynamic
 import xlsxwriter
 import time
+import xlrd
 start_time = time.time()
 from datetime import datetime
 
@@ -28,13 +29,15 @@ f = f.split('\n')
 #--Parameter--#
 Netz = f[0]
 Sharp = 0 #writing number of all sharp turns to textfile
+direct = 1 #writing value directly into VISUM network
 
 #--excel--#
 # wb = xlwt.Workbook()
 # ws = wb.add_sheet(f[1]+"x")
 # results = 'C:'+f[2]
 
-wb = xlsxwriter.Workbook('C:'+f[2])
+path_out = 'C:'+f[2]
+wb = xlsxwriter.Workbook(path_out)
 ws = wb.add_worksheet(f[1])
 
 
@@ -147,11 +150,11 @@ Val1 = VISUM.Net.Nodes.GetMultiAttValues("AddVal1")
 
 for i in enumerate(nodes):
     if area[i[0]][1] == 1:continue  ##not in focus area
-    # if Val1[i[0]][1] == 0:continue  ##only some nodes to change
+    if Val1[i[0]][1] == 0:continue  ##only some nodes to change
     # if minType[i[0]][1] != 1:continue  ##highway only
     # if minType[i[0]][1] != 2 and minType[i[0]][1] != 3:continue  ##trunk only
     # if nodeType[i[0]][1] != 1 and nodeType[i[0]][1] != 6 and nodeType[i[0]][1] != 7: continue
-    if nodeType[i[0]][1] != 9: continue
+    # if nodeType[i[0]][1] != 12 and nodeType[i[0]][1] != 5: continue
     
     if Sharp == 1:
         node = VISUM.Net.Nodes.ItemByKey(i[1][1])
@@ -458,6 +461,10 @@ for i in enumerate(nodes):
             if maxType[i[0]][1] <= 3:
                 setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo)
                 continue
+            ##connector
+            if turn[0] == 10 or turn[1] == 10:
+                setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo)
+                continue
             ##sharp angles
             if turn[2] <= 15 or turn[2] > 345:
                 setValues(turn,[0,0,0.0,0,""],RowNo)
@@ -549,11 +556,47 @@ for i in enumerate(nodes):
             ##remaining
             setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo)
         continue 
+
+#excel output#
+# wb.save(results)
+wb.close()
+
+#writing directly#
+if direct == 1:
+    book = xlrd.open_workbook(path_out)
+    sheet = book.sheet_by_index(0) ##getting first sheet (0)
+    turns = sheet.nrows-1 ##-1 due to headlines
+    for i in range(turns):
+        from_n = int(sheet.cell_value(rowx=1+i,colx=0))
+        via_n = int(sheet.cell_value(rowx=1+i,colx=1))
+        to_n = int(sheet.cell_value(rowx=1+i,colx=2))
+        type_n = sheet.cell_value(rowx=1+i,colx=3)
+        capa = sheet.cell_value(rowx=1+i,colx=4)
+        Lanes = sheet.cell_value(rowx=1+i,colx=9)
+        t0 = sheet.cell_value(rowx=1+i,colx=10)
+        Vsys = sheet.cell_value(rowx=1+i,colx=15)
+        
+        turn = VISUM.Net.Turns.ItemByKey(from_n,via_n,to_n)
+        
+        turn.SetAttValue("TypeNo", type_n)
+        turn.SetAttValue("TSysSet", Vsys)
+        turn.SetAttValue("Kapazitaet_Nachm", capa)
+        turn.SetAttValue("Kapazitaet_Tag", capa)
+        turn.SetAttValue("Kapazitaet_Vorm", capa)
+        turn.SetAttValue("Kapazitaet_Rest", capa)
+        turn.SetAttValue("Kapazitaet_Nacht", capa)
+        turn.SetAttValue("SPURIGKEIT_abb", Lanes)
+        turn.SetAttValue("t0_Nachm", t0)
+        turn.SetAttValue("t0_Tag", t0)
+        turn.SetAttValue("t0_Vorm", t0)
+        turn.SetAttValue("t0_Rest", t0)
+        turn.SetAttValue("t0_Nacht", t0)
+
+
+       
     
 ##end
 Sekunden = int(time.time() - start_time)
 print("--finished after ",Sekunden,"seconds--")
-# wb.save(results)
-wb.close()
 f.write("--finished after "+str(Sekunden)+" seconds--")
 f.close()
