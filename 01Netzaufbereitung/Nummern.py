@@ -26,7 +26,10 @@ f = path.read_text()
 f = f.split('\n')
 
 #--Parameter--#
-method = "merge_connect" #nodes, links
+nodes = 1
+merge_connect = 0
+links = 0
+
 
 Netz = f[0]
 XLS = f[1]
@@ -55,7 +58,7 @@ print(" ",Zeilen,"rows!")
 
 
 #--Nodes--#
-if method == "nodes":
+if nodes == 1:
     f.write("Node changes \n")
     for i in range(Zeilen):
         old = int(Blatt.cell_value(rowx=1+i,colx=0)) #+1 to ignore headlines
@@ -71,7 +74,7 @@ if method == "nodes":
     f.write("\n\n\n")
 
 #--Connections--#
-if method == "merge_connect":
+if merge_connect == 1:
     f.write("Merge nodes of connections \n")
     for i in range(Zeilen):
         keepingnode = int(Blatt.cell_value(rowx=1+i,colx=0))
@@ -82,7 +85,7 @@ if method == "merge_connect":
     f.write("\n\n\n")
 
 #--Links--#
-if method == "links":
+if links == 1:
     f.write("Link changes \n")
     for i in range(Zeilen):
         fromNode = int(Blatt.cell_value(rowx=1+i,colx=1))
