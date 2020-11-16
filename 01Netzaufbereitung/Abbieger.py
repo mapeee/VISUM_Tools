@@ -120,6 +120,7 @@ def UTurn(turn, RowNo):
         if turn[9] == 11:setValues(turn,[0,0,0,0,""],RowNo) ##Remaining
         if turn[9] == 13:setValues(turn,[0,0,0,0,""],RowNo) ##Ramp-only
         if turn[9] == 14:setValues(turn,[1,2000,0,0,Ident[1]],RowNo) ##Rail
+        if turn[9] == 15:setValues(turn,[0,0,0,0,""],RowNo) ##connection
         if turn[9] < 4 or turn[9] == 5:setValues(turn,[3,20,0.2,22,Ident[1]],RowNo) ##priority to the right or traffic light
         if 6 <= turn[9] <= 7:setValues(turn,[3,20,0.2,22,Ident[1]],RowNo) ##Main-Priority-Lane
         if 8 <= turn[9] <= 9:setValues(turn,[0,0,0,0,""],RowNo) ##Ramp
@@ -539,6 +540,23 @@ for i in enumerate(nodes):
             ##remaining
             setValues(turn,[turn[11],2000,0.0,0,Ident[1]],RowNo)
         continue 
+    
+    #stops#
+    if nodeType[i[0]][1] == 15:        
+        node = VISUM.Net.Nodes.ItemByKey(i[1][1])
+        turns = turnInfo(node)
+        for turn in turns:
+            RowNo+=1
+            Ident = TSysIdent(turn,turn[3],turn[4])
+            ##UTurns
+            if UTurn(turn, RowNo) is True: continue
+            ##closed link for car and walk/bike
+            if Ident[0] is False:
+                setValues(turn,[0,0,0.0,0,""],RowNo)
+                continue
+            ##remaining values
+            setValues(turn,[9,99999,1.0,0,Ident[1]],RowNo)
+        continue
     
     #Remaining#
     if nodeType[i[0]][1] == 11:        
