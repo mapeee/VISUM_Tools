@@ -29,13 +29,13 @@ f = f.split('\n')
 
 #--Eingabe-Parameter--#
 Netz = f[0]
-Name_Line = 0
+Name_Line = 1
 Name_LineRoute = 0
-Lineroute_Line = 1
+Lineroute_Line = 0
 ValidDay = 0
 VehicleJourney = 0
 
-Vsys_c = ["RV","FV", "U", "S"]
+Vsys_c = ["Bus","AST"]
 
 
 #--outputs--#
@@ -100,13 +100,11 @@ if Name_Line == 1:
         Line = VISUM.Net.Lines.ItemByKey(i)
         Name = Line.AttValue("Name")
         Vsys = Line.AttValue("TSysCode")
-        if Vsys == "AST": Name = "AST"+Name
+        # if Vsys == "AST": Name = "AST"+Name
         # Betr = Line.AttValue("Operator\Name")
         # Betr = Betr.split(" ")[0]
-        try:
-            Neu = Name.split(",")[1]
-        except:
-            Neu = Name.split(",")[0]       
+        try: Neu = Name.split(",")[1]
+        except: Neu = Name.split(",")[0]       
         Neu += " ("+Line.AttValue(r"MinActive:LineRoutes\StartLineRouteItem\StopPoint\Name")+"--"+Line.AttValue(r"MaxActive:LineRoutes\EndLineRouteItem\StopPoint\Name")+")"
  
         try:
@@ -181,8 +179,7 @@ if VehicleJourney == 1:
         if Fahrten.AttValue("TSysCode") not in Vsys_c: continue
         von = Fahrten.AttValue(r"FromStopPoint\Name")
         nach = Fahrten.AttValue(r"ToStopPoint\Name")
-        Nr = int(Fahrten.AttValue("No")) ##Number from HAFAS-Data
-        Neu = von+"--"+nach+"("+str(Nr)+")"
+        Neu = von+"--"+nach
         f.write("VehicleJourney: old: "+str(Fahrten.AttValue("Name")+" new: "+str(Neu)+"\n"))      
         Fahrten.SetAttValue("Name",Neu)
     f.write("\n\n\n")

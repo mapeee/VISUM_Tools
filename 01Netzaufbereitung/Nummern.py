@@ -61,8 +61,8 @@ print(" ",Zeilen,"rows!")
 if nodes == 1:
     f.write("Node changes \n")
     for i in range(Zeilen):
-        old = int(Blatt.cell_value(rowx=1+i,colx=0)) #+1 to ignore headlines
-        new = Blatt.cell_value(rowx=1+i,colx=1)
+        old = int(Blatt.cell_value(rowx=1+i,colx=3)) #+1 to ignore headlines
+        new = Blatt.cell_value(rowx=1+i,colx=0)
         
         if old != new:
             try:

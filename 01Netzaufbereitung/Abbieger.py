@@ -130,10 +130,11 @@ def UTurn(turn, RowNo):
 #--outputs--#
 date = datetime.now()
 txt_name = 'SharpAngle_'+date.strftime('%m%d%Y')+'.txt'
-f = open(Path.home() / 'Desktop' / txt_name,'w+')
-f.write(time.ctime()+"\n")
-f.write("Input Network: "+Netz+"\n")
-f.write("\n\n\n\n")
+if Sharp == 1:
+    f = open(Path.home() / 'Desktop' / txt_name,'w+')
+    f.write(time.ctime()+"\n")
+    f.write("Input Network: "+Netz+"\n")
+    f.write("\n\n\n\n")
 
 #--open VISUM--#
 VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.20")
@@ -150,8 +151,8 @@ maxType = VISUM.Net.Nodes.GetMultiAttValues("Max:InLinks\DISPLAYTYPE")
 Val1 = VISUM.Net.Nodes.GetMultiAttValues("AddVal1")
 
 for i in enumerate(nodes):
-    if area[i[0]][1] == 1:continue  ##not in focus area
-    if Val1[i[0]][1] == 0:continue  ##only some nodes to change
+    # if area[i[0]][1] == 1:continue  ##not in focus area
+    if Val1[i[0]][1] != 1:continue  ##only some nodes to change
     # if minType[i[0]][1] != 1:continue  ##highway only
     # if minType[i[0]][1] != 2 and minType[i[0]][1] != 3:continue  ##trunk only
     # if nodeType[i[0]][1] != 1 and nodeType[i[0]][1] != 6 and nodeType[i[0]][1] != 7: continue
@@ -616,5 +617,6 @@ if direct == 1:
 ##end
 Sekunden = int(time.time() - start_time)
 print("--finished after ",Sekunden,"seconds--")
-f.write("--finished after "+str(Sekunden)+" seconds--")
-f.close()
+if Sharp == 1:
+    f.write("--finished after "+str(Sekunden)+" seconds--")
+    f.close()
