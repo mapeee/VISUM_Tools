@@ -94,7 +94,7 @@ def VISUM_import(VISUM,access,LinkType):
     import_setting.SetAttValue("HowToHandleIncompleteRoute", 2) ##search shortest path
     import_setting.SetAttValue("LinkTypeForInsertedLinksReplacingMissingShortestPaths",1)
     import_setting.SetAttValue("ShortestPathCriterion",0) ##direct distance (1 = travel time)
-    import_setting.SetAttValue("MaxDeviationFactor",1)
+    import_setting.SetAttValue("MaxDeviationFactor",10)
     import_setting.SetAttValue("WhatToDoIfShortestPathNotFound",2) ##insert link if necessary
     import_setting.SetAttValue("LinkTypeForInsertedLinksReplacingMissingShortestPaths",LinkType)
     import_setting.SetAttValue("WhatToDoIfStopPointIsBlocked", 0) ##do not insert time profile
@@ -118,9 +118,11 @@ journeys_b = VISUM.Net.VehicleJourneys.Count ##number of journeys before process
 
 VISUM_filter(VISUM)
 VISUM_export(VISUM,layout,access_db)
-access_edit(access_db,Nodes,False)
+access_edit(access_db,Nodes,False) ##False = no changing of nodenumbers
 VISUM_import(VISUM,access_db,insert_type)
 journeys_a = VISUM.Net.VehicleJourneys.Count ##number of journeys after processing
+
+for Route in VISUM.Net.LineRoutes.GetAllActive: Route.SetAttValue("AddVal1",0)
 
 
 #--testing--#
