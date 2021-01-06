@@ -2,7 +2,7 @@
 #!/usr/bin/python
 
 #-------------------------------------------------------------------------------
-# Name:        VISUM neue Hst-Nummer
+# Name:        VISUM new attributes of PT-elements
 # Purpose:
 #
 # Author:      mape
@@ -11,8 +11,6 @@
 # Copyright:   (c) mape 2014
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
-
-#---Vorbereitung---#
 import win32com.client.dynamic
 import time
 start_time = time.time()
@@ -29,13 +27,13 @@ f = f.split('\n')
 
 #--Eingabe-Parameter--#
 Netz = f[0]
-Name_Line = 1
-Name_LineRoute = 0
+Name_Line = 0
+Name_LineRoute = 1
 Lineroute_Line = 0
 ValidDay = 0
 VehicleJourney = 0
 
-Vsys_c = ["Bus","AST"]
+Vsys_c = ["RV","W"]
 
 
 #--outputs--#
@@ -135,7 +133,7 @@ if Name_LineRoute == 1:
             Start = Routen.AttValue(r"StartLineRouteItem\StopPoint\Name")
             Ende = Routen.AttValue(r"EndLineRouteItem\StopPoint\Name")
             Nr = Routen.AttValue("Name")
-            Neu = Start+"--"+Ende+"("+str(n)+")"
+            Neu = Start+"--"+Ende+" ("+str(n)+") (2021)"
             try: Routen.SetAttValue("Name",Neu)
             except: pass
             f.write("lineroute: old: "+str(Nr)+" new: "+str(Neu)+"\n")
