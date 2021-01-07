@@ -41,9 +41,12 @@ def VISUM_open(Net):
     VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.20")
     VISUM.loadversion(Net)
     VISUM.Filters.InitAll()
+    global journeys_b
+    journeys_b = VISUM.Net.VehicleJourneys.Count ##number of journeys before processing
     return VISUM
 
 def VISUM_filter(VISUM):
+    VISUM.Filters.InitAll()
     Linien = VISUM.Filters.LineGroupFilter()
     Linien.UseFilterForLineRoutes = True
     Linien.UseFilterForLineRouteItems = True
@@ -54,10 +57,25 @@ def VISUM_filter(VISUM):
     Linien.UseFilterForVehJourneyItems = True
     Linien = Linien.LineRouteFilter()
     Linien.AddCondition("OP_NONE",False,"AddVal1","GreaterVal",0)##no more filter,not complementary,AddVal1 > 0
+    
+    HST = VISUM.Filters.StopGroupFilter()
+    HST.UseFilterForStopAreas = True
+    HST.UseFilterForStopPoints = True
+    HST = HST.StopPointFilter()
+    HST.AddCondition("OP_NONE",False,"Node\AddVal1","GreaterVal",0)
+    
+    Connector = VISUM.Filters.ConnectorFilter()
+    Connector.AddCondition("OP_NONE",False,"Node\AddVal1","GreaterVal",0)
+    
+    Node = VISUM.Filters.NodeFilter()
+    Node.AddCondition("OP_NONE",False,"AddVal1","GreaterVal",0)
 
 def VISUM_export(VISUM,layout,access):
     VISUM.IO.SaveAccessDatabase(access,layout,True,False,True)
     VISUM.Net.LineRoutes.RemoveAll()
+    VISUM.Net.Connectors.RemoveAll()
+    VISUM.Net.StopPoints.RemoveAll()
+    VISUM.Net.StopAreas.RemoveAll()
 
 def access_edit(access,Nodes,change):
     conn = pyodbc.connect(r"Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ="+access+";")
@@ -87,7 +105,7 @@ def access_edit(access,Nodes,change):
             conn.commit()
     conn.close()
  
-def VISUM_import(VISUM,access,LinkType):
+def VISUM_import(VISUM,access,LinkType,filter2,journeys_b):
     import_setting = VISUM.CreateNetReadRouteSearchTsys()
     import_setting.SetAttValue("ChangeLinkTypeOfOpenedLinks",False)
     import_setting.SetAttValue("IncludeBlockedTurns",False)
@@ -101,37 +119,41 @@ def VISUM_import(VISUM,access,LinkType):
     import_setting.SetAttValue("WhatToDoIfStopPointNotFound", 0) ##do not read lineroute
     PuT_import = VISUM.CreateNetReadRouteSearch()
     PuT_import.SetForAllTSys(import_setting)
-    VISUM.IO.LoadAccessDatabase(access,True,PuT_import)   
+    VISUM.IO.LoadAccessDatabase(access,True,PuT_import)
+    
+    for Node in VISUM.Net.Nodes.GetAllActive: Node.SetAttValue("AddVal1",0)
+    VISUM.Filters.NodeFilter().Init()
+    VISUM.Filters.StopGroupFilter().Init()
+    VISUM.Filters.ConnectorFilter().Init()
+    
+    global journeys_a
+    journeys_a = VISUM.Net.VehicleJourneys.Count ##number of journeys after processing
 
-def LinksTest(VISUM,filter2):
+    #--testing after the import--#
     InsertedLinks = VISUM.Filters.LinkFilter()
-    InsertedLinks.UseFilter = True
     InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(insert_type))
-    if filter2 == True: InsertedLinks.AddCondition("OP_AND",False,"DISPLAYTYPE", "EqualVal", "")
-    InsertedLinks = VISUM.Net.Links.CountActive
-    if InsertedLinks > 0: print("--"+str(InsertedLinks)+" new links added--")
+    if filter2 == True:
+        InsertedLinks.AddCondition("OP_AND",False,"DISPLAYTYPE", "EqualVal", "")
+        InsertedLinks = VISUM.Net.Links.CountActive
+        if InsertedLinks > 0: print("--"+str(InsertedLinks)+" new links added--")    
+    if journeys_b != journeys_a: print("missing VehicleJourneys!!!")
     
     
 #--processing--#
 VISUM = VISUM_open(Network)
-journeys_b = VISUM.Net.VehicleJourneys.Count ##number of journeys before processing
-
 VISUM_filter(VISUM)
+
 VISUM_export(VISUM,layout,access_db)
-access_edit(access_db,Nodes,False) ##False = no changing of nodenumbers
-VISUM_import(VISUM,access_db,insert_type)
-journeys_a = VISUM.Net.VehicleJourneys.Count ##number of journeys after processing
+access_edit(access_db,Nodes,False) ##False = no editing of nodenumbers
 
-for Route in VISUM.Net.LineRoutes.GetAllActive: Route.SetAttValue("AddVal1",0)
+VISUM_import(VISUM,access_db,insert_type,False,journeys_b)
 
-
-#--testing--#
-if journeys_b == journeys_a: pass
-else: print("missing VehicleJourneys!!!")
-LinksTest(VISUM,False)
 
 ##end
 send2trash(access_db)
+for Route in VISUM.Net.LineRoutes.GetAllActive: Route.SetAttValue("AddVal1",0)
+VISUM.Filters.InitAll()
+
 # del VISUM
 Sekunden = int(time.time() - start_time)
 print("--finished after ",Sekunden,"seconds--")
