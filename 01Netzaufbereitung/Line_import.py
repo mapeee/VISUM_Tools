@@ -33,8 +33,7 @@ access_db = f[2]
 
 #--Parameter--#
 insert_type = 1 ##type of inserted links
-Nodes = [[1,[1,33],[2,44]],
-          [2,[4,55]]]
+Nodes = [[1,[10055,10044]]]
 
 
 def VISUM_open(Net):
@@ -74,8 +73,9 @@ def VISUM_export(VISUM,layout,access):
     VISUM.IO.SaveAccessDatabase(access,layout,True,False,True)
     VISUM.Net.LineRoutes.RemoveAll()
     VISUM.Net.Connectors.RemoveAll()
-    VISUM.Net.StopPoints.RemoveAll()
     VISUM.Net.StopAreas.RemoveAll()
+    VISUM.Net.StopPoints.RemoveAll()
+
 
 def access_edit(access,Nodes,change):
     conn = pyodbc.connect(r"Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ="+access+";")
@@ -105,7 +105,7 @@ def access_edit(access,Nodes,change):
             conn.commit()
     conn.close()
  
-def VISUM_import(VISUM,access,LinkType,filter2,journeys_b):
+def VISUM_import(VISUM,access,LinkType,journeys_b):
     import_setting = VISUM.CreateNetReadRouteSearchTsys()
     import_setting.SetAttValue("ChangeLinkTypeOfOpenedLinks",False)
     import_setting.SetAttValue("IncludeBlockedTurns",False)
@@ -132,10 +132,8 @@ def VISUM_import(VISUM,access,LinkType,filter2,journeys_b):
     #--testing after the import--#
     InsertedLinks = VISUM.Filters.LinkFilter()
     InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(insert_type))
-    if filter2 == True:
-        InsertedLinks.AddCondition("OP_AND",False,"DISPLAYTYPE", "EqualVal", "")
-        InsertedLinks = VISUM.Net.Links.CountActive
-        if InsertedLinks > 0: print("--"+str(InsertedLinks)+" new links added--")    
+    if VISUM.Net.Links.CountActive > 0: print("--"+str(VISUM.Net.Links.CountActive)+" new links added--") 
+    VISUM.Filters.LinkFilter().Init()   
     if journeys_b != journeys_a: print("missing VehicleJourneys!!!")
     
     
@@ -144,9 +142,9 @@ VISUM = VISUM_open(Network)
 VISUM_filter(VISUM)
 
 VISUM_export(VISUM,layout,access_db)
-access_edit(access_db,Nodes,False) ##False = no editing of nodenumbers
+access_edit(access_db,Nodes,True) ##False = no editing of nodenumbers
 
-VISUM_import(VISUM,access_db,insert_type,False,journeys_b)
+VISUM_import(VISUM,access_db,insert_type,journeys_b)
 
 
 ##end
