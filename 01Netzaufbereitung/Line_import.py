@@ -36,8 +36,6 @@ def VISUM_open(Net):
     VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.20")
     VISUM.loadversion(Net)
     VISUM.Filters.InitAll()
-    global journeys_b
-    journeys_b = VISUM.Net.VehicleJourneys.Count ##number of journeys before processing
     return VISUM
 
 def VISUM_filter(VISUM):
@@ -65,15 +63,22 @@ def VISUM_filter(VISUM):
     Node = VISUM.Filters.NodeFilter()
     Node.AddCondition("OP_NONE",False,"AddVal1","GreaterVal",0)
     
-    InsertedLinks = VISUM.Filters.LinkFilter()
-    InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(1))
+    # InsertedLinks = VISUM.Filters.LinkFilter()
+    # InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(1))
+    
 
 def VISUM_export(VISUM,layout,access):
     VISUM.IO.SaveAccessDatabase(access,layout,True,False,True)
+    
+    global journeys_b
+    journeys_b = VISUM.Net.VehicleJourneys.Count ##number of journeys before export
+    
     VISUM.Net.LineRoutes.RemoveAll()
     VISUM.Net.Connectors.RemoveAll()
     VISUM.Net.StopAreas.RemoveAll()
     VISUM.Net.StopPoints.RemoveAll()
+    
+
 
 
 def access_edit(access,Nodes,change):
@@ -104,24 +109,28 @@ def access_edit(access,Nodes,change):
             conn.commit()
     conn.close()
  
-def VISUM_import(VISUM,access,LinkType,journeys_b):
+def VISUM_import(VISUM,access,LinkType,journeys_b,shortcrit):
     VISUM_filter(VISUM)
     import_setting = VISUM.CreateNetReadRouteSearchTsys()
     import_setting.SetAttValue("ChangeLinkTypeOfOpenedLinks",False)
     import_setting.SetAttValue("IncludeBlockedTurns",False)
     import_setting.SetAttValue("HowToHandleIncompleteRoute", 2) ##search shortest path
     import_setting.SetAttValue("LinkTypeForInsertedLinksReplacingMissingShortestPaths",1)
-    import_setting.SetAttValue("ShortestPathCriterion",1) ##link length (1 = travel time)
-    import_setting.SetAttValue("MaxDeviationFactor",50)
+    import_setting.SetAttValue("ShortestPathCriterion",shortcrit) ##link length (1 = travel time; 3 = link length)
+    import_setting.SetAttValue("MaxDeviationFactor",10)
     import_setting.SetAttValue("WhatToDoIfShortestPathNotFound",2) ##insert link if necessary
     import_setting.SetAttValue("LinkTypeForInsertedLinksReplacingMissingShortestPaths",LinkType)
-    import_setting.SetAttValue("WhatToDoIfStopPointIsBlocked", 0) ##do not insert time profile
+    import_setting.SetAttValue("WhatToDoIfStopPointIsBlocked", 2) ##Open the StopPoint
     import_setting.SetAttValue("WhatToDoIfStopPointNotFound", 0) ##do not read lineroute
     PuT_import = VISUM.CreateNetReadRouteSearch()
     PuT_import.SetForAllTSys(import_setting)
     VISUM.IO.LoadAccessDatabase(access,True,PuT_import)
     
+    VISUM.Filters.NodeFilter().Init()
+    Node = VISUM.Filters.NodeFilter()
+    Node.AddCondition("OP_NONE",False,"AddVal1","GreaterVal",0)
     for Node in VISUM.Net.Nodes.GetAllActive: Node.SetAttValue("AddVal1",0)
+    
     VISUM.Filters.NodeFilter().Init()
     VISUM.Filters.StopGroupFilter().Init()
     VISUM.Filters.ConnectorFilter().Init()
@@ -146,18 +155,19 @@ insert_type = 1 ##type of inserted links
 #--processing--#
 VISUM = VISUM_open(Network)
 VISUM_filter(VISUM)
-Nodes = [[1,[70028,700281]]]   #old, new
+Nodes = [[1,[3779153,63055]]]   #old, new
 
 VISUM_export(VISUM,layout,access_db)
 access_edit(access_db,Nodes,False) ##False = no editing of nodenumbers
 
-VISUM_import(VISUM,access_db,insert_type,journeys_b)
+VISUM_import(VISUM,access_db,insert_type,journeys_b,1) ##(shortcrit: 1 = travel time; 3 = link length)
 
 ##end
 send2trash(access_db)
 for Route in VISUM.Net.LineRoutes.GetAllActive: Route.SetAttValue("AddVal1",0)
 VISUM.Filters.InitAll()
 VISUM_filter(VISUM)
+print("--fertig--")
 
 VISUM.SaveVersion(Network)
 
