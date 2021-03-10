@@ -63,8 +63,8 @@ def VISUM_filter(VISUM):
     Node = VISUM.Filters.NodeFilter()
     Node.AddCondition("OP_NONE",False,"AddVal1","GreaterVal",0)
     
-    # InsertedLinks = VISUM.Filters.LinkFilter()
-    # InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(1))
+    InsertedLinks = VISUM.Filters.LinkFilter()
+    InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(1))
     
 
 def VISUM_export(VISUM,layout,access):
@@ -155,7 +155,7 @@ insert_type = 1 ##type of inserted links
 #--processing--#
 VISUM = VISUM_open(Network)
 VISUM_filter(VISUM)
-Nodes = [[1,[3779153,63055]]]   #old, new
+Nodes = [[1,[2009245899,6030640]]]   #old, new
 
 VISUM_export(VISUM,layout,access_db)
 access_edit(access_db,Nodes,False) ##False = no editing of nodenumbers
