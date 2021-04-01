@@ -51,7 +51,7 @@ def VISUM_open(Net):
 VISUM = VISUM_open(Network)
 
 MyFlowBundle = VISUM.Net.DemandSegments.ItemByKey("PV_OV_mFV_Nachm").FlowBundle
-MyFlowBundle.Clear
+MyFlowBundle.Clear()
 
 MyFlowBundle.DemandSegments = ("PV_OV_mFV_Vorm,PWV_OV_Vorm,"
 "PV_OV_mFV_Nachm,PWV_OV_Nachm,"
@@ -61,11 +61,12 @@ MyFlowBundle.DemandSegments = ("PV_OV_mFV_Vorm,PWV_OV_Vorm,"
 i = 2 ##headline in first row
 for origin in range(1,HstBer.max_row+1):
     if origin < 2:continue ##< 2 due to headline
-    if origin >3:continue
 
     for destination in range(1,HstBer.max_row+1):
         if destination < 2:continue ##< 2 due to headline
         if origin == destination:continue
+        
+        if origin <12 and destination <12: continue ##nur Landwehr und Altona
         
         print(HstBer.cell(origin,2).value)
         print(HstBer.cell(destination,2).value) 
@@ -87,8 +88,11 @@ for origin in range(1,HstBer.max_row+1):
         Resluts_xlsx.cell(i,4,HstBer.cell(destination,2).value)
         Resluts_xlsx.cell(i,5,Volume)
         Resluts_xlsx.cell(i,6,Transfer)
+        
+        MyFlowBundle.Clear()
+        
         i+=1
-
+        
 
 #End
 XLSX.save(r'C:\Users\peter\Desktop\test.xlsx')
