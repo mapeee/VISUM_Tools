@@ -28,12 +28,12 @@ f = f.split('\n')
 #--Eingabe-Parameter--#
 Netz = f[0]
 Name_Line = 0
-Name_LineRoute = 1
-Lineroute_Line = 0
+Name_LineRoute = 0
+Lineroute_Line = 1
 ValidDay = 0
 VehicleJourney = 0
 
-Vsys_c = ["RV","W"]
+Vsys_c = ["FV"]
 
 
 #--outputs--#

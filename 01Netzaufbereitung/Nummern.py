@@ -61,7 +61,7 @@ print(" ",Zeilen,"rows!")
 if nodes == 1:
     f.write("Node changes \n")
     for i in range(Zeilen):
-        old = int(Blatt.cell_value(rowx=1+i,colx=3)) #+1 to ignore headlines
+        old = int(Blatt.cell_value(rowx=1+i,colx=2)) #+1 to ignore headlines
         new = Blatt.cell_value(rowx=1+i,colx=0)
         
         if old != new:
@@ -183,6 +183,8 @@ if links == 1:
 ##        HstBer.SetAttValue("No",HstBer.AttValue("AddVal1"))
 
 ##end
+VISUM.SaveVersion(Netz)
+
 Sekunden = int(time.time() - start_time)
 print("--finished after ",Sekunden,"seconds--")
 
