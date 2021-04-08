@@ -33,7 +33,7 @@ XLSX = f[1]
 XLSX = openpyxl.load_workbook(XLSX)
 HstBer = XLSX.active
 #Excel results
-Resluts_xlsx = XLSX.create_sheet(index = 2 , title = "results")
+Resluts_xlsx = XLSX.create_sheet(index = 2 , title = "Demand")
 Resluts_xlsx.cell(1,1,"From_NO")
 Resluts_xlsx.cell(1,2,"From_Name")
 Resluts_xlsx.cell(1,3,"TO_NO")
@@ -65,8 +65,6 @@ for origin in range(1,HstBer.max_row+1):
     for destination in range(1,HstBer.max_row+1):
         if destination < 2:continue ##< 2 due to headline
         if origin == destination:continue
-        
-        if origin <12 and destination <12: continue ##nur Landwehr und Altona
         
         print(HstBer.cell(origin,2).value)
         print(HstBer.cell(destination,2).value) 
