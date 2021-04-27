@@ -67,7 +67,7 @@ def AddNodeStop(VISUM,Excel,row):
     VISUM.Graphic.Autozoom(Node)
  
     #Helper
-    if Helper == 1: return
+    if Helper == 0: return
     Node = VISUM.Net.AddNode(int(str(Nr)+"001"),X+3,Y) #east
     Node = VISUM.Net.AddNode(int(str(Nr)+"002"),X+3,Y-3) #southeast
     Node = VISUM.Net.AddNode(int(str(Nr)+"003"),X,Y-3) #south
@@ -81,7 +81,7 @@ def AddNodeStop(VISUM,Excel,row):
 def AddHelperLink(VISUM,Excel,row):
     Nr = Excel.cell(row,1).value
     Helper = Excel.cell(row,5).value
-    if Helper == 1:return
+    if Helper == 0:return
     
     #Links
     VISUM.Net.AddLink(int(str(Nr)+"001"),int(str(Nr)+"001"),int(str(Nr)+"002"),1)
@@ -107,8 +107,8 @@ def AddConnections(VISUM,Excel):
         
         if to_no == None: return
         
-        if from_help == 0: from_no = int(str(from_no)+"001")
-        if to_help == 0: to_no = int(str(to_no)+"005")
+        if from_help == 1: from_no = int(str(from_no)+"001")
+        if to_help == 1: to_no = int(str(to_no)+"005")
          
         VISUM.Net.AddLink(link_no,from_no,to_no,1)
     
