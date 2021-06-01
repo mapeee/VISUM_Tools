@@ -45,6 +45,7 @@ def Stops(VISUM,Excel):
         Y = Node.AttValue("YCoord")
         #Add Stops
         try:
+            Node.SetAttValue("Name",Name)
             Stop = VISUM.Net.AddStop(Nr,X,Y)
             Stop.SetAttValue("Name",Name)
             StopArea = VISUM.Net.AddStopArea(Nr,Stop,Node)
@@ -54,6 +55,7 @@ def Stops(VISUM,Excel):
             StopPoint = VISUM.Net.AddStopPointOnNode(Nr,StopArea,Node)
             StopPoint.SetAttValue("Name",Name)
             StopPoint.SetAttValue("AddVal2",1)
+            print("added: "+Name)
         except: print("error at: "+(str(Nr)))
         
 
