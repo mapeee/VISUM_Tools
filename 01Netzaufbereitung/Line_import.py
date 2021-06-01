@@ -69,6 +69,7 @@ def VISUM_filter(VISUM):
 
 def VISUM_export(VISUM,layout,access):
     VISUM.IO.SaveAccessDatabase(access,layout,True,False,True)
+
     
     global journeys_b
     journeys_b = VISUM.Net.VehicleJourneys.Count ##number of journeys before export
@@ -104,7 +105,7 @@ def access_edit(access,Nodes,change):
             cursor.execute('''
                             UPDATE LINEROUTEITEM
                             SET NODENO = '''+str(i[1])+''', STOPPOINTNO = '''+str(i[1])+'''
-                            WHERE NODENO = '''+str(i[0])+''' and ADDVAL = '''+str(AddValues[0])+'''
+                            WHERE STOPPOINTNO = '''+str(i[0])+''' and ADDVAL = '''+str(AddValues[0])+'''
                             ''')              
             conn.commit()
     conn.close()
@@ -117,7 +118,7 @@ def VISUM_import(VISUM,access,LinkType,journeys_b,shortcrit):
     import_setting.SetAttValue("HowToHandleIncompleteRoute", 2) ##search shortest path
     import_setting.SetAttValue("LinkTypeForInsertedLinksReplacingMissingShortestPaths",1)
     import_setting.SetAttValue("ShortestPathCriterion",shortcrit) ##link length (1 = travel time; 3 = link length)
-    import_setting.SetAttValue("MaxDeviationFactor",10)
+    import_setting.SetAttValue("MaxDeviationFactor",50)
     import_setting.SetAttValue("WhatToDoIfShortestPathNotFound",2) ##insert link if necessary
     import_setting.SetAttValue("LinkTypeForInsertedLinksReplacingMissingShortestPaths",LinkType)
     import_setting.SetAttValue("WhatToDoIfStopPointIsBlocked", 2) ##Open the StopPoint
@@ -155,7 +156,8 @@ insert_type = 1 ##type of inserted links
 #--processing--#
 VISUM = VISUM_open(Network)
 VISUM_filter(VISUM)
-Nodes = [[1,[2009245899,6030640]]]   #old, new
+Nodes = [[1,[11012,3784292]]]   #old, new
+# Nodes = [[1,[61070,3406056]],[1,[610701,3520689]]]   #old, new
 
 VISUM_export(VISUM,layout,access_db)
 access_edit(access_db,Nodes,False) ##False = no editing of nodenumbers
