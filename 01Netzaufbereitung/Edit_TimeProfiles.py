@@ -48,49 +48,67 @@ def VISUM_open(Net):
     VISUM.Filters.InitAll()
     return VISUM       
 
+def sumTT(sheet):
+    TT = pd.DataFrame(sheet.values)
+    TT = TT.iloc[1:]
+    TT[16] = TT.groupby([0,1,2,3])[13].transform('sum')
+    TT[15] = TT[14] - TT[16]
+    i = 2
+    for row in TT.itertuples():
+        sheet.cell(i,15,round((sheet.cell(i,15).value/60),1))
+        sheet.cell(i,16,round((row[16]/60),1))
+        sheet.cell(i,17,round((row[17]/60),1))
+        i+=1
+
 def exlwriter(TPItem,Share,Index,minTT):
     row = sheet.max_row + 1
     col_range = sheet.max_column
-    sheet.cell(row,1,TPItem.AttValue("LineName"))
-    sheet.cell(row,2,TPItem.AttValue("LineRouteName"))
-    sheet.cell(row,3,TPItem.AttValue("DirectionCode"))
-    sheet.cell(row,4,TPItem.AttValue("TimeProfileName"))
-    sheet.cell(row,5,Index)
-    sheet.cell(row,6,"Stresemann")
-    sheet.cell(row,7,TPItem.AttValue(r'LineRouteItem\StopPoint\Name'))
-    sheet.cell(row,8,TPItem.AttValue(r'NextTimeProfileItem\LineRouteItem\StopPoint\Name'))
-    sheet.cell(row,9,Share)
-    sheet.cell(row,10,TPItem.AttValue(r'PostRunTime'))
-    sheet.cell(row,11,minTT)
-    sheet.cell(row,12,(minTT*0.85))
-    sheet.cell(row,13,minTT-(minTT*0.85))
+    sheet.cell(row,1,row)
+    sheet.cell(row,2,TPItem.AttValue("LineName"))
+    sheet.cell(row,3,TPItem.AttValue("LineRouteName"))
+    sheet.cell(row,4,TPItem.AttValue("DirectionCode"))
+    sheet.cell(row,5,TPItem.AttValue("TimeProfileName"))
+    sheet.cell(row,6,Index)
+    sheet.cell(row,7,TPItem.AttValue(r'Max:UsedLineRouteItems\OutLink\Busspur'))
+    sheet.cell(row,8,TPItem.AttValue(r'LineRouteItem\StopPoint\Name'))
+    sheet.cell(row,9,TPItem.AttValue(r'NextTimeProfileItem\LineRouteItem\StopPoint\Name'))
+    sheet.cell(row,10,Share)
+    sheet.cell(row,11,TPItem.AttValue(r'PostRunTime'))
+    sheet.cell(row,12,minTT)
+    sheet.cell(row,13,(minTT*0.85))
+    sheet.cell(row,14,TPItem.AttValue(r'PostRunTime')-(minTT*0.85))
+    sheet.cell(row,15,TPItem.AttValue(r'TimeProfile\Sum:TimeProfileItems\PostRunTime'))
     
     #color
-    if minTT == 0: sheet.cell(row,11).fill = PatternFill(start_color='FFFF0000',end_color='FFFF0000',fill_type='solid')
     if Share == 1:
         greenFill = PatternFill(start_color='a8ff65',end_color='a8ff65',fill_type='solid')
         for col in range(1,col_range+1):sheet.cell(row,col).fill = greenFill
     if Share < 1 and Share >0.8:
         orangeFill = PatternFill(start_color='ffc965',end_color='ffc965',fill_type='solid')
         for col in range(1,col_range+1):sheet.cell(row,col).fill = orangeFill
+    if minTT == 0: sheet.cell(row,12).fill = PatternFill(start_color='FFFF0000',end_color='FFFF0000',fill_type='solid')
     
 
 #--Excel--#
 wb = Workbook()
 sheet = wb.active
-sheet.cell(1,1,"Linie")
-sheet.cell(1,2,"Route")
-sheet.cell(1,3,"Richtung")
-sheet.cell(1,4,"FZprofil")
-sheet.cell(1,5,"Index")
-sheet.cell(1,6,"Busspur")
-sheet.cell(1,7,"vonHalt")
-sheet.cell(1,8,"nachHalt")
-sheet.cell(1,9,"BS_Anteil")
-sheet.cell(1,10,"Fahrtzeit_sek")
-sheet.cell(1,11,"min:Fahrtzeit")
-sheet.cell(1,12,"neu:Fahrtzeit")
-sheet.cell(1,13,"Diff")
+sheet.cell(1,1,"ID")
+sheet.cell(1,2,"Linie")
+sheet.cell(1,3,"Route")
+sheet.cell(1,4,"Richtung")
+sheet.cell(1,5,"FZprofil")
+sheet.cell(1,6,"Index")
+sheet.cell(1,7,"Busspur")
+sheet.cell(1,8,"vonHalt")
+sheet.cell(1,9,"nachHalt")
+sheet.cell(1,10,"BS_Anteil")
+sheet.cell(1,11,"Fahrtzeit_sek")
+sheet.cell(1,12,"min:Fahrtzeit_sek")
+sheet.cell(1,13,"neu:Fahrtzeit_sek")
+sheet.cell(1,14,"diff:Fahrtzeit_sek")
+sheet.cell(1,15,"FZGesamt_min")
+sheet.cell(1,16,"neu:FZGesamt_min")
+sheet.cell(1,17,"diff:FZGesamt_min")
 
 #VISUM
 VISUM = VISUM_open(Network)
@@ -101,6 +119,7 @@ TProfiles = pd.DataFrame(np.array(VISUM.Net.TimeProfileItems.GetMultipleAttribut
 
 #--Line loop--#
 for Line in VISUM.Net.Lines:
+    # Line = VISUM.Net.Lines.ItemByKey("3")
     if Line.AttValue("TSysCode") != "Bus": continue
     print(Line.AttValue("Name"))
     for LineRoute in Line.LineRoutes:
@@ -119,8 +138,12 @@ for Line in VISUM.Net.Lines:
     
                 #writer_to_excel
                 exlwriter(TPItem, Share, Index, minTT)
+
+#newTraveltime
+sumTT(sheet)
   
 #END
+sheet.auto_filter.ref = sheet.dimensions
 wb.save(Excel)
 wb.close()
 seconds = int(time.time() - start_time)
