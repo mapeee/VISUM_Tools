@@ -51,7 +51,7 @@ def VISUM_open(Net):
 def sumTT(sheet):
     TT = pd.DataFrame(sheet.values)
     TT = TT.iloc[1:]
-    TT[16] = TT.groupby([0,1,2,3])[13].transform('sum')
+    TT[16] = TT.groupby([1,2,3,4])[13].transform('sum')
     TT[15] = TT[14] - TT[16]
     i = 2
     for row in TT.itertuples():
@@ -74,9 +74,16 @@ def exlwriter(TPItem,Share,Index,minTT):
     sheet.cell(row,9,TPItem.AttValue(r'NextTimeProfileItem\LineRouteItem\StopPoint\Name'))
     sheet.cell(row,10,Share)
     sheet.cell(row,11,TPItem.AttValue(r'PostRunTime'))
-    sheet.cell(row,12,minTT)
-    sheet.cell(row,13,(minTT*0.85))
-    sheet.cell(row,14,TPItem.AttValue(r'PostRunTime')-(minTT*0.85))
+    if Share == 1:
+        Bonus = 0.85
+        sheet.cell(row,12,minTT)
+        sheet.cell(row,13,(minTT*Bonus))
+        sheet.cell(row,14,TPItem.AttValue(r'PostRunTime')-(minTT*Bonus))
+    else:
+        Bonus = 1-(0.85*Share)
+        sheet.cell(row,12,TPItem.AttValue(r'PostRunTime'))
+        sheet.cell(row,13,(TPItem.AttValue(r'PostRunTime')*Bonus))
+        sheet.cell(row,14,TPItem.AttValue(r'PostRunTime')-(TPItem.AttValue(r'PostRunTime')*Bonus))
     sheet.cell(row,15,TPItem.AttValue(r'TimeProfile\Sum:TimeProfileItems\PostRunTime'))
     
     #color
@@ -119,7 +126,7 @@ TProfiles = pd.DataFrame(np.array(VISUM.Net.TimeProfileItems.GetMultipleAttribut
 
 #--Line loop--#
 for Line in VISUM.Net.Lines:
-    # Line = VISUM.Net.Lines.ItemByKey("3")
+    # Line = VISUM.Net.Lines.ItemByKey("3")   
     if Line.AttValue("TSysCode") != "Bus": continue
     print(Line.AttValue("Name"))
     for LineRoute in Line.LineRoutes:
@@ -134,6 +141,7 @@ for Line in VISUM.Net.Lines:
                 
                 LaneLength = LaneTest(LineRoute,StartHP,EndHP)
                 Share = round(LaneLength/TPItem.AttValue(r'PostLength'),2)
+                if Share < 0.25: continue
                 minTT = TProfiles.loc[(TProfiles[0] == StartHP) & (TProfiles[1] == EndHP)].min()[2]
     
                 #writer_to_excel
