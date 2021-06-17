@@ -80,7 +80,7 @@ def exlwriter(TPItem,Share,Index,minTT):
         sheet.cell(row,13,(minTT*Bonus))
         sheet.cell(row,14,TPItem.AttValue(r'PostRunTime')-(minTT*Bonus))
     else:
-        Bonus = 1-(0.85*Share)
+        Bonus = 1-(0.15*Share)
         sheet.cell(row,12,TPItem.AttValue(r'PostRunTime'))
         sheet.cell(row,13,(TPItem.AttValue(r'PostRunTime')*Bonus))
         sheet.cell(row,14,TPItem.AttValue(r'PostRunTime')-(TPItem.AttValue(r'PostRunTime')*Bonus))
@@ -94,7 +94,18 @@ def exlwriter(TPItem,Share,Index,minTT):
         orangeFill = PatternFill(start_color='ffc965',end_color='ffc965',fill_type='solid')
         for col in range(1,col_range+1):sheet.cell(row,col).fill = orangeFill
     if minTT == 0: sheet.cell(row,12).fill = PatternFill(start_color='FFFF0000',end_color='FFFF0000',fill_type='solid')
-    
+  
+def TProfiles(VISUM):
+    FilterTP = VISUM.Filters.LineGroupFilter()
+    FilterTP.UseFilterForVehJourneyItems = True
+    FilterTP = FilterTP.VehJourneyItemFilter()
+    FilterTP.AddCondition("OP_NONE",False,"Dep","GreaterEqualVal",32400) #32400 seconds == 9h
+    FilterTP.AddCondition("OP_AND",False,"Dep","LessEqualVal",50400) #50400 Sekunden == 14h
+    TProfiles = pd.DataFrame(np.array(VISUM.Net.TimeProfileItems.GetMultipleAttributes([r'LineRouteItem\StopPointNo',
+                        r'NextTimeProfileItem\LineRouteItem\StopPointNo',
+                        r'PostRunTime', r'MinActive:VehJourneyItems\Dep'])))  
+    return TProfiles
+  
 
 #--Excel--#
 wb = Workbook()
@@ -119,10 +130,7 @@ sheet.cell(1,17,"diff:FZGesamt_min")
 
 #VISUM
 VISUM = VISUM_open(Network)
-
-TProfiles = pd.DataFrame(np.array(VISUM.Net.TimeProfileItems.GetMultipleAttributes([r'LineRouteItem\StopPointNo',
-                        r'NextTimeProfileItem\LineRouteItem\StopPointNo',
-                        r'PostRunTime'])))
+TProfiles = TProfiles(VISUM)
 
 #--Line loop--#
 for Line in VISUM.Net.Lines:
@@ -142,7 +150,7 @@ for Line in VISUM.Net.Lines:
                 LaneLength = LaneTest(LineRoute,StartHP,EndHP)
                 Share = round(LaneLength/TPItem.AttValue(r'PostLength'),2)
                 if Share < 0.25: continue
-                minTT = TProfiles.loc[(TProfiles[0] == StartHP) & (TProfiles[1] == EndHP)].min()[2]
+                minTT = TProfiles.loc[(TProfiles[0] == StartHP) & (TProfiles[1] == EndHP) & (TProfiles[3].notnull())].min()[2]
     
                 #writer_to_excel
                 exlwriter(TPItem, Share, Index, minTT)
