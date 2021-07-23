@@ -2,7 +2,7 @@
 #!/usr/bin/python
 
 #-------------------------------------------------------------------------------
-# Name:        Editing of TimeProfiles für e.g. Bus-Lanes
+# Name:        Editing TimeProfiles for e.g. Bus-Lanes
 # Purpose:
 #
 # Author:      mape
@@ -63,10 +63,14 @@ def sumTT(sheet):
 def exlwriter(TPItem,Share,Index,minTT):
     row = sheet.max_row + 1
     col_range = sheet.max_column
+    newTT = minTT
+    
     sheet.cell(row,1,row)
     sheet.cell(row,2,TPItem.AttValue("LineName"))
     sheet.cell(row,3,TPItem.AttValue("LineRouteName"))
-    sheet.cell(row,4,TPItem.AttValue("DirectionCode"))
+    sheet.cell(row,4,(TPItem.AttValue("DirectionCode")+":"+
+                      str(TPItem.AttValue("TimeProfileID"))+":"+
+                      str(TPItem.AttValue("Index"))))
     sheet.cell(row,5,TPItem.AttValue("TimeProfileName"))
     sheet.cell(row,6,Index)
     sheet.cell(row,7,TPItem.AttValue(r'Max:UsedLineRouteItems\OutLink\Busspur'))
@@ -76,9 +80,10 @@ def exlwriter(TPItem,Share,Index,minTT):
     sheet.cell(row,11,TPItem.AttValue(r'PostRunTime'))
     if Share == 1:
         Bonus = 0.85
-        sheet.cell(row,12,minTT)
-        sheet.cell(row,13,(minTT*Bonus))
-        sheet.cell(row,14,TPItem.AttValue(r'PostRunTime')-(minTT*Bonus))
+        if newTT > TPItem.AttValue(r'PostRunTime'): newTT = TPItem.AttValue(r'PostRunTime')
+        sheet.cell(row,12,newTT)
+        sheet.cell(row,13,(newTT*Bonus))
+        sheet.cell(row,14,TPItem.AttValue(r'PostRunTime')-(newTT*Bonus))
     else:
         Bonus = 1-(0.15*Share)
         sheet.cell(row,12,TPItem.AttValue(r'PostRunTime'))
@@ -100,7 +105,7 @@ def TProfiles(VISUM):
     FilterTP.UseFilterForVehJourneyItems = True
     FilterTP = FilterTP.VehJourneyItemFilter()
     FilterTP.AddCondition("OP_NONE",False,"Dep","GreaterEqualVal",32400) #32400 seconds == 9h
-    FilterTP.AddCondition("OP_AND",False,"Dep","LessEqualVal",50400) #50400 Sekunden == 14h
+    FilterTP.AddCondition("OP_AND",False,"Dep","LessEqualVal",50400) #50400 seconds == 14h
     TProfiles = pd.DataFrame(np.array(VISUM.Net.TimeProfileItems.GetMultipleAttributes([r'LineRouteItem\StopPointNo',
                         r'NextTimeProfileItem\LineRouteItem\StopPointNo',
                         r'PostRunTime', r'MinActive:VehJourneyItems\Dep'])))  
