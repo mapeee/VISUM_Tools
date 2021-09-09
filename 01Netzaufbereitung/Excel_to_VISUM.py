@@ -37,9 +37,9 @@ def VISUM_open(Net):
     return VISUM
 
 def Stops(VISUM,Excel):
-    for row in range(2,Elements.max_row+1):
-        Nr = Excel.cell(row,1).value
-        Name = Excel.cell(row,2).value
+    for row in range(2,Excel.max_row+1): #no header, from A2
+        Nr = Excel.cell(row,1).value #column A
+        Name = Excel.cell(row,2).value #column B
         Node = VISUM.Net.Nodes.ItemByKey(Nr)
         X = Node.AttValue("XCoord")
         Y = Node.AttValue("YCoord")
