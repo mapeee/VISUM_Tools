@@ -143,6 +143,7 @@ for Line in VISUM.Net.Lines:
     if Line.AttValue("TSysCode") != "Bus": continue
     print(Line.AttValue("Name"))
     for LineRoute in Line.LineRoutes:
+        # if LineRoute.AttValue("Szenario") != "S31":continue
         for TimeProfile in LineRoute.TimeProfiles:
             Index = 0
             for TPItem in TimeProfile.TimeProfileItems:
