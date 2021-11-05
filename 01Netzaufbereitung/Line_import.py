@@ -13,6 +13,7 @@
 #-------------------------------------------------------------------------------
 import win32com.client.dynamic
 import pyodbc
+import sys
 import time
 start_time = time.time()
 from send2trash import send2trash
@@ -28,6 +29,7 @@ f = f.split('\n')
 
 #--Path--#
 Network = f[0]
+# "\\".join((sys.argv[0].split("\\"))[:-1])
 layout = f[1]
 access_db = f[2]
 
@@ -78,8 +80,6 @@ def VISUM_export(VISUM,layout,access):
     VISUM.Net.Connectors.RemoveAll()
     VISUM.Net.StopAreas.RemoveAll()
     VISUM.Net.StopPoints.RemoveAll()
-    
-
 
 
 def access_edit(access,Nodes,change):
@@ -156,11 +156,11 @@ insert_type = 1 ##type of inserted links
 #--processing--#
 VISUM = VISUM_open(Network)
 VISUM_filter(VISUM)
-Nodes = [[1,[11012,3784292]]]   #old, new
+Nodes = [[1,[19165,61054]]]   #old, new
 # Nodes = [[1,[61070,3406056]],[1,[610701,3520689]]]   #old, new
 
 VISUM_export(VISUM,layout,access_db)
-access_edit(access_db,Nodes,False) ##False = no editing of nodenumbers
+access_edit(access_db,Nodes,True) ##False = no editing of nodenumbers
 
 VISUM_import(VISUM,access_db,insert_type,journeys_b,1) ##(shortcrit: 1 = travel time; 3 = link length)
 
