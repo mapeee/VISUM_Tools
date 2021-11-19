@@ -40,7 +40,6 @@ def calc(Network):
         VISUM.Procedures.Execute()
         print("> skim matrices calculated")
     except: print("> error calculating skim matrix")
-    print("\n")
     return VISUM
 
 def HDF5(Data):
@@ -67,7 +66,7 @@ def matrices(VISUM):
 ###############  
 #--Preparing--#
 ###############
-print("> starting \n")
+print("> starting")
 file5, IsoChrones = HDF5(Datafile)
 VISUM = calc(Network)
 JRT, NTR, SFQ = matrices(VISUM)
@@ -75,7 +74,7 @@ JRT, NTR, SFQ = matrices(VISUM)
 ################          
 #--Isochrones--#
 ################
-StopAreaNo = np.array(VISUM.Net.StopAreas.GetMultiAttValues("No")).astype("int")[:,1]
+StopAreaNo = np.array(VISUM.Net.StopAreas.GetMultiAttValues("No",False)).astype("int")[:,1]
 for i in range(1,len(StopAreaNo)+1):
     result_array = []
     #--Values--#
@@ -112,6 +111,7 @@ for i in range(1,len(StopAreaNo)+1):
     file5.flush()
 
 #--end--#
+VISUM = False
 IsoChrones.attrs.create("Parameter",str(Text))
 file5.flush()
 file5.close()
