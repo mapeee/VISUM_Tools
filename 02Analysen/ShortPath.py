@@ -33,8 +33,6 @@ def VISUM_open(Net):
     VISUM.Filters.InitAll()
     return VISUM   
 
-Excel = r''
-Network = r''
 
 #Excel
 wb = load_workbook(filename = Excel)
