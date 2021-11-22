@@ -44,7 +44,7 @@ def calc(Network):
 
 def HDF5(Data):
     result_array = []
-    Columns = np.dtype([('FromArea', 'i4'),('ToArea', 'i4'),('Time', '<f8'),('UH', 'i2'),('BH', 'i2')])
+    Columns = np.dtype([('FromStop', 'i4'),('ToStop', 'i4'),('Time', '<f8'),('UH', 'i2'),('BH', 'i2')])
     data = np.array(result_array,Columns)
     #--HDF5--#
     file5 = h5py.File(Data,'r+')
