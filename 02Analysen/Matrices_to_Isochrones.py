@@ -75,15 +75,19 @@ JRT, NTR, SFQ = matrices(VISUM)
 #--Isochrones--#
 ################
 StopAreaNo = np.array(VISUM.Net.StopAreas.GetMultiAttValues("No",False)).astype("int")[:,1]
+StopAreaNoActive = np.array(VISUM.Net.StopAreas.GetMultiAttValues("No",True)).astype("int")[:,1]
+
 for i in range(1,len(StopAreaNo)+1):
     result_array = []
+    From = int(StopAreaNo[i-1])
+    if From not in StopAreaNoActive: continue
+    
     #--Values--#
     matJRT = np.array(VISUM.Net.Matrices.ItemByKey(JRT).GetRow(i))
     matNTR = np.array(VISUM.Net.Matrices.ItemByKey(NTR).GetRow(i))
     matSFQ = np.array(VISUM.Net.Matrices.ItemByKey(SFQ).GetRow(i))
 
     for e,Nr in enumerate(StopAreaNo):
-        From = int(StopAreaNo[i-1])
         To = int(Nr)
         TTime = matJRT[e]
         if Origin_wait_time == 1:
@@ -92,7 +96,7 @@ for i in range(1,len(StopAreaNo)+1):
                 if SWZ > 10:SWZ = 10
                 TTime+= SWZ
             except: pass
-        TTime = int(TTime)
+        TTime = int(round(TTime))
         UH = int(matNTR[e])
         BH = int(matSFQ[e])
 
