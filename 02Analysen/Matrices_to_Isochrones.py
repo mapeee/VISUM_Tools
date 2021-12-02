@@ -26,10 +26,9 @@ Datafile= f[1]
 group5 = f[2]
 Text = f[3]
 I_Name = f[4]
-Zeitschranke = 120 
+Zeitschranke = 120
 Origin_wait_time = 1
-Stundenintervall = 180 ##for pre 
-
+Stundenintervall = 180 ##for pre
 
 def calc(Network):
     print("> "+Network)
@@ -58,20 +57,20 @@ def HDF5(Data):
 def matrices(VISUM):
     for Matrix in VISUM.Net.Matrices:
         if Matrix.AttValue("ObjectTypeRef") == 'OBJECTTYPEREF_STOPAREA':
-            if Matrix.AttValue("Code") == "JRT": JRT = int(Matrix.AttValue("No")) ##Traveltime    
+            if Matrix.AttValue("Code") == "JRT": JRT = int(Matrix.AttValue("No")) ##Traveltime
             if Matrix.AttValue("Code") == "NTR": NTR = int(Matrix.AttValue("No")) ##Transfers
             if Matrix.AttValue("Code") == "SFQ": SFQ = int(Matrix.AttValue("No")) ##Service frequency
     return JRT, NTR, SFQ
-  
-###############  
+
+###############
 #--Preparing--#
 ###############
 print("> starting")
 file5, IsoChrones = HDF5(Datafile)
 VISUM = calc(Network)
 JRT, NTR, SFQ = matrices(VISUM)
-  
-################          
+
+################
 #--Isochrones--#
 ################
 StopAreaNo = np.array(VISUM.Net.StopAreas.GetMultiAttValues("No",False)).astype("int")[:,1]
@@ -81,7 +80,7 @@ for i in range(1,len(StopAreaNo)+1):
     result_array = []
     From = int(StopAreaNo[i-1])
     if From not in StopAreaNoActive: continue
-    
+
     #--Values--#
     matJRT = np.array(VISUM.Net.Matrices.ItemByKey(JRT).GetRow(i))
     matNTR = np.array(VISUM.Net.Matrices.ItemByKey(NTR).GetRow(i))
