@@ -3,14 +3,12 @@
 #-------------------------------------------------------------------------------
 # Name: Matrices_to_Isochrones
 # Purpose: Transformation and export of PTV VIsum SkimMatrices to HDF5-Dataframe
-#
-#
 # Author:      mape
-#
 # Created:     19/01/2016 (new Version November 2021)
 # Copyright:   (c) mape 2016
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
+from datetime import date
 import win32com.client.dynamic
 import numpy as np
 import h5py
@@ -23,12 +21,11 @@ f = path.read_text().split('\n')
 #--Parameters--#
 Network = f[0]
 Datafile= f[1]
-group5 = f[2]
-Text = f[3]
-I_Name = f[4]
-Zeitschranke = 120
+group5 = "Iso"
+I_Name = "MRH_0024"
+Zeitschranke = 180
 Origin_wait_time = 1
-Stundenintervall = 180 ##for pre
+Stundenintervall = 24*60 ##for pre
 
 def calc(Network):
     print("> "+Network)
@@ -61,6 +58,11 @@ def matrices(VISUM):
             if Matrix.AttValue("Code") == "NTR": NTR = int(Matrix.AttValue("No")) ##Transfers
             if Matrix.AttValue("Code") == "SFQ": SFQ = int(Matrix.AttValue("No")) ##Service frequency
     return JRT, NTR, SFQ
+
+def text():
+    Text = f[0].split("\\")[-1]+" period: "+str(int(Stundenintervall/60))+"h; Origin wait: "+str(Origin_wait_time)+"; max time: "+\
+        str(Zeitschranke)+"min; Date: "+date.today().strftime("%B %d, %Y")
+    return Text
 
 ###############
 #--Preparing--#
@@ -115,7 +117,7 @@ for i in range(1,len(StopAreaNo)+1):
 
 #--end--#
 VISUM = False
-IsoChrones.attrs.create("Parameter",str(Text))
+IsoChrones.attrs.create("Parameter",text())
 file5.flush()
 file5.close()
 print("> finished")
