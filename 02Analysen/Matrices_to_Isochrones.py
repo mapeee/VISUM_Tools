@@ -9,10 +9,12 @@
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
 from datetime import date
-import win32com.client.dynamic
-import numpy as np
 import h5py
+import numpy as np
+import os
 from pathlib import Path
+import win32com.client.dynamic
+
 f = open(Path.home() / 'python32' / 'python_dir.txt', mode='r')
 for i in f: path = i
 path = Path.joinpath(Path(path),'VISUM_Tools','Matrices_to_Isochrones.txt')
@@ -121,3 +123,5 @@ IsoChrones.attrs.create("Parameter",text())
 file5.flush()
 file5.close()
 print("> finished")
+
+os.system("shutdown /s /t 1")
