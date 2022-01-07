@@ -13,7 +13,6 @@
 #-------------------------------------------------------------------------------
 import win32com.client.dynamic
 import pyodbc
-import sys
 import time
 start_time = time.time()
 from send2trash import send2trash
@@ -29,9 +28,9 @@ f = f.split('\n')
 
 #--Path--#
 Network = f[0]
-# "\\".join((sys.argv[0].split("\\"))[:-1])
 layout = f[1]
 access_db = f[2]
+access_db = access_db.replace("accdb","mdb")
 
 
 def VISUM_open(Net):
@@ -71,7 +70,7 @@ def VISUM_filter(VISUM):
 
 def VISUM_export(VISUM,layout,access):
     VISUM.IO.SaveAccessDatabase(access,layout,True,False,True)
-
+    VISUM_filter(VISUM)
     
     global journeys_b
     journeys_b = VISUM.Net.VehicleJourneys.Count ##number of journeys before export
@@ -156,8 +155,8 @@ insert_type = 1 ##type of inserted links
 #--processing--#
 VISUM = VISUM_open(Network)
 VISUM_filter(VISUM)
-Nodes = [[1,[19165,61054]]]   #old, new
-# Nodes = [[1,[61070,3406056]],[1,[610701,3520689]]]   #old, new
+Nodes = [[1,[63041,630411]]]   #old, new
+# Nodes = [[1,[80030,640097042]],[1,[80027,800271]]]   #old, new
 
 VISUM_export(VISUM,layout,access_db)
 access_edit(access_db,Nodes,True) ##False = no editing of nodenumbers
@@ -168,8 +167,8 @@ VISUM_import(VISUM,access_db,insert_type,journeys_b,1) ##(shortcrit: 1 = travel 
 send2trash(access_db)
 for Route in VISUM.Net.LineRoutes.GetAllActive: Route.SetAttValue("AddVal1",0)
 VISUM.Filters.InitAll()
-VISUM_filter(VISUM)
 print("--fertig--")
+VISUM_filter(VISUM)
 
 VISUM.SaveVersion(Network)
 
