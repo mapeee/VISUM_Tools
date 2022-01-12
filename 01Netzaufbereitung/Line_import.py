@@ -19,16 +19,13 @@ from send2trash import send2trash
 
 from pathlib import Path
 path = Path.home() / 'python32' / 'python_dir.txt'
-f = open(path, mode='r')
-for i in f: path = i
-path = Path.joinpath(Path(path),'VISUM_Tools','Line_import.txt')
-f = path.read_text()
-f = f.split('\n')
-
+with open(path, mode='r') as f: path = f.readlines()
+path = path[0] +"\\"+'VISUM_Tools'+"\\"+'Line_import.txt'
+with open(path, mode='r') as path: f = path.read().splitlines()
 
 #--Path--#
 Network = f[0]
-layout = f[1]
+layout_path = f[1]
 access_db = f[2]
 access_db = access_db.replace("accdb","mdb")
 
@@ -41,28 +38,28 @@ def VISUM_open(Net):
 
 def VISUM_filter(VISUM):
     VISUM.Filters.InitAll()
-    Linien = VISUM.Filters.LineGroupFilter()
-    Linien.UseFilterForLineRoutes = True
-    Linien.UseFilterForLineRouteItems = True
-    Linien.UseFilterForTimeProfiles = True
-    Linien.UseFilterForTimeProfileItems = True
-    Linien.UseFilterForVehJourneys = True
-    Linien.UseFilterForVehJourneySections = True
-    Linien.UseFilterForVehJourneyItems = True
-    Linien = Linien.LineRouteFilter()
-    Linien.AddCondition("OP_NONE",False,"AddVal1","GreaterVal",0)##no more filter,not complementary,AddVal1 > 0
+    Lines = VISUM.Filters.LineGroupFilter()
+    Lines.UseFilterForLineRoutes = True
+    Lines.UseFilterForLineRouteItems = True
+    Lines.UseFilterForTimeProfiles = True
+    Lines.UseFilterForTimeProfileItems = True
+    Lines.UseFilterForVehJourneys = True
+    Lines.UseFilterForVehJourneySections = True
+    Lines.UseFilterForVehJourneyItems = True
+    Lines = Lines.LineRouteFilter()
+    Lines.AddCondition("OP_NONE",False,"AddVal1","GreaterVal",0)##no more filter,not complementary
     
     HST = VISUM.Filters.StopGroupFilter()
     HST.UseFilterForStopAreas = True
     HST.UseFilterForStopPoints = True
     HST = HST.StopPointFilter()
-    HST.AddCondition("OP_NONE",False,"Node\AddVal1","GreaterVal",0)
+    HST.AddCondition("OP_NONE",False,r"Node\AddVal1","GreaterVal",0)
     
     Connector = VISUM.Filters.ConnectorFilter()
-    Connector.AddCondition("OP_NONE",False,"Node\AddVal1","GreaterVal",0)
+    Connector.AddCondition("OP_NONE",False,r"Node\AddVal1","GreaterVal",0)
     
-    Node = VISUM.Filters.NodeFilter()
-    Node.AddCondition("OP_NONE",False,"AddVal1","GreaterVal",0)
+    Nodes = VISUM.Filters.NodeFilter()
+    Nodes.AddCondition("OP_NONE",False,"AddVal1","GreaterVal",0)
     
     InsertedLinks = VISUM.Filters.LinkFilter()
     InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(1))
@@ -70,7 +67,6 @@ def VISUM_filter(VISUM):
 
 def VISUM_export(VISUM,layout,access):
     VISUM.IO.SaveAccessDatabase(access,layout,True,False,True)
-    VISUM_filter(VISUM)
     
     global journeys_b
     journeys_b = VISUM.Net.VehicleJourneys.Count ##number of journeys before export
@@ -109,14 +105,14 @@ def access_edit(access,Nodes,change):
             conn.commit()
     conn.close()
  
-def VISUM_import(VISUM,access,LinkType,journeys_b,shortcrit):
+def VISUM_import(VISUM,access,LinkType,shortcrit):
     VISUM_filter(VISUM)
     import_setting = VISUM.CreateNetReadRouteSearchTsys()
     import_setting.SetAttValue("ChangeLinkTypeOfOpenedLinks",False)
     import_setting.SetAttValue("IncludeBlockedTurns",False)
     import_setting.SetAttValue("HowToHandleIncompleteRoute", 2) ##search shortest path
     import_setting.SetAttValue("LinkTypeForInsertedLinksReplacingMissingShortestPaths",1)
-    import_setting.SetAttValue("ShortestPathCriterion",shortcrit) ##link length (1 = travel time; 3 = link length)
+    import_setting.SetAttValue("ShortestPathCriterion",shortcrit) ##1 = travel time; 3 = link length
     import_setting.SetAttValue("MaxDeviationFactor",50)
     import_setting.SetAttValue("WhatToDoIfShortestPathNotFound",2) ##insert link if necessary
     import_setting.SetAttValue("LinkTypeForInsertedLinksReplacingMissingShortestPaths",LinkType)
@@ -127,9 +123,9 @@ def VISUM_import(VISUM,access,LinkType,journeys_b,shortcrit):
     VISUM.IO.LoadAccessDatabase(access,True,PuT_import)
     
     VISUM.Filters.NodeFilter().Init()
-    Node = VISUM.Filters.NodeFilter()
-    Node.AddCondition("OP_NONE",False,"AddVal1","GreaterVal",0)
-    for Node in VISUM.Net.Nodes.GetAllActive: Node.SetAttValue("AddVal1",0)
+    Nodes = VISUM.Filters.NodeFilter()
+    Nodes.AddCondition("OP_NONE",False,"AddVal1","GreaterVal",0)
+    for N in VISUM.Net.Nodes.GetAllActive: N.SetAttValue("AddVal1",0)
     
     VISUM.Filters.NodeFilter().Init()
     VISUM.Filters.StopGroupFilter().Init()
@@ -153,24 +149,24 @@ insert_type = 1 ##type of inserted links
     
 
 #--processing--#
-VISUM = VISUM_open(Network)
-VISUM_filter(VISUM)
-Nodes = [[1,[63041,630411]]]   #old, new
-# Nodes = [[1,[80030,640097042]],[1,[80027,800271]]]   #old, new
+V = VISUM_open(Network)
+VISUM_filter(V)
+Node = [[1,[65323,50978]]]   #old, new
+# Node = [[1,[60016,600161]],[1,[60017,600171]]]   #old, new
 
-VISUM_export(VISUM,layout,access_db)
-access_edit(access_db,Nodes,True) ##False = no editing of nodenumbers
+VISUM_export(V,layout_path,access_db)
+access_edit(access_db,Node,False) ##False = no editing of nodenumbers
 
-VISUM_import(VISUM,access_db,insert_type,journeys_b,1) ##(shortcrit: 1 = travel time; 3 = link length)
+VISUM_import(V,access_db,insert_type,1) ##(shortcrit: 1 = travel time; 3 = link length)
 
 ##end
 send2trash(access_db)
-for Route in VISUM.Net.LineRoutes.GetAllActive: Route.SetAttValue("AddVal1",0)
-VISUM.Filters.InitAll()
+for Route in V.Net.LineRoutes.GetAllActive: Route.SetAttValue("AddVal1",0)
+V.Filters.InitAll()
+VISUM_filter(V)
 print("--fertig--")
-VISUM_filter(VISUM)
 
-VISUM.SaveVersion(Network)
+V.SaveVersion(Network)
 
 # del VISUM
 Sekunden = int(time.time() - start_time)
