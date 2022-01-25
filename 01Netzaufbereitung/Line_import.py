@@ -137,27 +137,22 @@ def VISUM_import(VISUM,access,LinkType,shortcrit):
     #--testing after the import--#
     InsertedLinks = VISUM.Filters.LinkFilter().Init() 
     InsertedLinks = VISUM.Filters.LinkFilter()
-    InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(insert_type))
+    InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(LinkType))
     if VISUM.Net.Links.CountActive > 0: print("--"+str(VISUM.Net.Links.CountActive)+" new links added--") 
     VISUM.Filters.LinkFilter().Init()   
     if journeys_b != journeys_a: print("missing VehicleJourneys!!!")
 
 
-#--Parameter--#
-insert_type = 1 ##type of inserted links
-# Nodes = [[1,[60013,640097209]]]   #old, new
-    
-
 #--processing--#
 V = VISUM_open(Network)
 VISUM_filter(V)
-Node = [[1,[65323,50978]]]   #old, new
-# Node = [[1,[60016,600161]],[1,[60017,600171]]]   #old, new
+Node = [[1,[8000238,8000239]]]   #old, new
+# Node = [[1,[8002548,11951]],[1,[10950,109501]]]   #old, new
 
 VISUM_export(V,layout_path,access_db)
 access_edit(access_db,Node,False) ##False = no editing of nodenumbers
 
-VISUM_import(V,access_db,insert_type,1) ##(shortcrit: 1 = travel time; 3 = link length)
+VISUM_import(V,access_db,1,1) ##(linktype; shortcrit( 1 = travel time; 3 = link length))
 
 ##end
 send2trash(access_db)
