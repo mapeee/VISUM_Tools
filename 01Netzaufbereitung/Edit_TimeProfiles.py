@@ -12,19 +12,19 @@
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
 
-import win32com.client.dynamic
+import numpy as np
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill
-import time
-import numpy as np
 import pandas as pd
+import time
 start_time = time.time()
+import win32com.client.dynamic
 
 from pathlib import Path
-f = open(Path.home() / 'python32' / 'python_dir.txt', mode='r')
-for i in f: path = i
-path = Path.joinpath(Path(path),'VISUM_Tools','TimeProfiles.txt')
-f = path.read_text().split('\n')
+path = Path.home() / 'python32' / 'python_dir.txt'
+with open(path, mode='r') as f: path = f.readlines()
+path = path[0] +"\\"+'VISUM_Tools'+"\\"+'TimeProfiles.txt'
+with open(path, mode='r') as path: f = path.read().splitlines()
 
 #--Path--#
 Network = f[0]
@@ -95,7 +95,7 @@ def exlwriter(TPItem,Share,Index,minTT):
     if Share == 1:
         greenFill = PatternFill(start_color='a8ff65',end_color='a8ff65',fill_type='solid')
         for col in range(1,col_range+1):sheet.cell(row,col).fill = greenFill
-    if Share < 1 and Share >0.8:
+    if 1 > Share > 0.8:
         orangeFill = PatternFill(start_color='ffc965',end_color='ffc965',fill_type='solid')
         for col in range(1,col_range+1):sheet.cell(row,col).fill = orangeFill
     if minTT == 0: sheet.cell(row,12).fill = PatternFill(start_color='FFFF0000',end_color='FFFF0000',fill_type='solid')
@@ -143,7 +143,6 @@ for Line in VISUM.Net.Lines:
     if Line.AttValue("TSysCode") != "Bus": continue
     print(Line.AttValue("Name"))
     for LineRoute in Line.LineRoutes:
-        # if LineRoute.AttValue("Szenario") != "S31":continue
         for TimeProfile in LineRoute.TimeProfiles:
             Index = 0
             for TPItem in TimeProfile.TimeProfileItems:

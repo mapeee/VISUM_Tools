@@ -105,11 +105,11 @@ def access_edit(access,Nodes,change):
             conn.commit()
     conn.close()
  
-def VISUM_import(VISUM,access,LinkType,shortcrit):
+def VISUM_import(VISUM,access,LinkType,shortcrit,blocked):
     VISUM_filter(VISUM)
     import_setting = VISUM.CreateNetReadRouteSearchTsys()
-    import_setting.SetAttValue("ChangeLinkTypeOfOpenedLinks",False)
-    import_setting.SetAttValue("IncludeBlockedTurns",False)
+    import_setting.SetAttValue("ChangeLinkTypeOfOpenedLinks",blocked)
+    import_setting.SetAttValue("IncludeBlockedTurns",blocked)
     import_setting.SetAttValue("HowToHandleIncompleteRoute", 2) ##search shortest path
     import_setting.SetAttValue("LinkTypeForInsertedLinksReplacingMissingShortestPaths",1)
     import_setting.SetAttValue("ShortestPathCriterion",shortcrit) ##1 = travel time; 3 = link length
@@ -146,13 +146,14 @@ def VISUM_import(VISUM,access,LinkType,shortcrit):
 #--processing--#
 V = VISUM_open(Network)
 VISUM_filter(V)
-Node = [[1,[8000238,8000239]]]   #old, new
+Node = [[1,[2009289407,558171]]]   #old, new
 # Node = [[1,[8002548,11951]],[1,[10950,109501]]]   #old, new
 
 VISUM_export(V,layout_path,access_db)
-access_edit(access_db,Node,False) ##False = no editing of nodenumbers
+access_edit(access_db,Node,True) ##False = no editing of nodenumbers
 
-VISUM_import(V,access_db,1,1) ##(linktype; shortcrit( 1 = travel time; 3 = link length))
+VISUM_import(V,access_db,1,1,False)
+##(linktype; shortcrit( 1 = travel time; 3 = link length);open blocked links/turns)
 
 ##end
 send2trash(access_db)
