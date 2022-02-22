@@ -93,7 +93,7 @@ for origin in range(1,HstBer.max_row+1):
         
 
 #End
-XLSX.save(r'C:\Users\peter\Desktop\test.xlsx')
+XLSX.save(f[1])
 XLSX.close()
 
 Sekunden = int(time.time() - start_time)
