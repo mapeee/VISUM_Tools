@@ -15,29 +15,32 @@ import os
 from pathlib import Path
 import win32com.client.dynamic
 
-f = open(Path.home() / 'python32' / 'python_dir.txt', mode='r')
-for i in f: path = i
-path = Path.joinpath(Path(path),'VISUM_Tools','Matrices_to_Isochrones.txt')
-f = path.read_text().split('\n')
+path = Path.home() / 'python32' / 'python_dir.txt'
+with open(path, mode='r') as f: path = f.readlines()
+path = path[0] +"\\"+'VISUM_Tools'+"\\"+'Matrices_to_Isochrones.txt'
+with open(path, mode='r') as path: f = path.read().splitlines()
 
 #--Parameters--#
 Network = f[0]
 Datafile= f[1]
 group5 = "Iso"
-I_Name = "MRH_0024"
-Zeitschranke = 180
+I_Name = "MRH22_0024_X81"
+max_time = 180
 Origin_wait_time = 1
-Stundenintervall = 24*60 ##for pre
+hours = 24*60 ##for initial waiting time
+shutdown = False
+calculate = False
 
-def calc(Network):
+def VISUM_open(Network,cal):
     print("> "+Network)
-    VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.20")
+    VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.22")
     VISUM.loadversion(Network)
     # VISUM.Filters.InitAll()
-    try:
-        VISUM.Procedures.Execute()
-        print("> skim matrices calculated")
-    except: print("> error calculating skim matrix")
+    if cal == True:
+        try:
+            VISUM.Procedures.Execute()
+            print("> skim matrices calculated")
+        except: print("> error calculating skim matrix")
     return VISUM
 
 def HDF5(Data):
@@ -62,8 +65,8 @@ def matrices(VISUM):
     return JRT, NTR, SFQ
 
 def text():
-    Text = f[0].split("\\")[-1]+" period: "+str(int(Stundenintervall/60))+"h; Origin wait: "+str(Origin_wait_time)+"; max time: "+\
-        str(Zeitschranke)+"min; Date: "+date.today().strftime("%B %d, %Y")
+    Text = f[0].split("\\")[-1]+" period: "+str(int(hours/60))+"h; Origin wait: "+str(Origin_wait_time)+"; max time: "+\
+        str(max_time)+"min; Date: "+date.today().strftime("%B %d, %Y")
     return Text
 
 ###############
@@ -71,7 +74,7 @@ def text():
 ###############
 print("> starting")
 file5, IsoChrones = HDF5(Datafile)
-VISUM = calc(Network)
+VISUM = VISUM_open(Network,calculate)
 JRT, NTR, SFQ = matrices(VISUM)
 
 ################
@@ -95,7 +98,7 @@ for i in range(1,len(StopAreaNo)+1):
         TTime = matJRT[e]
         if Origin_wait_time == 1:
             try: ##error if BH = 0 or Time = 0 --> Internal Trips
-                SWZ = 0.53*((Stundenintervall/float(matSFQ[e]))**0.75)
+                SWZ = 0.53*((hours/float(matSFQ[e]))**0.75)
                 if SWZ > 10:SWZ = 10
                 TTime+= SWZ
             except: pass
@@ -107,7 +110,7 @@ for i in range(1,len(StopAreaNo)+1):
 
     if len(result_array) == 0: continue
     result_array = np.array(result_array)
-    result_array = result_array[result_array[:,2]<Zeitschranke]
+    result_array = result_array[result_array[:,2]<max_time]
 
     #--Data into HDF5 table--#
     oldsize = len(IsoChrones)
@@ -124,4 +127,4 @@ file5.flush()
 file5.close()
 print("> finished")
 
-os.system("shutdown /s /t 1")
+if shutdown == True: os.system("shutdown /s /t 1")
