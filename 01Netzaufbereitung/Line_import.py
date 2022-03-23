@@ -146,11 +146,11 @@ def VISUM_import(VISUM,access,LinkType,shortcrit,blocked):
 #--processing--#
 V = VISUM_open(Network)
 VISUM_filter(V)
-Node = [[1,[2009289407,558171]]]   #old, new
-# Node = [[1,[8002548,11951]],[1,[10950,109501]]]   #old, new
+Node = [[1,[32129,7565091]]]   #old, new
+# Node = [[1,[44304,44301]],[1,[44307,44302]]]   #old, new
 
 VISUM_export(V,layout_path,access_db)
-access_edit(access_db,Node,True) ##False = no editing of nodenumbers
+access_edit(access_db,Node,False) ##False = no editing of nodenumbers
 
 VISUM_import(V,access_db,1,1,False)
 ##(linktype; shortcrit( 1 = travel time; 3 = link length);open blocked links/turns)
