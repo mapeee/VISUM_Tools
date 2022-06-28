@@ -108,8 +108,8 @@ def access_edit(access,Nodes,change):
 def VISUM_import(VISUM,access,LinkType,shortcrit,open_blocked):
     VISUM_filter(VISUM)
     import_setting = VISUM.CreateNetReadRouteSearchTsys()
-    import_setting.SetAttValue("ChangeLinkTypeOfOpenedLinks",blocked)
-    import_setting.SetAttValue("IncludeBlockedTurns",blocked)
+    import_setting.SetAttValue("ChangeLinkTypeOfOpenedLinks",open_blocked)
+    import_setting.SetAttValue("IncludeBlockedTurns",open_blocked)
     import_setting.SetAttValue("HowToHandleIncompleteRoute", 2) ##search shortest path
     import_setting.SetAttValue("LinkTypeForInsertedLinksReplacingMissingShortestPaths",1)
     import_setting.SetAttValue("ShortestPathCriterion",shortcrit) ##1 = travel time; 3 = link length
