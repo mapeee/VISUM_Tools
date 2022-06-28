@@ -30,8 +30,9 @@ def VISUM_open(Net):
     VISUM.Filters.InitAll()
     return VISUM
 
-def VISUM_filter(VISUM):
+def VISUM_filter(VISUM,**optional):
     VISUM.Filters.InitAll()
+    
     Lines = VISUM.Filters.LineGroupFilter()
     Lines.UseFilterForLineRoutes = True
     Lines.UseFilterForLineRouteItems = True
@@ -42,19 +43,25 @@ def VISUM_filter(VISUM):
     Lines.UseFilterForVehJourneyItems = True
     LineRoutes = Lines.LineRouteFilter()
     LineRoutes.AddCondition("OP_NONE",False,"AddVal1","EqualVal",1) ##no more filter,not complementary
-    LineRoutes.AddCondition("OP_OR",False,r"SUM:LINEROUTEITEMS\NODE\ADDVAL1","GreaterVal",0) ##no more filter,not complementary
-    
-    HST = VISUM.Filters.StopGroupFilter()
-    HST.UseFilterForStopAreas = True
-    HST.UseFilterForStopPoints = True
-    HST = HST.StopPointFilter()
-    HST.AddCondition("OP_NONE",False,r"Node\AddVal1","EqualVal",1)
+    LineRoutes.AddCondition("OP_OR",False,r"COUNTACTIVE:STOPPOINTS","GreaterVal",0) ##no more filter,not complementary
     
     Connector = VISUM.Filters.ConnectorFilter()
     Connector.AddCondition("OP_NONE",False,r"Node\AddVal1","EqualVal",1)
     
     Nodes = VISUM.Filters.NodeFilter()
     Nodes.AddCondition("OP_NONE",False,"AddVal1","EqualVal",1)
+    
+    Stops = optional.get("Stops", False)
+    HST = VISUM.Filters.StopGroupFilter()
+    HST.UseFilterForStopAreas = True
+    HST.UseFilterForStopPoints = True
+    HST = HST.StopPointFilter()
+    HST.AddCondition("OP_NONE",False,r"Node\AddVal1","EqualVal",1)
+    if Stops != False:
+        for i in Stops: HST.AddCondition("OP_OR",False,"No","EqualVal",i[0])
+        for Route in VISUM.Net.LineRoutes.GetAllActive: Route.SetAttValue("AddVal1",1)
+        HST.Init()
+        HST.AddCondition("OP_NONE",False,r"Node\AddVal1","EqualVal",1)
     
     InsertedLinks = VISUM.Filters.LinkFilter()
     InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(1))
@@ -178,9 +185,12 @@ def VISUM_end(VISUM,access):
 #--processing--#
 V = VISUM_open(Net=Network)
 VISUM_filter(VISUM=V)
-
 VISUM_export(VISUM=V, layout=layout_path, access=access_db)
-# VISUM_export(VISUM=V, layout=layout_path, access=access_db, Stops=[[11018,11039]])
+
+# Stop = [[11018,11039],[11009,80013]]
+# VISUM_filter(VISUM=V, Stops=Stop)
+# VISUM_export(VISUM=V, layout=layout_path, access=access_db, Stops=Stop)
+
 VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False)
 #shortcrit( 1 = travel time; 3 = link length)
 VISUM_end(VISUM=V, access=access_db)
