@@ -4,17 +4,13 @@
 #-------------------------------------------------------------------------------
 # Name:        importing lines for new routes
 # Purpose:
-#
 # Author:      mape
-#
 # Created:     05/01/2021
 # Copyright:   (c) mape 2021
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
 import win32com.client.dynamic
 import pyodbc
-import time
-start_time = time.time()
 from send2trash import send2trash
 
 from pathlib import Path
@@ -26,8 +22,7 @@ with open(path, mode='r') as path: f = path.read().splitlines()
 #--Path--#
 Network = f[0]
 layout_path = f[1]
-access_db = f[2]
-access_db = access_db.replace("accdb","mdb")
+access_db = f[2].replace("accdb","mdb")
 
 
 def VISUM_open(Net):
@@ -64,7 +59,7 @@ def VISUM_filter(VISUM):
     InsertedLinks = VISUM.Filters.LinkFilter()
     InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(1))
     
-def VISUM_export(VISUM,layout,access):
+def VISUM_export(VISUM,layout,access, Stops):
     global journeys_before
     global servingstops_before
     journeys_before = VISUM.Net.VehicleJourneys.Count ##number of journeys before export
@@ -77,7 +72,7 @@ def VISUM_export(VISUM,layout,access):
     VISUM.Net.StopAreas.RemoveAll()
     VISUM.Net.StopPoints.RemoveAll()
 
-def access_edit(access,Nodes,change):
+    ## Access
     conn = pyodbc.connect(r"Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ="+access+";")
     cursor = conn.cursor()
     
@@ -94,8 +89,8 @@ def access_edit(access,Nodes,change):
                     ''')
     conn.commit()
 
-    if change == False: return
-    for i in Nodes:
+    if Stops == False: return
+    for i in Stops:
         cursor.execute('''
                         UPDATE LINEROUTEITEM
                         SET NODENO = '''+str(i[1])+''', STOPPOINTNO = '''+str(i[1])+'''
@@ -124,7 +119,9 @@ def VISUM_import(VISUM,access,LinkType,shortcrit,open_blocked):
     VISUM.Filters.NodeFilter().Init()
     Nodes = VISUM.Filters.NodeFilter()
     Nodes.AddCondition("OP_NONE",False,"AddVal1","GreaterVal",0)
-    for N in VISUM.Net.Nodes.GetAllActive: N.SetAttValue("AddVal1",0)
+    for N in VISUM.Net.Nodes.GetAllActive:
+        N.SetAttValue("Name","")
+        N.SetAttValue("AddVal1",0)
     
     VISUM.Filters.NodeFilter().Init()
     VISUM.Filters.StopGroupFilter().Init()
@@ -152,29 +149,23 @@ def VISUM_import(VISUM,access,LinkType,shortcrit,open_blocked):
         print("> before: "+str(servingstops_before))
         print("> after: "+str(servingstops_after)+"\n")
 
+def VISUM_end(VISUM,access):
+    send2trash(access)
+    for Route in VISUM.Net.LineRoutes.GetAllActive: Route.SetAttValue("AddVal1",0)
+    VISUM.Filters.InitAll()
+    VISUM_filter(VISUM)
 
 #--processing--#
 V = VISUM_open(Net=Network)
 VISUM_filter(VISUM=V)
-Node = [[11018,11039]]   #old, new
-# Node = [[44304,44301],[44307,44302]]   #old, new
 
-VISUM_export(VISUM=V, layout=layout_path, access=access_db)
-access_edit(access=access_db, Nodes=Node, change=False)
-##False = no editing of nodenumbers
+Stop = False #False = no change of served stops
+# Stop = [[11018,11039]]   #old, new
+# Stop = [[44304,44301],[44307,44302]]   #old, new
 
-VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False)
-##shortcrit( 1 = travel time; 3 = link length)
+VISUM_export(VISUM=V, layout=layout_path, access=access_db, Stops=Stop)
+VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) #shortcrit( 1 = travel time; 3 = link length)
+VISUM_end(VISUM=V, access=access_db)
 
 ##end
-send2trash(access_db)
-for Route in V.Net.LineRoutes.GetAllActive: Route.SetAttValue("AddVal1",0)
-V.Filters.InitAll()
-VISUM_filter(V)
-print("--fertig--")
-
 V.SaveVersion(Network)
-
-# del VISUM
-Sekunden = int(time.time() - start_time)
-print("--finished after ",Sekunden,"seconds--")
