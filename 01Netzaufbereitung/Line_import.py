@@ -64,18 +64,18 @@ def VISUM_filter(VISUM):
     InsertedLinks = VISUM.Filters.LinkFilter()
     InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(1))
     
-
 def VISUM_export(VISUM,layout,access):
+    global journeys_before
+    global servingstops_before
+    journeys_before = VISUM.Net.VehicleJourneys.Count ##number of journeys before export
+    servingstops_before = VISUM.Net.StopPoints.GetMultipleAttributes(["Count:ServingVehJourneys"])
+    servingstops_before = int(sum(list(map(sum, list(servingstops_before)))))
+    
     VISUM.IO.SaveAccessDatabase(access,layout,True,False,True)
-    
-    global journeys_b
-    journeys_b = VISUM.Net.VehicleJourneys.Count ##number of journeys before export
-    
     VISUM.Net.LineRoutes.RemoveAll()
     VISUM.Net.Connectors.RemoveAll()
     VISUM.Net.StopAreas.RemoveAll()
     VISUM.Net.StopPoints.RemoveAll()
-
 
 def access_edit(access,Nodes,change):
     conn = pyodbc.connect(r"Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ="+access+";")
@@ -129,17 +129,28 @@ def VISUM_import(VISUM,access,LinkType,shortcrit,open_blocked):
     VISUM.Filters.NodeFilter().Init()
     VISUM.Filters.StopGroupFilter().Init()
     VISUM.Filters.ConnectorFilter().Init()
-    
-    global journeys_a
-    journeys_a = VISUM.Net.VehicleJourneys.Count ##number of journeys after processing
 
     #--testing after the import--#
     InsertedLinks = VISUM.Filters.LinkFilter().Init() 
     InsertedLinks = VISUM.Filters.LinkFilter()
     InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(LinkType))
     if VISUM.Net.Links.CountActive > 0: print("--"+str(VISUM.Net.Links.CountActive)+" new links added--") 
-    VISUM.Filters.LinkFilter().Init()   
-    if journeys_b != journeys_a: print("missing VehicleJourneys!!!")
+    VISUM.Filters.LinkFilter().Init()
+    
+    global journeys_after
+    journeys_after = VISUM.Net.VehicleJourneys.Count ##number of journeys after processing
+    if journeys_before != journeys_after:
+        print("> missing VehicleJourneys")
+        print("> before: "+str(journeys_before))
+        print("> after: "+str(journeys_after)+"\n")
+
+    global servingstops_after
+    servingstops_after = VISUM.Net.StopPoints.GetMultipleAttributes(["Count:ServingVehJourneys"])
+    servingstops_after = int(sum(list(map(sum, list(servingstops_after)))))
+    if servingstops_before != servingstops_after:
+        print("> missing servings at stops")
+        print("> before: "+str(servingstops_before))
+        print("> after: "+str(servingstops_after)+"\n")
 
 
 #--processing--#
