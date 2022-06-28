@@ -31,7 +31,7 @@ access_db = access_db.replace("accdb","mdb")
 
 
 def VISUM_open(Net):
-    VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.20")
+    VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.22")
     VISUM.loadversion(Net)
     VISUM.Filters.InitAll()
     return VISUM
@@ -105,7 +105,7 @@ def access_edit(access,Nodes,change):
             conn.commit()
     conn.close()
  
-def VISUM_import(VISUM,access,LinkType,shortcrit,blocked):
+def VISUM_import(VISUM,access,LinkType,shortcrit,open_blocked):
     VISUM_filter(VISUM)
     import_setting = VISUM.CreateNetReadRouteSearchTsys()
     import_setting.SetAttValue("ChangeLinkTypeOfOpenedLinks",blocked)
@@ -144,16 +144,17 @@ def VISUM_import(VISUM,access,LinkType,shortcrit,blocked):
 
 
 #--processing--#
-V = VISUM_open(Network)
-VISUM_filter(V)
+V = VISUM_open(Net=Network)
+VISUM_filter(VISUM=V)
 Node = [[1,[32129,7565091]]]   #old, new
 # Node = [[1,[44304,44301]],[1,[44307,44302]]]   #old, new
 
-VISUM_export(V,layout_path,access_db)
-access_edit(access_db,Node,False) ##False = no editing of nodenumbers
+VISUM_export(VISUM=V, layout=layout_path, access=access_db)
+access_edit(access=access_db, Nodes=Node, change=False)
+##False = no editing of nodenumbers
 
-VISUM_import(V,access_db,1,1,False)
-##(linktype; shortcrit( 1 = travel time; 3 = link length);open blocked links/turns)
+VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False)
+##shortcrit( 1 = travel time; 3 = link length)
 
 ##end
 send2trash(access_db)
