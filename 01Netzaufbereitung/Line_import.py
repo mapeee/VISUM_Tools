@@ -47,19 +47,19 @@ def VISUM_filter(VISUM):
     Lines.UseFilterForVehJourneySections = True
     Lines.UseFilterForVehJourneyItems = True
     Lines = Lines.LineRouteFilter()
-    Lines.AddCondition("OP_NONE",False,"AddVal1","GreaterVal",0)##no more filter,not complementary
+    Lines.AddCondition("OP_NONE",False,"AddVal1","EqualVal",1)##no more filter,not complementary
     
     HST = VISUM.Filters.StopGroupFilter()
     HST.UseFilterForStopAreas = True
     HST.UseFilterForStopPoints = True
     HST = HST.StopPointFilter()
-    HST.AddCondition("OP_NONE",False,r"Node\AddVal1","GreaterVal",0)
+    HST.AddCondition("OP_NONE",False,r"Node\AddVal1","EqualVal",1)
     
     Connector = VISUM.Filters.ConnectorFilter()
-    Connector.AddCondition("OP_NONE",False,r"Node\AddVal1","GreaterVal",0)
+    Connector.AddCondition("OP_NONE",False,r"Node\AddVal1","EqualVal",1)
     
     Nodes = VISUM.Filters.NodeFilter()
-    Nodes.AddCondition("OP_NONE",False,"AddVal1","GreaterVal",0)
+    Nodes.AddCondition("OP_NONE",False,"AddVal1","EqualVal",1)
     
     InsertedLinks = VISUM.Filters.LinkFilter()
     InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(1))
@@ -95,14 +95,13 @@ def access_edit(access,Nodes,change):
     conn.commit()
 
     if change == False: return
-    for AddValues in Nodes:
-        for i in AddValues[1:]:
-            cursor.execute('''
-                            UPDATE LINEROUTEITEM
-                            SET NODENO = '''+str(i[1])+''', STOPPOINTNO = '''+str(i[1])+'''
-                            WHERE STOPPOINTNO = '''+str(i[0])+''' and ADDVAL = '''+str(AddValues[0])+'''
-                            ''')              
-            conn.commit()
+    for i in Nodes:
+        cursor.execute('''
+                        UPDATE LINEROUTEITEM
+                        SET NODENO = '''+str(i[1])+''', STOPPOINTNO = '''+str(i[1])+'''
+                        WHERE STOPPOINTNO = '''+str(i[0])+''' and ADDVAL = '''+str(1)+'''
+                        ''')              
+        conn.commit()
     conn.close()
  
 def VISUM_import(VISUM,access,LinkType,shortcrit,open_blocked):
@@ -146,8 +145,8 @@ def VISUM_import(VISUM,access,LinkType,shortcrit,open_blocked):
 #--processing--#
 V = VISUM_open(Net=Network)
 VISUM_filter(VISUM=V)
-Node = [[1,[32129,7565091]]]   #old, new
-# Node = [[1,[44304,44301]],[1,[44307,44302]]]   #old, new
+Node = [[11018,11039]]   #old, new
+# Node = [[44304,44301],[44307,44302]]   #old, new
 
 VISUM_export(VISUM=V, layout=layout_path, access=access_db)
 access_edit(access=access_db, Nodes=Node, change=False)
