@@ -24,7 +24,6 @@ Network = f[0]
 layout_path = f[1]
 access_db = f[2].replace("accdb","mdb")
 
-
 def VISUM_open(Net):
     VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.22")
     VISUM.loadversion(Net)
@@ -41,8 +40,9 @@ def VISUM_filter(VISUM):
     Lines.UseFilterForVehJourneys = True
     Lines.UseFilterForVehJourneySections = True
     Lines.UseFilterForVehJourneyItems = True
-    Lines = Lines.LineRouteFilter()
-    Lines.AddCondition("OP_NONE",False,"AddVal1","EqualVal",1)##no more filter,not complementary
+    LineRoutes = Lines.LineRouteFilter()
+    LineRoutes.AddCondition("OP_NONE",False,"AddVal1","EqualVal",1) ##no more filter,not complementary
+    LineRoutes.AddCondition("OP_OR",False,r"SUM:LINEROUTEITEMS\NODE\ADDVAL1","GreaterVal",0) ##no more filter,not complementary
     
     HST = VISUM.Filters.StopGroupFilter()
     HST.UseFilterForStopAreas = True
@@ -59,7 +59,7 @@ def VISUM_filter(VISUM):
     InsertedLinks = VISUM.Filters.LinkFilter()
     InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(1))
     
-def VISUM_export(VISUM,layout,access, Stops):
+def VISUM_export(VISUM,layout,access,**optional):
     global journeys_before
     global servingstops_before
     journeys_before = VISUM.Net.VehicleJourneys.Count ##number of journeys before export
@@ -71,6 +71,9 @@ def VISUM_export(VISUM,layout,access, Stops):
     VISUM.Net.Connectors.RemoveAll()
     VISUM.Net.StopAreas.RemoveAll()
     VISUM.Net.StopPoints.RemoveAll()
+
+    global change_nodes
+    change_nodes = V.Net.Nodes.GetMultipleAttributes(["No"],True)
 
     ## Access
     conn = pyodbc.connect(r"Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ="+access+";")
@@ -89,6 +92,7 @@ def VISUM_export(VISUM,layout,access, Stops):
                     ''')
     conn.commit()
 
+    Stops = optional.get("Stops", False)
     if Stops == False: return
     for i in Stops:
         cursor.execute('''
@@ -126,12 +130,27 @@ def VISUM_import(VISUM,access,LinkType,shortcrit,open_blocked):
     VISUM.Filters.NodeFilter().Init()
     VISUM.Filters.StopGroupFilter().Init()
     VISUM.Filters.ConnectorFilter().Init()
+    
+    ##location / name of Nodes, Stops and StopAreas
+    if len(change_nodes) > 0:
+        for i in change_nodes:
+            Node = VISUM.Net.Nodes.ItemByKey(int(i[0]))
+            
+            Node.SetAttValue("Name",Node.AttValue(r"MIN:STOPPOINTS\Name"))
+            Area = VISUM.Net.StopAreas.ItemByKey(int(i[0]))
+            Area.SetAttValue("XCOORD",Area.AttValue(r"MIN:STOPPOINTS\XCOORD"))
+            Area.SetAttValue("YCOORD",Area.AttValue(r"MIN:STOPPOINTS\YCOORD"))
+            try: Stop = VISUM.Net.Stops.ItemByKey(int(i[0]))
+            except: continue
+            if int(Stop.AttValue("NumStopAreas")) == 1:
+                Stop.SetAttValue("XCOORD",Stop.AttValue(r"MIN:STOPAREAS\XCOORD"))
+                Stop.SetAttValue("YCOORD",Stop.AttValue(r"MIN:STOPAREAS\YCOORD"))
 
     #--testing after the import--#
     InsertedLinks = VISUM.Filters.LinkFilter().Init() 
     InsertedLinks = VISUM.Filters.LinkFilter()
     InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(LinkType))
-    if VISUM.Net.Links.CountActive > 0: print("--"+str(VISUM.Net.Links.CountActive)+" new links added--") 
+    if VISUM.Net.Links.CountActive > 0: print("> "+str(VISUM.Net.Links.CountActive)+" new links of type "+str(LinkType)+" added \n") 
     VISUM.Filters.LinkFilter().Init()
     
     global journeys_after
@@ -155,16 +174,15 @@ def VISUM_end(VISUM,access):
     VISUM.Filters.InitAll()
     VISUM_filter(VISUM)
 
+
 #--processing--#
 V = VISUM_open(Net=Network)
 VISUM_filter(VISUM=V)
 
-Stop = False #False = no change of served stops
-# Stop = [[11018,11039]]   #old, new
-# Stop = [[44304,44301],[44307,44302]]   #old, new
-
-VISUM_export(VISUM=V, layout=layout_path, access=access_db, Stops=Stop)
-VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) #shortcrit( 1 = travel time; 3 = link length)
+VISUM_export(VISUM=V, layout=layout_path, access=access_db)
+# VISUM_export(VISUM=V, layout=layout_path, access=access_db, Stops=[[11018,11039]])
+VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False)
+#shortcrit( 1 = travel time; 3 = link length)
 VISUM_end(VISUM=V, access=access_db)
 
 ##end
