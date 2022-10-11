@@ -45,8 +45,10 @@ def VISUM_filter(VISUM,**optional):
     LineRoutes.AddCondition("OP_NONE",False,"AddVal1","EqualVal",1) ##no more filter,not complementary
     LineRoutes.AddCondition("OP_OR",False,r"COUNTACTIVE:STOPPOINTS","GreaterVal",0) ##no more filter,not complementary
     
+    Con_type = optional.get("Con_type", False)
     Connector = VISUM.Filters.ConnectorFilter()
     Connector.AddCondition("OP_NONE",False,r"Node\AddVal1","EqualVal",1)
+    if Con_type != False: Connector.AddCondition("OP_AND",False,"TYPENO","EqualVal",Con_type)
     
     Nodes = VISUM.Filters.NodeFilter()
     Nodes.AddCondition("OP_NONE",False,"AddVal1","EqualVal",1)
@@ -184,7 +186,7 @@ def VISUM_end(VISUM,access):
 
 #--processing--#
 V = VISUM_open(Net=Network)
-VISUM_filter(VISUM=V)
+VISUM_filter(VISUM=V, Con_type=9)
 VISUM_export(VISUM=V, layout=layout_path, access=access_db)
 
 # Stop = [[11018,11039],[11009,80013]]
