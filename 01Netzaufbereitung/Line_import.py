@@ -15,9 +15,9 @@ from send2trash import send2trash
 
 from pathlib import Path
 path = Path.home() / 'python32' / 'python_dir.txt'
-with open(path, mode='r') as f: path = f.readlines()
+path = open(path, mode='r').readlines()
 path = path[0] +"\\"+'VISUM_Tools'+"\\"+'Line_import.txt'
-with open(path, mode='r') as path: f = path.read().splitlines()
+f = open(path, mode='r').read().splitlines()
 
 #--Path--#
 Network = f[0]
@@ -25,7 +25,7 @@ layout_path = f[1]
 access_db = f[2].replace("accdb","mdb")
 
 def VISUM_open(Net):
-    VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.22")
+    VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.22")  # type: ignore
     VISUM.loadversion(Net)
     VISUM.Filters.InitAll()
     return VISUM
@@ -60,7 +60,7 @@ def VISUM_filter(VISUM,**optional):
     HST = HST.StopPointFilter()
     HST.AddCondition("OP_NONE",False,r"Node\AddVal1","EqualVal",1)
     if Stops != False:
-        for i in Stops: HST.AddCondition("OP_OR",False,"No","EqualVal",i[0])
+        for i in Stops:HST.AddCondition("OP_OR",False,"No","EqualVal",i[0])  # type: ignore
         for Route in VISUM.Net.LineRoutes.GetAllActive: Route.SetAttValue("AddVal1",1)
         HST.Init()
         HST.AddCondition("OP_NONE",False,r"Node\AddVal1","EqualVal",1)
@@ -179,19 +179,19 @@ def VISUM_import(VISUM,access,LinkType,shortcrit,open_blocked):
 
 def VISUM_end(VISUM,access):
     send2trash(access)
-    for Route in VISUM.Net.LineRoutes.GetAllActive: Route.SetAttValue("AddVal1",0)
+    for Route in VISUM.Net.LineRoutes.GetAllActive:Route.SetAttValue("AddVal1",0)
     VISUM.Filters.InitAll()
     VISUM_filter(VISUM)
 
 
 #--processing--#
 V = VISUM_open(Net=Network)
-VISUM_filter(VISUM=V, Con_type=9)
-VISUM_export(VISUM=V, layout=layout_path, access=access_db)
+# VISUM_filter(VISUM=V, Con_type=9)
+# VISUM_export(VISUM=V, layout=layout_path, access=access_db)
 
-# Stop = [[11018,11039],[11009,80013]]
-# VISUM_filter(VISUM=V, Stops=Stop)
-# VISUM_export(VISUM=V, layout=layout_path, access=access_db, Stops=Stop)
+Stop = [[11033,3152710]]
+VISUM_filter(VISUM=V, Stops=Stop)
+VISUM_export(VISUM=V, layout=layout_path, access=access_db, Stops=Stop)
 
 VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False)
 #shortcrit( 1 = travel time; 3 = link length)
