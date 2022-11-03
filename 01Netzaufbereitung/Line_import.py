@@ -176,6 +176,8 @@ def VISUM_import(VISUM,access,LinkType,shortcrit,open_blocked):
         print("> missing servings at stops")
         print("> before: "+str(servingstops_before))
         print("> after: "+str(servingstops_after)+"\n")
+        
+    VISUM.Filters.LineGroupFilter().LineRouteFilter().RemoveCondition(2) ##Remove Aktive:StopPoint > 0 
 
 def VISUM_end(VISUM,access):
     send2trash(access)
@@ -186,16 +188,18 @@ def VISUM_end(VISUM,access):
 
 #--processing--#
 V = VISUM_open(Net=Network)
-# VISUM_filter(VISUM=V, Con_type=9)
-# VISUM_export(VISUM=V, layout=layout_path, access=access_db)
 
-Stop = [[11033,3152710]]
-VISUM_filter(VISUM=V, Stops=Stop)
-VISUM_export(VISUM=V, layout=layout_path, access=access_db, Stops=Stop)
+'''Export Line only or StopPoint to different Node'''
+VISUM_filter(VISUM=V, Con_type=9)
+VISUM_export(VISUM=V, layout=layout_path, access=access_db)
+VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
 
-VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False)
-#shortcrit( 1 = travel time; 3 = link length)
-VISUM_end(VISUM=V, access=access_db)
+'''Change StopPoint from LineRoutes'''
+# Stop = [[11033,3152710]]
+# VISUM_filter(VISUM=V, Stops=Stop)
+# VISUM_export(VISUM=V, layout=layout_path, access=access_db, Stops=Stop)
+# VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
 
 ##end
+VISUM_end(VISUM=V, access=access_db)
 V.SaveVersion(Network)
