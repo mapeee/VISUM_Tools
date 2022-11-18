@@ -34,6 +34,14 @@ def VISUM_filter(VISUM,**optional):
     VISUM.Filters.InitAll()
     
     Lines = VISUM.Filters.LineGroupFilter()
+    
+    LineRouteItems = Lines.LineRouteItemFilter()
+    LineRouteItems.AddCondition("OP_NONE",False,"ISROUTEPOINT","EqualVal",1)   
+    
+    LineRoutes = Lines.LineRouteFilter()
+    LineRoutes.AddCondition("OP_NONE",False,"AddVal1","EqualVal",1) ##no more filter,not complementary
+    LineRoutes.AddCondition("OP_OR",False,r"COUNTACTIVE:STOPPOINTS","GreaterVal",0) ##no more filter,not complementary
+    
     Lines.UseFilterForLineRoutes = True
     Lines.UseFilterForLineRouteItems = True
     Lines.UseFilterForTimeProfiles = True
@@ -41,10 +49,7 @@ def VISUM_filter(VISUM,**optional):
     Lines.UseFilterForVehJourneys = True
     Lines.UseFilterForVehJourneySections = True
     Lines.UseFilterForVehJourneyItems = True
-    LineRoutes = Lines.LineRouteFilter()
-    LineRoutes.AddCondition("OP_NONE",False,"AddVal1","EqualVal",1) ##no more filter,not complementary
-    LineRoutes.AddCondition("OP_OR",False,r"COUNTACTIVE:STOPPOINTS","GreaterVal",0) ##no more filter,not complementary
-    
+
     Con_type = optional.get("Con_type", False)
     Connector = VISUM.Filters.ConnectorFilter()
     Connector.AddCondition("OP_NONE",False,r"Node\AddVal1","EqualVal",1)
@@ -61,6 +66,8 @@ def VISUM_filter(VISUM,**optional):
 
     InsertedLinks = VISUM.Filters.LinkFilter()
     InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(1))
+    
+    Lines.UseFilterForLineRoutes = True
     
 def VISUM_export(VISUM,layout,access,**optional):
     global journeys_before
@@ -174,7 +181,6 @@ def VISUM_import(VISUM,access,LinkType,shortcrit,open_blocked):
     VISUM.Filters.LineGroupFilter().LineRouteFilter().RemoveCondition(2) ##Remove Aktive:StopPoint > 0 
 
 def VISUM_end(VISUM,access):
-    send2trash(access)
     for Route in VISUM.Net.LineRoutes.GetAllActive:Route.SetAttValue("AddVal1",0)
     VISUM.Filters.InitAll()
     VISUM_filter(VISUM)
@@ -184,16 +190,17 @@ def VISUM_end(VISUM,access):
 V = VISUM_open(Net=Network)
 
 '''Export Line only or StopPoint to different Node'''
-# VISUM_filter(VISUM=V, Con_type=9)
-# VISUM_export(VISUM=V, layout=layout_path, access=access_db)
-# VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
+VISUM_filter(VISUM=V, Con_type=9)
+VISUM_export(VISUM=V, layout=layout_path, access=access_db)
+VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
 
 '''Change StopPoint from LineRoutes'''
-Stop = [[92783,3163192]]
+Stop = [[84079,84002]]
 VISUM_filter(VISUM=V)
 VISUM_export(VISUM=V, layout=layout_path, access=access_db, Stops=Stop)
 VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
 
 ##end
 VISUM_end(VISUM=V, access=access_db)
+send2trash(access_db)
 V.SaveVersion(Network)
