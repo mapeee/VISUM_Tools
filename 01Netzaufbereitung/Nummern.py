@@ -47,7 +47,7 @@ f.write("Change Excel: "+XLS+"\n")
 f.write("\n\n\n\n")
 
 #--open VISUM--#
-VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.20")
+VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.22")
 VISUM.loadversion(Netz)
 
 #Spalten aus xls auswählen

@@ -83,7 +83,7 @@ def VISUM_export(VISUM,layout,access,**optional):
     VISUM.Net.StopPoints.RemoveAll()
 
     global change_nodes
-    change_nodes = V.Net.Nodes.GetMultipleAttributes(["No"],True)
+    change_nodes = VISUM.Net.Nodes.GetMultipleAttributes(["No"],True)
 
     ## Access
     conn = pyodbc.connect(r"Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ="+access+";")
@@ -195,12 +195,12 @@ VISUM_export(VISUM=V, layout=layout_path, access=access_db)
 VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
 
 '''Change StopPoint from LineRoutes'''
-Stop = [[84079,84002]]
+Stop = [[17359,173591]]
 VISUM_filter(VISUM=V)
 VISUM_export(VISUM=V, layout=layout_path, access=access_db, Stops=Stop)
 VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
 
 ##end
 VISUM_end(VISUM=V, access=access_db)
-send2trash(access_db)
 V.SaveVersion(Network)
+send2trash(access_db)
