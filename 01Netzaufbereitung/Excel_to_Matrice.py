@@ -17,9 +17,6 @@ Import of Excel-OD-Date to VISUM Matrice
 From/To Zones are referenced by index number instead of zone number!
 '''
 
-
-
-
 import win32com.client.dynamic
 import openpyxl
 VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.22")
@@ -29,8 +26,8 @@ Net = r""
 Excel = r""
 
 mat_nr = 10 #Number of VISUM-matrice
-orig_col = 1 #column number of origins (A1 = 1)
-desti_col = 2
+orig_col = 5 #column number of origins (A1 = 1)
+desti_col = 6
 header = 1 #0 = no; 1 = yes
 
 #--Process--#
