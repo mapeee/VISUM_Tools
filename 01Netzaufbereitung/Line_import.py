@@ -11,6 +11,7 @@
 #-------------------------------------------------------------------------------
 import win32com.client.dynamic
 import pyodbc
+import time
 from send2trash import send2trash
 
 from pathlib import Path
@@ -25,7 +26,7 @@ layout_path = f[1]
 access_db = f[2].replace("accdb","mdb")
 
 def VISUM_open(Net):
-    VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.22")  # type: ignore
+    VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.23")  # type: ignore
     VISUM.loadversion(Net)
     VISUM.Filters.InitAll()
     return VISUM
@@ -115,7 +116,7 @@ def VISUM_export(VISUM,layout,access,**optional):
  
 def VISUM_import(VISUM,access,LinkType,shortcrit,open_blocked):
     VISUM_filter(VISUM)
-    import_setting = VISUM.CreateNetReadRouteSearchTsys()
+    import_setting = VISUM.IO.CreateNetReadRouteSearchTsys()
     import_setting.SetAttValue("ChangeLinkTypeOfOpenedLinks",open_blocked)
     import_setting.SetAttValue("IncludeBlockedTurns",open_blocked)
     import_setting.SetAttValue("HowToHandleIncompleteRoute", 2) ##search shortest path
@@ -126,7 +127,7 @@ def VISUM_import(VISUM,access,LinkType,shortcrit,open_blocked):
     import_setting.SetAttValue("LinkTypeForInsertedLinksReplacingMissingShortestPaths",LinkType)
     import_setting.SetAttValue("WhatToDoIfStopPointIsBlocked", 2) ##Open the StopPoint
     import_setting.SetAttValue("WhatToDoIfStopPointNotFound", 0) ##do not read lineroute
-    PuT_import = VISUM.CreateNetReadRouteSearch()
+    PuT_import = VISUM.IO.CreateNetReadRouteSearch()
     PuT_import.SetForAllTSys(import_setting)
     VISUM.IO.LoadAccessDatabase(access,True,PuT_import)
     
@@ -187,7 +188,7 @@ def VISUM_end(VISUM,access):
 
 
 #--processing--#
-V = VISUM_open(Net=Network)
+V = VISUM_open(Network)
 
 '''Export Line only or StopPoint to different Node'''
 VISUM_filter(VISUM=V, Con_type=9)
@@ -195,7 +196,7 @@ VISUM_export(VISUM=V, layout=layout_path, access=access_db)
 VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
 
 '''Change StopPoint from LineRoutes'''
-Stop = [[17359,173591]]
+Stop = [[70033,700331],[0,0],[0,0]]
 VISUM_filter(VISUM=V)
 VISUM_export(VISUM=V, layout=layout_path, access=access_db, Stops=Stop)
 VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
@@ -203,4 +204,6 @@ VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=Fa
 ##end
 VISUM_end(VISUM=V, access=access_db)
 V.SaveVersion(Network)
-send2trash(access_db)
+time.sleep(2)
+try:send2trash(access_db)
+except:pass
