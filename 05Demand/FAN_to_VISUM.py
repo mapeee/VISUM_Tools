@@ -24,10 +24,10 @@ XLSX = f[1]
 Sheet = "Kanten"
 From = 1
 To = 3
-Demand = 8
-Lines = 9
-Routes = 10
-Direction = 11
+Demand = 5
+Lines = 6
+Routes = 8
+Direction = 9
 
 def FAN_VISUM(f,t,v,r):
     Items = r.LineRouteItems.GetAll
