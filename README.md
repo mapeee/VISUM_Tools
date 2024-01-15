@@ -1,2 +1,2 @@
 # VISUM_Tools
-Scripts to prepare VISUM networks and to execute analysis.
+Scripts for working with PTV VISUM.
