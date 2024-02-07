@@ -71,6 +71,14 @@ class MyDialog(wx.Dialog):
         defaultParam = {"POICat" : "...", "POIAttr" : "...", "NetworkType" : None}
         param = addInParam.Check(False, defaultParam)
         
+        self.__initWxControlValues(param)
+        
+    def __initWxControlValues(self, param):
+        self.combo1.SetValue(Visum.Net.POICategories.ItemByKey(int(param["POICat"])).AttValue("Name"))
+        self.combo2.SetValue(param["POIAttr"])
+        self.combo3.SetValue([_(i) for i in ["Link","Node","StopPoint","StopArea","Zone"]][self.combo3.GetSelection()])
+        
+        
     def __set_properties(self):
         self.SetTitle(_("POI to Network"))
         self.button2.SetDefault()
