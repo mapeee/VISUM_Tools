@@ -2,6 +2,7 @@
 import wx
 import sys
 import os
+import numpy as np
 from VisumPy.AddIn import AddIn, AddInState, AddInParameter
 _ = AddIn.gettext
 
@@ -24,6 +25,7 @@ class InfoFrame(wx.Frame):
         sizer.Add(wx.StaticText(self,label= _("05.02.2024")),0,wx.LEFT,5)
         sizer.AddSpacer(2)
         sizer.Add(wx.StaticText(self,label= _("Version 1.0: Initial")),0,wx.LEFT,5)
+        sizer.Add(wx.StaticText(self,label= _("Version 1.1: Initial Values")),0,wx.LEFT,5)
         sizer.AddSpacer(50)
         sizer.Add(self.button,0,wx.ALIGN_CENTER,5)
         self.SetSizer(sizer)
@@ -43,14 +45,15 @@ class MyDialog(wx.Dialog):
         self.__InitUI()
         self.Centre()
 
-    def __InitUI(self):        
+    def __InitUI(self):
+        self.label1 = wx.StaticText(self, -1, _("POI - Category"))
+        self.label2 = wx.StaticText(self, -1, _("POI - Attribute"))
+        self.label3 = wx.StaticText(self, -1, _("Network Type"))
+        
         self.button3 = wx.Button(self, -1, _("OK"))
         self.button1 = wx.Button(self, -1, _("Help"))
         self.button2 = wx.Button(self, -1, _('Info'))
         self.button4 = wx.Button(self, -1, _('Cancel'))
-        self.Label1 = wx.StaticText(self, -1, _("POI - Category"))
-        self.Label2 = wx.StaticText(self, -1, _("POI - Attribute"))
-        self.Label3 = wx.StaticText(self, -1, _("Network Type"))
         
         self.combo1 = wx.ComboBox(self, -1, "...")
         self.combo1.Bind(wx.EVT_COMBOBOX, self.OnComboChoice)
@@ -71,13 +74,14 @@ class MyDialog(wx.Dialog):
         defaultParam = {"POICat" : "...", "POIAttr" : "...", "NetworkType" : None}
         param = addInParam.Check(False, defaultParam)
         
-        self.__initWxControlValues(param)
+        try:self.__initWxControlValues(param)
+        except: pass
         
     def __initWxControlValues(self, param):
-        self.combo1.SetValue(Visum.Net.POICategories.ItemByKey(int(param["POICat"])).AttValue("Name"))
-        self.combo2.SetValue(param["POIAttr"])
-        self.combo3.SetValue([_(i) for i in ["Link","Node","StopPoint","StopArea","Zone"]][self.combo3.GetSelection()])
-        
+        self.combo1.SetSelection([int(i.AttValue("NO")) for i in Visum.Net.POICategories.GetAll].index(param["POICat"]))
+        attrList = self.OnComboChoice(None)
+        self.combo2.SetSelection(attrList.index(param["POIAttr"]))
+        self.combo3.SetSelection(["Link","Node","StopPoint","StopArea","Zone"].index(param["NetworkType"]))
         
     def __set_properties(self):
         self.SetTitle(_("POI to Network"))
@@ -87,11 +91,11 @@ class MyDialog(wx.Dialog):
         vbox = wx.BoxSizer(wx.VERTICAL)
         
         box_1 = wx.GridBagSizer()
-        box_1.Add(self.Label1, (1,1), wx.DefaultSpan, wx.ALIGN_CENTER_VERTICAL, 10)
+        box_1.Add(self.label1, (1,1), wx.DefaultSpan, wx.ALIGN_CENTER_VERTICAL, 10)
         box_1.Add(self.combo1, (1,3), (1,3), wx.EXPAND, 10)
-        box_1.Add(self.Label2, (3,1), wx.DefaultSpan, wx.ALIGN_CENTER_VERTICAL, 10)
+        box_1.Add(self.label2, (3,1), wx.DefaultSpan, wx.ALIGN_CENTER_VERTICAL, 10)
         box_1.Add(self.combo2, (3,3), (1,3), wx.EXPAND, 10)
-        box_1.Add(self.Label3, (5,1), wx.DefaultSpan, wx.ALIGN_CENTER_VERTICAL, 10)
+        box_1.Add(self.label3, (5,1), wx.DefaultSpan, wx.ALIGN_CENTER_VERTICAL, 10)
         box_1.Add(self.combo3, (5,3), (1,3), wx.EXPAND, 10)
 
         box_2 = wx.GridBagSizer()
@@ -130,6 +134,7 @@ class MyDialog(wx.Dialog):
             if i.ValueType==1: l.append(i.ID)
         self.combo2.Append(l)
         self.combo2.SetValue("...")
+        return l
       
     def OnInfo(self,event):
         title = _("Info")
@@ -166,7 +171,7 @@ class MyDialog(wx.Dialog):
 def CheckPOIs():
     POIs = Visum.Net.POICategories
     if len(POIs) == 0:
-        addIn.ReportMessage(_("Current VISUM Version doesn't contain any POI! Please create a POI first."))
+        addIn.ReportMessage(_("Current VISUM Version doesn't contain any POI! Please create a POI first!"))
         if not addIn.IsInDebugMode:
             Terminated.set()
         return False
