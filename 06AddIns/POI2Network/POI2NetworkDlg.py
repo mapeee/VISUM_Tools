@@ -8,7 +8,7 @@ _ = AddIn.gettext
 
 class InfoFrame(wx.Frame):
     def __init__(self, title):
-        super(InfoFrame, self).__init__(None, id=-1, title=title, style=wx.CAPTION | wx.STAY_ON_TOP, size=(200, 200))
+        super(InfoFrame, self).__init__(None, id=-1, title=title, style=wx.CAPTION | wx.STAY_ON_TOP, size=(180, 180))
         self.Centre()
         
         self.button = wx.Button(self, -1, _("OK"))
@@ -19,15 +19,17 @@ class InfoFrame(wx.Frame):
         
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.AddSpacer(10)
-        sizer.Add(self.label,0,wx.LEFT,5)
+        sizer.Add(self.label,0,wx.LEFT,10)
         sizer.AddSpacer(2)
-        sizer.Add(wx.StaticText(self,label= _("Marcus Peter")),0,wx.LEFT,5)
-        sizer.Add(wx.StaticText(self,label= _("05.02.2024")),0,wx.LEFT,5)
+        sizer.Add(wx.StaticText(self,label= _("Marcus Peter")),0,wx.LEFT,10)
+        sizer.Add(wx.StaticText(self,label= _("05.02.2024")),0,wx.LEFT,10)
         sizer.AddSpacer(2)
-        sizer.Add(wx.StaticText(self,label= _("Version 1.0: Initial")),0,wx.LEFT,5)
-        sizer.Add(wx.StaticText(self,label= _("Version 1.1: Initial Values")),0,wx.LEFT,5)
-        sizer.AddSpacer(50)
+        sizer.Add(wx.StaticText(self,label= _("Version 1.0: Initial")),0,wx.LEFT,10)
+        sizer.Add(wx.StaticText(self,label= _("Version 1.1: Initial Values")),0,wx.LEFT,10)
+        sizer.Add(wx.StaticText(self,label= _("Version 1.2: Replace existing")),0,wx.LEFT,10)
+        sizer.AddSpacer(20)
         sizer.Add(self.button,0,wx.ALIGN_CENTER,5)
+        sizer.AddSpacer(10)
         self.SetSizer(sizer)
         
         font = wx.Font(8, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.BOLD)
@@ -49,11 +51,14 @@ class MyDialog(wx.Dialog):
         self.label1 = wx.StaticText(self, -1, _("POI - Category"))
         self.label2 = wx.StaticText(self, -1, _("POI - Attribute"))
         self.label3 = wx.StaticText(self, -1, _("Network Type"))
+        self.label4 = wx.StaticText(self, -1, _("Replace existing?"))
         
         self.button3 = wx.Button(self, -1, _("OK"))
         self.button1 = wx.Button(self, -1, _("Help"))
         self.button2 = wx.Button(self, -1, _('Info'))
         self.button4 = wx.Button(self, -1, _('Cancel'))
+        
+        self.checkbox1 = wx.CheckBox(self) 
         
         self.combo1 = wx.ComboBox(self, -1, "...")
         self.combo1.Bind(wx.EVT_COMBOBOX, self.OnComboChoice)
@@ -71,7 +76,7 @@ class MyDialog(wx.Dialog):
         self.__set_properties()
         self.__do_comboChoice()
         
-        defaultParam = {"POICat" : "...", "POIAttr" : "...", "NetworkType" : None}
+        defaultParam = {"POICat" : "...", "POIAttr" : "...", "NetworkType" : None, "Replace" : False}
         param = addInParam.Check(False, defaultParam)
         
         try:self.__initWxControlValues(param)
@@ -82,6 +87,7 @@ class MyDialog(wx.Dialog):
         attrList = self.OnComboChoice(None)
         self.combo2.SetSelection(attrList.index(param["POIAttr"]))
         self.combo3.SetSelection(["Link","Node","StopPoint","StopArea","Zone"].index(param["NetworkType"]))
+        self.checkbox1.SetValue(param["Replace"])
         
     def __set_properties(self):
         self.SetTitle(_("POI to Network"))
@@ -97,6 +103,8 @@ class MyDialog(wx.Dialog):
         box_1.Add(self.combo2, (3,3), (1,3), wx.EXPAND, 10)
         box_1.Add(self.label3, (5,1), wx.DefaultSpan, wx.ALIGN_CENTER_VERTICAL, 10)
         box_1.Add(self.combo3, (5,3), (1,3), wx.EXPAND, 10)
+        box_1.Add(self.label4, (7,1), wx.DefaultSpan, wx.ALIGN_CENTER_VERTICAL, 10)
+        box_1.Add(self.checkbox1, (7,3), (1,3), wx.EXPAND, 10)
 
         box_2 = wx.GridBagSizer()
         box_2.Add(self.button1, (0,1), wx.DefaultSpan, wx.EXPAND, 0)
@@ -163,6 +171,7 @@ class MyDialog(wx.Dialog):
             param["POICat"] = int([i.AttValue("NO") for i in Visum.Net.POICategories.GetAll][self.combo1.GetSelection()])
             param["POIAttr"] = self.combo2.GetValue()
             param["NetworkType"] = ["Link","Node","StopPoint","StopArea","Zone"][self.combo3.GetSelection()]
+            param["Replace"] = self.checkbox1.GetValue()
             return param, True
         except:
             addIn.HandleException(_("POI -> Network, value error: "))

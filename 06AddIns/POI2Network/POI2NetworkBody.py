@@ -18,10 +18,10 @@ def Run(param):
     OP.SetAttValue("OPERATIONTYPE",65)
     CODE = \
 f'for poi in Visum.Net.POICategories.ItemByKey({param["POICat"]}).POIs.GetAllActive:\n\
-    if poi.POITo{param["NetworkType"]}Items.Count > 0:\n\
-        for element in poi.POITo{param["NetworkType"]}Items.GetAll:\n\
-            poi.RemovePOITo{param["NetworkType"]}Item(element.AttValue("{param["NetworkType"]}NO"))\n\
     if poi.AttValue("{param["POIAttr"]}") in ["",0]: continue\n\
+    for element in poi.POITo{param["NetworkType"]}Items.GetAll:\n\
+        if {param["Replace"]} == True or poi.AttValue("{param["POIAttr"]}") == element.AttValue("{param["NetworkType"]}NO"):\n\
+            poi.RemovePOITo{param["NetworkType"]}Item(element.AttValue("{param["NetworkType"]}NO"))\n\
     poi.AddPOITo{param["NetworkType"]}Item(Visum.Net.{param["NetworkType"]}s.ItemByKey(poi.AttValue("{param["POIAttr"]}")))\n\
 Visum.Log(20480,"POI2Network: finished")'
     OP.ExecuteScriptParameters.SetAttValue("INTERNALSCRIPTCODE",CODE)
