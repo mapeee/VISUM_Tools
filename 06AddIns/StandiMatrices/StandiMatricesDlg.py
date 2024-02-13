@@ -10,7 +10,7 @@ _ = AddIn.gettext
 
 class InfoFrame(wx.Frame):
     def __init__(self, title):
-        super(InfoFrame, self).__init__(None, id=-1, title=title, style=wx.CAPTION | wx.STAY_ON_TOP, size=(200, 200))
+        super(InfoFrame, self).__init__(None, id=-1, title=title, style=wx.CAPTION | wx.STAY_ON_TOP, size=(180, 180))
         self.Centre()
         
         self.button = wx.Button(self, -1, _("OK"))
@@ -21,14 +21,16 @@ class InfoFrame(wx.Frame):
         
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.AddSpacer(10)
-        sizer.Add(self.label,0,wx.LEFT,5)
+        sizer.Add(self.label,0,wx.LEFT,10)
         sizer.AddSpacer(2)
-        sizer.Add(wx.StaticText(self,label= _("Marcus Peter")),0,wx.LEFT,5)
-        sizer.Add(wx.StaticText(self,label= _("09.02.2024")),0,wx.LEFT,5)
+        sizer.Add(wx.StaticText(self,label= _("Marcus Peter")),0,wx.LEFT,10)
+        sizer.Add(wx.StaticText(self,label= _("09.02.2024")),0,wx.LEFT,10)
         sizer.AddSpacer(2)
-        sizer.Add(wx.StaticText(self,label= _("Version 1.0: Initial")),0,wx.LEFT,5)
-        sizer.AddSpacer(50)
+        sizer.Add(wx.StaticText(self,label= _("Version 1.0: Initial")),0,wx.LEFT,10)
+        sizer.Add(wx.StaticText(self,label= _("Version 1.1: Deselect all")),0,wx.LEFT,10)
+        sizer.AddSpacer(20)
         sizer.Add(self.button,0,wx.ALIGN_CENTER,5)
+        sizer.AddSpacer(10)
         self.SetSizer(sizer)
         
         font = wx.Font(8, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.BOLD)
@@ -58,6 +60,7 @@ class MyDialog(wx.Dialog):
         self.button3 = wx.Button(self, -1, _("OK"))
         self.button4 = wx.Button(self, -1, _('Cancel'))
         self.button5 = wx.Button(self, -1, _('Select all'))
+        self.button6 = wx.Button(self, -1, _('Deselect all'))
         
         matrices_b = [_("Pkw_E_O : Car trips adults base case : 1"),
                       _("Lkw_GV : Truck rides : 3"),
@@ -94,7 +97,7 @@ class MyDialog(wx.Dialog):
         for i in range(len(matrices_p)): self.checkList2.SetItemBackgroundColour(i,wx.Colour(193,250,193))
         for i in range(len(matrices_s)): self.checkList3.SetItemBackgroundColour(i,wx.Colour(250,227,240))
         
-        self.combo1 = wx.ComboBox(self, -1, value=_("No"), choices=[_("Yes"),_("No")])
+        self.checkbox1 = wx.CheckBox(self) 
         
         self.Bind(wx.EVT_BUTTON, self.OnHelp, self.button1)
         self.Bind(wx.EVT_BUTTON, self.OnInfo, self.button2)
@@ -102,6 +105,7 @@ class MyDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnExit, self.button4)
         self.Bind(wx.EVT_CLOSE, self.OnExit)
         self.Bind(wx.EVT_BUTTON, self.OnSelectAll, self.button5)
+        self.Bind(wx.EVT_BUTTON, self.OnDeselectAll, self.button6)
 
         self.__do_layout()
         self.__set_properties()
@@ -119,7 +123,7 @@ class MyDialog(wx.Dialog):
         self.checkList2.SetCheckedItems(param["Items_p"])
         self.checkList3.SetCheckedItems(param["Items_s"])
         self.checkList4.SetCheckedItems(param["Items_f"])
-        self.combo1.SetSelection([True, False].index(param["Replace"]))
+        self.checkbox1.SetValue(param["Replace"])
    
     def __set_properties(self):
         self.SetTitle(_("Create Standi Matrices"))
@@ -138,14 +142,15 @@ class MyDialog(wx.Dialog):
         box_1.Add(self.label4, (7,1), wx.DefaultSpan, wx.ALIGN_CENTER_VERTICAL, 10)
         box_1.Add(self.checkList4, (7,3), (1,3), wx.EXPAND, 10)
         box_1.Add(self.label5, (9,1), wx.DefaultSpan, wx.ALIGN_CENTER_VERTICAL, 10)
-        box_1.Add(self.combo1, (9,3), wx.DefaultSpan, wx.ALIGN_CENTER_VERTICAL, 10)
+        box_1.Add(self.checkbox1, (9,3), wx.DefaultSpan, wx.ALIGN_CENTER_VERTICAL, 10)
 
         box_2 = wx.GridBagSizer()
         box_2.Add(self.button1, (0,1), wx.DefaultSpan, wx.EXPAND, 0)
         box_2.Add(self.button2, (0,2), wx.DefaultSpan, wx.EXPAND, 0)
         box_2.Add(self.button3, (0,4), wx.DefaultSpan, wx.EXPAND, 0)
         box_2.Add(self.button4, (0,5), wx.DefaultSpan, wx.EXPAND, 10)
-        box_2.Add(self.button5, (0,7), wx.DefaultSpan, wx.RIGHT, 10)
+        box_2.Add(self.button5, (0,7), wx.DefaultSpan, wx.RIGHT, 0)
+        box_2.Add(self.button6, (0,8), wx.DefaultSpan, wx.RIGHT, 10)
 
         vbox.Add(box_1,0,wx.RIGHT,10)
         vbox.AddSpacer(30)
@@ -187,6 +192,12 @@ class MyDialog(wx.Dialog):
         self.checkList2.SetCheckedItems(range(self.checkList2.GetCount()))
         self.checkList3.SetCheckedItems(range(self.checkList3.GetCount()))
         self.checkList4.SetCheckedItems(range(self.checkList4.GetCount()))
+        
+    def OnDeselectAll(self,event):
+        for i in range(self.checkList1.GetCount()):self.checkList1.Check(i,False)
+        for i in range(self.checkList2.GetCount()):self.checkList2.Check(i,False)
+        for i in range(self.checkList3.GetCount()):self.checkList3.Check(i,False)
+        for i in range(self.checkList4.GetCount()):self.checkList4.Check(i,False)
     
     def setParameter(self):
         param = dict()
@@ -199,7 +210,7 @@ class MyDialog(wx.Dialog):
             param["Items_s"] = self.checkList3.GetCheckedItems()
             param["Matrices_f"] = self.checkList4.GetCheckedStrings()
             param["Items_f"] = self.checkList4.GetCheckedItems()
-            param["Replace"] = [True, False][self.combo1.GetSelection()]
+            param["Replace"] = self.checkbox1.GetValue()
             return param, True
         except:
             addIn.HandleException(_("Standi Matrices, value error: "))

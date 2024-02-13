@@ -67,7 +67,9 @@ if addIn.State != AddInState.OK:
     addIn.ReportMessage(addIn.ErrorObjects[0].ErrorMessage)
 else:
     try:
-        defaultParam = {"Matrices_b" : "...", "Items_b" : "..."}
+        defaultParam = {"Matrices_b" : "...", "Items_b" : "...", "Matrices_p" : "...",
+                        "Items_p" : "...", "Matrices_s" : "...", "Items_s" : "...",
+                        "Matrices_f" : "...", "Items_f" : "...", "Replace" : False}
         param = addInParam.Check(True, defaultParam)
         Run(param)
     except:
