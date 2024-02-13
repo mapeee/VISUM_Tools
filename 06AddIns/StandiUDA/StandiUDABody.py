@@ -30,15 +30,15 @@ def Run(param):
         if V not in np.array(Visum.Net.UserDefinedGroups.GetMultiAttValues("Name"))[:,1]: Visum.Net.AddUserDefinedGroup(V)
     else: Visum.Net.AddUserDefinedGroup(V)
 
-    # for i in param["UDA_a"]:  
-    #     TYPE, ID, Name = i.split(" : ")
-    #     if Visum.Net.Links.AttrExists(ID)==True:
-    #         if param["Replace"]==True: SetMulti(Visum.Net.Links,ID,[0]*Visum.Net.Links.CountActive,True)
-    #         continue
-    #     Visum.Net.Links.AddUserDefinedAttribute(ID, Name, Name,1)
-    #     UDA = Visum.Net.Links.Attributes.ItemByKey(ID)
-    #     UDA.UserDefinedGroup = V
-    #     UDA.Comment = comments[[x[0] for x in comments].index(ID)][1]
+    for i in param["UDA_a"]:  
+        TYPE, ID, Name = i.split(" : ")
+        if Visum.Net.Links.AttrExists(ID)==True:
+            if param["Replace"]==True: SetMulti(Visum.Net.Links,ID,[0]*Visum.Net.Links.CountActive,True)
+            continue
+        Visum.Net.Links.AddUserDefinedAttribute(ID, Name, Name,1)
+        UDA = Visum.Net.Links.Attributes.ItemByKey(ID)
+        UDA.UserDefinedGroup = V
+        UDA.Comment = comments[[x[0] for x in comments].index(ID)][1]
 
     for i in param["UDA_m"]:
         TYPE, ID, Name = i.split(" : ")
