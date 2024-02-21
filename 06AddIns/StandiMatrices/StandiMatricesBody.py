@@ -21,7 +21,7 @@ def Run(param):
         
         Add(No, CODE, NAME, param["Replace"])
 
-    Visum.Log(20480,_("Standi Matrices: created"))
+    Visum.Log(20480,_("Standi Matrices: created!"))
 
 def Add(_No, _CODE, _NAME, Replace=False):
     if Visum.Net.Matrices.Count > 0:
@@ -29,8 +29,13 @@ def Add(_No, _CODE, _NAME, Replace=False):
         if Replace == False and _No in matNo:
                 return
         if _No in matNo:
-            Visum.Net.RemoveMatrix(Visum.Net.Matrices.ItemByKey(_No))
-    
+            mat = Visum.Net.Matrices.ItemByKey(_No)
+            if mat.AttValue("DATASOURCETYPE") == "FORMULA":
+                Visum.Net.RemoveMatrix(mat)
+            else:
+                mat.SetValuesToResultOfFormula("0")
+                return
+            
     if _No in [4,5,61,62]: 
         if _No == 4: m = Visum.Net.AddMatrixWithFormula(4,'Matrix([CODE] = "Pkw_E_O")*1,3',2,3)
         elif _No == 5: m = Visum.Net.AddMatrixWithFormula(5,'Matrix([CODE] = "Pkw_E_M")*1,3',2,3)

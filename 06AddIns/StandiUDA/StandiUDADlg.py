@@ -10,8 +10,13 @@ _ = AddIn.gettext
 
 class InfoFrame(wx.Frame):
     def __init__(self, title):
-        super(InfoFrame, self).__init__(None, id=-1, title=title, style=wx.CAPTION | wx.STAY_ON_TOP, size=(180, 180))
+        super(InfoFrame, self).__init__(None, id=-1, title=title, style=wx.CAPTION | wx.STAY_ON_TOP, size=(170, 200))
         self.Centre()
+        
+        img = wx.Image(addIn.DirectoryPath +'logo.png',wx.BITMAP_TYPE_ANY)
+        img = img.Scale(55,30,wx.IMAGE_QUALITY_BOX_AVERAGE)
+        img = img.ConvertToBitmap()
+        png = wx.StaticBitmap(self, -1, img, (0, 0))
         
         self.button = wx.Button(self, -1, _("OK"))
         self.Bind(wx.EVT_BUTTON, self.__OnOK, self.button)
@@ -20,6 +25,7 @@ class InfoFrame(wx.Frame):
         self.label = wx.StaticText(self,label= _("hvv GmbH"))
         
         sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(png,0,wx.LEFT,5)
         sizer.AddSpacer(10)
         sizer.Add(self.label,0,wx.LEFT,10)
         sizer.AddSpacer(2)
@@ -27,9 +33,9 @@ class InfoFrame(wx.Frame):
         sizer.Add(wx.StaticText(self,label= _("09.02.2024")),0,wx.LEFT,10)
         sizer.AddSpacer(2)
         sizer.Add(wx.StaticText(self,label= _("Version 1.0: Initial")),0,wx.LEFT,10)
-        sizer.AddSpacer(20)
-        sizer.Add(self.button,0,wx.ALIGN_CENTER,5)
         sizer.AddSpacer(10)
+        sizer.Add(self.button,0,wx.ALIGN_CENTER,5)
+        sizer.AddSpacer(5)
         self.SetSizer(sizer)
         
         font = wx.Font(8, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.BOLD)
@@ -125,8 +131,8 @@ class MyDialog(wx.Dialog):
         
         box_2 = wx.GridBagSizer()
         box_2.Add(self.checkList2, (0,1), (0,2))
-        box_2.Add(self.label1, (1,1), (0,0), wx.EXPAND, 0)
-        box_2.Add(self.checkbox1, (1,2), (0,0), wx.LEFT, 5)
+        box_2.Add(self.label1, (1,1), (0,0), wx.EXPAND|wx.TOP, 5)
+        box_2.Add(self.checkbox1, (1,2), (0,0), wx.LEFT|wx.TOP, 5)
         sbSizer2.Add(box_2, 0, wx.ALL|wx.CENTER, 5)  
 
         box_3 = wx.GridBagSizer()
