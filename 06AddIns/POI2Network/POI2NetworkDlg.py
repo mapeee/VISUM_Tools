@@ -135,7 +135,7 @@ class MyDialog(wx.Dialog):
         v = [i.AttValue("NO") for i in Visum.Net.POICategories.GetAll][self.combo1.GetSelection()]
         l = []
         for i in Visum.Net.POICategories.ItemByKey(v).POIs.Attributes.GetAll:
-            if i.ValueType==1: l.append(i.ID)
+            if i.ValueType in [1,5,62]: l.append(i.ID)
         self.combo2.Append(l)
         self.combo2.SetValue("...")
         return l
