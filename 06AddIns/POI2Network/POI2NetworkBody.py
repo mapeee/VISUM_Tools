@@ -36,7 +36,7 @@ Visum.Log(20480,"POI2Network: finished")'
     OP.ExecuteScriptParameters.SetAttValue("USEINTERNALSCRIPTCODE",True)
     Visum.Procedures.OperationExecutor.SetCurrentOperation(OP)
     Visum.Procedures.OperationExecutor.ExecuteCurrentOperation()
-    # Visum.Procedures.Operations.RemoveOperation(1)
+    Visum.Procedures.Operations.RemoveOperation(1)
 
 def checkNetwork(NetworkType, POICat, POIAttr):
     if NetworkType == "Link":
