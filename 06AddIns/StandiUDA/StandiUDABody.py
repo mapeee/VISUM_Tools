@@ -13,7 +13,9 @@ def Run(param):
     comments = [["SCHIENENBONUS", _("Weighting of travel time for rail transport with 0.5")],
                 ["LAGE", _("Location in model area (PR=1, UR=3, EUR=4, UML=5)")],
                 ["PARKEN", _("Parking availability")],
+                ["GRUNDBELASTUNG", _("Base volume based on incoming link")],
                 ["BUSSPUR", _("0=no bus lane, 1=bus lane right, 3=bus lane mid, 4=Environmental route")],
+                ["GRUNDBELASTUNG", _("Base volume based on Bus lane")],
                 ["KLASSE", _("Track class (based on Ras N)")],
                 ["RAUSSTATTUNG", _("Penalty for stop equipment (Standi 2016+)")],
                 ["ABSAUFSCHLAG", _("absIncrease")],
@@ -51,9 +53,16 @@ def Run(param):
             if ID =="LAGE": Visum.Net.Zones.AddUserDefinedAttribute(ID, Name, Name,1)
             else: Visum.Net.Zones.AddUserDefinedAttribute(ID, Name, Name,2,defval=1.0)
             UDA = Visum.Net.Zones.Attributes.ItemByKey(ID)
+        if TYPE in ["TURN", "Abbieger"]:
+            if Visum.Net.Turns.AttrExists(ID)==True: continue
+            Visum.Net.Turns.AddUserDefinedAttribute(ID, Name, Name,1,formula="if([VONSTRECKE\BUSSPUR]>0&[VONSTRECKE\BUSSPUR]<4;0;[ANZSERVICEFAHRT-VSYS(BUS,AP)])")
+            UDA = Visum.Net.Turns.Attributes.ItemByKey(ID)
         if TYPE in ["LINK","Strecken"]:
             if Visum.Net.Links.AttrExists(ID)==True: continue
-            Visum.Net.Links.AddUserDefinedAttribute(ID, Name, Name,1)
+            if ID == "GRUNDBELASTUNG":
+                Visum.Net.Links.AddUserDefinedAttribute(ID, Name, Name,1,formula="if([BUSSPUR]>0&[BUSSPUR]<4;0;[ANZSERVICEFAHRT-VSYS(BUS,AP)])")
+            else:
+                Visum.Net.Links.AddUserDefinedAttribute(ID, Name, Name,1)
             UDA = Visum.Net.Links.Attributes.ItemByKey(ID)
         if TYPE in ["STOPPOINT","Haltepunkte"]:
             if Visum.Net.StopPoints.AttrExists(ID)==True: continue

@@ -66,7 +66,9 @@ class MyDialog(wx.Dialog):
         UDA_m = [_("TSYS : SCHIENENBONUS : Rail Bonus"),
                       _("ZONE : LAGE : Location"),
                       _("ZONE : PARKEN : Parking Impedance"),
+                      _("TURN : GRUNDBELASTUNG : Base volume"),
                       _("LINK : BUSSPUR : Bus lane"),
+                      _("LINK : GRUNDBELASTUNG : Base volume"),
                       _("LINK : KLASSE : Track class"),
                       _("STOPPOINT : RAUSSTATTUNG : Penalty for equipment"),
                       _("LINEROUTEITEM : ABSAUFSCHLAG : absIncrease"),
@@ -80,10 +82,12 @@ class MyDialog(wx.Dialog):
         self.checkList1 = wx.CheckListBox(self, -1, choices=[_(i) for i in UDA_m])
         self.checkList2 = wx.CheckListBox(self, -1, choices=[_(i) for i in UDA_a])        
         for i in range(len(UDA_m)): self.checkList1.SetItemBackgroundColour(i,[wx.Colour(255,227,221),
-                                                                                wx.Colour(240,240,220),wx.Colour(240,240,220),
-                                                                                wx.Colour(193,250,193),wx.Colour(193,250,193),
-                                                                                wx.Colour(252,223,255),
-                                                                                wx.Colour(216,228,255),wx.Colour(216,228,255)][i])
+                                                                               wx.Colour(240,240,220),wx.Colour(240,240,220),
+                                                                               wx.Colour(245,245,245),
+                                                                               wx.Colour(193,250,193),
+                                                                               wx.Colour(193,250,193),wx.Colour(193,250,193),
+                                                                               wx.Colour(252,223,255),
+                                                                               wx.Colour(216,228,255),wx.Colour(216,228,255)][i])
         for i in range(len(UDA_a)): self.checkList2.SetItemBackgroundColour(i,wx.Colour(193,250,193))
         
         self.checkbox1 = wx.CheckBox(self) 
