@@ -56,6 +56,7 @@ def CheckCon():
     if nPrT != Visum.Net.Zones.Count:
         addIn.ReportMessage(_("%s Zones missing PrT-Connector!") %(str(Visum.Net.Zones.Count-nPrT)))
         return False
+    Visum.Filters.ConnectorFilter().Init()
     
     Visum.Log(20480,_("Connector Check: OK"))
     return True
@@ -142,9 +143,13 @@ def SetPtt():
         if i in np.array(Visum.Net.TSystems.GetMultiAttValues("CODE"))[:,1] == False:
             Visum.Log(12288,_("TSys %s is missing!") %(i))
     
-    for i in ["KLASSE", "BUSSPUR"]:
+    for i in ["KLASSE", "BUSSPUR", "GRUNDBELASTUNG"]:
         if Visum.Net.Links.AttrExists(i) == False:
             addIn.ReportMessage(_("Link UDA %s is missing!") %(i))
+            return False
+    for i in ["GRUNDBELASTUNG"]:
+        if Visum.Net.Turns.AttrExists(i) == False:
+            addIn.ReportMessage(_("Turn UDA %s is missing!") %(i))
             return False
     for i in ["ABSAUFSCHLAG", "RELAUFSCHLAG"]:
         if Visum.Net.LineRouteItems.AttrExists(i) == False:
