@@ -140,7 +140,7 @@ def SetPtt():
     if CheckTSys(["PUT"]) == False: return False
     
     for i in ["S","U","FV","RV","W","Bus"]:
-        if i in np.array(Visum.Net.TSystems.GetMultiAttValues("CODE"))[:,1] == False:
+        if np.any(np.array(Visum.Net.TSystems.GetMultiAttValues("CODE"))[:,1] == i) == False:
             Visum.Log(12288,_("TSys %s is missing!") %(i))
     
     for i in ["KLASSE", "BUSSPUR", "GRUNDBELASTUNG"]:
@@ -214,7 +214,7 @@ def SetPtt():
 def SetFareSystem():
     if CheckTSys(["PUT"]) == False: return False
 
-    FareList = Visum.Lists.CreateFareSystemList
+    FareList = Visum.Workbench.Lists.CreateFareSystemList
     FareList.AddColumn("No")
     if FareList.NumActiveElements != 2 or int(FareList.Sum(0)) != 3: 
         addIn.ReportMessage(_("TicketSystem (NO 1: Zuschlag or NO 2: Ohne) is missing!"))

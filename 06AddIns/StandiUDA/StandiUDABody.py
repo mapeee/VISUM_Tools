@@ -29,7 +29,7 @@ def Run(param):
                 ["BEL_OEV_OHNE", _("Volume PT base case")]]
     
     if Visum.Net.UserDefinedGroups.Count > 0:
-        if V not in np.array(Visum.Net.UserDefinedGroups.GetMultiAttValues("Name"))[:,1]: Visum.Net.AddUserDefinedGroup(V)
+        if np.any(np.array(Visum.Net.UserDefinedGroups.GetMultiAttValues("Name"))[:,1] == V) ==False: Visum.Net.AddUserDefinedGroup(V)
     else: Visum.Net.AddUserDefinedGroup(V)
 
     for i in param["UDA_a"]:  
