@@ -23,7 +23,7 @@ def calc(Visum,Case):
     
     if Case == "Mitfall" and Visum.Net.Matrices.ItemByKey(11).AttValue("SUM") == 0 and Visum.Net.Matrices.ItemByKey(2).AttValue("SUM") == 0:
         Visum.Log(12288,_("PT trips planning case missing!"))
-        return
+        return False
     assign_PuT = sum_PuT-dig_PuT
     Table.TableEntries.ItemByKey(1).SetAttValue(Case,sum_PuT)
     Table.TableEntries.ItemByKey(2).SetAttValue(Case,dig_PuT)
@@ -44,7 +44,7 @@ def calc(Visum,Case):
     assign_PrT = sum_PrT-dig_PrT
     if assign_PrT == 0:
         Visum.Log(12288,_("Car trips %s missing!") %(Case))
-        return
+        return False
     
     d_T = np.array(Visum.Net.Links.GetMultiAttValues('VEHKMTRAVPRT_DSEG(LKW_GV,AP)')).astype("float")[:,1].sum()
     t_T = np.array(Visum.Net.Links.GetMultiAttValues('VEHHOURTRAVTCUR_DSEG(LKW_GV,AP)')).astype("float")[:,1].sum()
