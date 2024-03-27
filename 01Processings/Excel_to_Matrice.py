@@ -19,11 +19,11 @@ From/To Zones are referenced by index number instead of zone number!
 
 import win32com.client.dynamic
 import openpyxl
-VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.22")
+VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.24")
 
 #--Parameters--#
-Net = r"C:\Users\peter\hvv.de\S-GR-Modellierung - 10 Verkehrsmodell\1060 Projekte\Sonstige\MobiHam\MobiHam_2022.ver"
-Excel = r"C:\Users\peter\OneDrive - hvv.de\Desktop\MobiHam.xlsx"
+Net = r""
+Excel = r""
 
 mat_nr = 3 #Number of VISUM-matrice
 orig_col = 5 #column number of origins (A1 = 1)
