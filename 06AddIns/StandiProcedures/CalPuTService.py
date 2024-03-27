@@ -91,23 +91,16 @@ def PuTCosts(Visum,bc):
     VJ[["_ek","_ev"]] = VJ.apply(_EnergyCostVehSect, _energycosts = energycosts, _stopenergy_a = stopenergy_a, _stopenergy_b = stopenergy_b, _HF_PT = HF_PT,
                                  axis=1, result_type="expand")
     
-    SetMulti(Visum.Net.Lines,_ek,VJ.groupby(["Line"])["_ek"].sum().to_numpy(),False)
-    
-    evVehComb = VJ.groupby(["VehCombNo"])["_ev"].sum()
-    evVehComb = pd.Series.to_frame(evVehComb)
-    evVehComb['VehCombNo'] = list(evVehComb.index)
-    evComb = []
-    for i in Visum.Net.VehicleCombinations.GetAll:
-        if i.AttValue("NO") not in evVehComb["VehCombNo"]:
-            evComb.append(0)
-            continue
-        evComb.append(evVehComb[evVehComb["VehCombNo"]==i.AttValue("NO")]["_ev"].iloc[0])
-    
-    SetMulti(Visum.Net.VehicleCombinations,_ev,evComb,False)
-    
     #UkLL - Lines
     VJ["_ukll"] = VJ.apply(_LengthOpCostLine, _HF_PT = HF_PT, axis=1)
-    SetMulti(Visum.Net.Lines,_ukll,VJ.groupby(["Line"])["_ukll"].sum().to_numpy(),False)
+    
+    ek_l = _SetMultiList(VJ,"Line","_ek",Visum.Net.Lines.GetMultipleAttributes(["NAME"]))    
+    evComb = _SetMultiList(VJ,"VehCombNo","_ev",Visum.Net.VehicleCombinations.GetMultipleAttributes(["NO"]))
+    ukll_l = _SetMultiList(VJ,"Line","_ukll",Visum.Net.Lines.GetMultipleAttributes(["NAME"]))
+
+    SetMulti(Visum.Net.Lines,_ek,ek_l,False)   
+    SetMulti(Visum.Net.VehicleCombinations,_ev,evComb,False)
+    SetMulti(Visum.Net.Lines,_ukll,ukll_l,False)
     SetMulti(Visum.Net.Lines,_ll,np.array(Visum.Net.Lines.GetMultiAttValues("SERVICEKM(AP)"))[:,1],False)
     
     #Personnel costs
@@ -226,7 +219,7 @@ def _EnergyCostVehSect(data, _energycosts, _stopenergy_a, _stopenergy_b, _HF_PT)
         Th = (data["SUM_DEP"] / 60) - (data["SUM_ARR"] / 60)
         a = _stopenergy_a[data["Energy"]]
         b = _stopenergy_b[data["Energy"]]
-        speed = 3.6 / (a * (data["STOPS"] - 1)) * ((55.6 * (Tf-Th))-math.sqrt(pow(55.6 * (Tf-Th), 2) - (2 * a * data["Length"] * 1000 * (data["STOPS"] - 1))))
+        speed = 3.6 / (a * (data["STOPS"] - 1)) * ((55.6 * (Tf-Th))-math.sqrt(max(pow(55.6 * (Tf-Th), 2) - (2 * a * data["Length"] * 1000 * (data["STOPS"] - 1)),0)))
         
         e = b * pow(speed, 2) * data["Weight"] * 0.000001
         
@@ -245,3 +238,11 @@ def _LengthOpCostLine(data, _HF_PT):
     else:
         v = data["Length"] * data["UKTKM"] * _HF_PT * 0.001
     return v
+
+def _SetMultiList(data,groupby,sumval,v):
+    l = []
+    l_gb = data.groupby([groupby])[sumval].sum()
+    for i in v:
+        if i[0] in l_gb.index: l.append(l_gb[i[0]])
+        else: l.append(0)
+    return l
