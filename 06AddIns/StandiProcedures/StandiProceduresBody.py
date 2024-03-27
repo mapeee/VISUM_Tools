@@ -92,6 +92,9 @@ def Run(param):
         Visum.Log(20480,_("Delete interim steps: finished!"))
         
     if param["NKV"] in ["GoPuT_op_bc", "GoPuT_op_pc"]:
+        if Visum.Net.VehicleCombinations.Count == 0:
+            addIn.ReportMessage(_("VehicleCombinations are missing!"))
+            return False
         for op in Visum.Procedures.Operations.GetAll:
             if op.AttValue("OPERATIONTYPE") == 36:
                 Visum.Procedures.OperationExecutor.SetCurrentOperation(op)
