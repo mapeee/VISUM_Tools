@@ -73,9 +73,9 @@ class MyDialog(wx.Dialog):
         self.button_PuTCon = wx.Button(self, -1, _('Folder'), size=(80,20))
 
         self.button_GoPuT_op_bc = wx.Button(self, -1, _("PuT Service base case"), size=(180,30), name="GoPuT_op_bc")
-        self.button_GoPuT_op_pc = wx.Button(self, -1, _("PuT Service planning case"), size=(180,30), name="GoPuT_op_pc")      
-        self.button_GoDel_NKV = wx.Button(self, -1, _("Delete \n NKV components"), size=(120,40), name="GoDel_NKV") 
-        self.button_GoImport_NKV = wx.Button(self, -1, _("Import \n NKV components"), size=(120,40), name="GoImport_NKV")
+        self.button_GoPuT_op_pc = wx.Button(self, -1, _("PuT Service planning case"), size=(180,30), name="GoPuT_op_pc")
+        self.button_GoDel_NKV = wx.Button(self, -1, _("Delete components"), size=(135,40), name="GoDel_NKV") 
+        self.button_GoImport_NKV = wx.Button(self, -1, _("Import components"), size=(135,40), name="GoImport_NKV")
         self.button_GoNKV = wx.Button(self, -1, _("Calculate NKV"), size=(180,30), name="GoNKV")
         
         self.button_ExeProc = wx.Button(self, -1, _("Execute procedures"), size=(130,25), name="ExeProc")
