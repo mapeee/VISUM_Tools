@@ -39,8 +39,8 @@ def Add(_No, _CODE, _NAME, Replace=False):
     if _No in [4,5,61,62]: 
         if _No == 4: m = Visum.Net.AddMatrixWithFormula(4,'Matrix([CODE] = "Pkw_E_O")*1,3',2,3)
         elif _No == 5: m = Visum.Net.AddMatrixWithFormula(5,'Matrix([CODE] = "Pkw_E_M")*1,3',2,3)
-        elif _No == 61: m = Visum.Net.AddMatrixWithFormula(61,'(Matrix([CODE] = "OEV_Reisezeit_M")-Matrix([CODE] = "OEV_Reisezeit_O"))*((Matrix([CODE] = "OEV_E_O")+Matrix([CODE] = "OEV_E_M"))/2)/60',2,4)
-        else: m = Visum.Net.AddMatrixWithFormula(62,'(Matrix([CODE] = "OEV_Reisezeit_M")-Matrix([CODE] = "OEV_Reisezeit_O"))*Matrix([CODE] = "OEV_S")/60',2,4)
+        elif _No == 61: m = Visum.Net.AddMatrixWithFormula(61,'(Matrix([CODE] = "OEV_Gesamtwiderstand_M")-Matrix([CODE] = "OEV_Gesamtwiderstand_O"))*((Matrix([CODE] = "OEV_E_O")+Matrix([CODE] = "OEV_E_M"))/2)/60',2,4)
+        else: m = Visum.Net.AddMatrixWithFormula(62,'(Matrix([CODE] = "OEV_Gesamtwiderstand_M")-Matrix([CODE] = "OEV_Gesamtwiderstand_O"))*Matrix([CODE] = "OEV_S")/60',2,4)
     else:
         if _No < 30: m = Visum.Net.AddMatrix(_No,2,3)
         else: m = Visum.Net.AddMatrix(_No,2,4)
