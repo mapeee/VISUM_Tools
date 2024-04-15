@@ -33,8 +33,13 @@ def Run(param):
         Visum.Procedures.Operations.ItemByKey(5).SetAttValue("ACTIVE",True)
         Visum.Procedures.Operations.ItemByKey(operations_code.index("2")+1).SetAttValue("ACTIVE",True)
         Visum.Procedures.Operations.ItemByKey(operations_code.index("3")+1).SetAttValue("ACTIVE",True)
-        if param["PrT_pcput"]: Visum.Procedures.Operations.ItemByKey(operations_code.index("8")+1).SetAttValue("ACTIVE",True)
-    
+        if param["PrT_pcput"]:
+            Visum.Procedures.Operations.ItemByKey(operations_code.index("8")+1).SetAttValue("ACTIVE",True)
+            for i in Visum.Procedures.Operations.GetChildren((Visum.Procedures.Operations.ItemByKey(operations_code.index("8")+1))):
+                if i.AttValue("OPERATIONTYPE") == 100:
+                    i.TimetableBasedParameters.BaseParameters.SetAttValue("CONNECTIONSOURCETYPE","ConnCalculated")
+                    break
+            
     if param["PuT_bc"]:
         Visum.Procedures.Operations.ItemByKey(2).SetAttValue("ACTIVE",True)
         Visum.Procedures.Operations.ItemByKey(3).SetAttValue("ACTIVE",True)
@@ -47,6 +52,10 @@ def Run(param):
         Visum.Procedures.Operations.ItemByKey(operations_code.index("6")+1).SetAttValue("ACTIVE",True)
         if param["PuT_pcprt"]: Visum.Procedures.Operations.ItemByKey(operations_code.index("7")+1).SetAttValue("ACTIVE",True)
         Visum.Procedures.Operations.ItemByKey(operations_code.index("8")+1).SetAttValue("ACTIVE",True)
+        for i in Visum.Procedures.Operations.GetChildren((Visum.Procedures.Operations.ItemByKey(operations_code.index("8")+1))):
+            if i.AttValue("OPERATIONTYPE") == 100:
+                i.TimetableBasedParameters.BaseParameters.SetAttValue("CONNECTIONSOURCETYPE","ConnFromFile")
+                break
         Visum.Procedures.Operations.ItemByKey(operations_code.index("9")+1).SetAttValue("ACTIVE",True)
     
     if param["PuTCon"]:
