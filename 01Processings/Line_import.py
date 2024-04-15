@@ -26,7 +26,7 @@ layout_path = f[1]
 access_db = f[2].replace("accdb","mdb")
 
 def VISUM_open(Net):
-    VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.23")  # type: ignore
+    VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.24")  # type: ignore
     VISUM.loadversion(Net)
     VISUM.Filters.InitAll()
     return VISUM
@@ -196,7 +196,7 @@ VISUM_export(VISUM=V, layout=layout_path, access=access_db)
 VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
 
 '''Change StopPoint from LineRoutes'''
-Stop = [[0,0],[0,0],[0,0]]
+Stop = [[8000092,80000921],[0,0],[0,0]]
 VISUM_filter(VISUM=V)
 VISUM_export(VISUM=V, layout=layout_path, access=access_db, Stops=Stop)
 VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
