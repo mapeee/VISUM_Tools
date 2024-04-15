@@ -236,9 +236,9 @@ def _conTimes(_index,_length,_locations=False):
     
     if _locations != False:
         if _locations[_index-1][1] == 1:
-            tacegr = min(tacegr,600)
+            tacegr = min(tacegr,300)
         elif _locations[_index-1][1] == 3:
-            tacegr = min(tacegr,1200)
+            tacegr = min(tacegr,900)
         else:
             tacegr = min(tacegr,3600)
     return tacegr
