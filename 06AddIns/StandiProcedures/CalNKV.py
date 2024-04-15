@@ -76,9 +76,9 @@ def calc(Visum,Table):
     Lines["Diff"] = (Lines["LL_M"] - Lines["LL_O"]) * HF_PT * 0.001 * 0.01
 
     value_SPNV = Lines.groupby(["TSYSCODE"])["Diff"].sum()["RV":"S"].sum() * 36.4
-    value_U = Lines.groupby(["TSYSCODE"])["Diff"].sum()["U"].sum() * 19.8
-    value_Bus = Lines.groupby(["TSYSCODE"])["Diff"].sum()["Bus"].sum() * 21.3
-    value_W = Lines.groupby(["TSYSCODE"])["Diff"].sum()["W"].sum() * 21.3
+    value_U = Lines.groupby(["TSYSCODE"])["Diff"].sum()["U":"U"].sum() * 19.8
+    value_Bus = Lines.groupby(["TSYSCODE"])["Diff"].sum()["Bus":"Bus"].sum() * 21.3
+    value_W = Lines.groupby(["TSYSCODE"])["Diff"].sum()["W":"W"].sum() * 21.3
     UnfFk_OEV = value_SPNV + value_U + value_Bus + value_W
     
     _TableAddValue(Table, "UnfFK", UnfFk_MIV + UnfFk_OEV) 
@@ -140,9 +140,21 @@ def calc(Visum,Table):
 
     #NGaufI - Nutzen gesellschaftlich auferlegter Investitionen
     _TableAddValue(Table, "NGaufI", scenario["NGaufI"])
-            
+    
     #NaNN - Nutzen anderer Netznutzer
     _TableAddValue(Table, "NaNN", scenario["NaNN"])
+            
+    #FVSysF - Funktionsfähigkeit der Verkehrssysteme / Flächenverbrauch
+    _TableAddValue(Table, "FVSysF", scenario["FVSysF"])
+    
+    #ENERGIE - Primärenergieverbrauch
+    _TableAddValue(Table, "ENERGIE", scenario["ENERGIE"])
+    
+    #DVRaum - Daseinsvorsorge / raumordnerische Aspekte
+    _TableAddValue(Table, "DVRaum", scenario["DVRaum"])
+    
+    #RSchiene - Resilienz von Schienennetzen
+    _TableAddValue(Table, "RSchiene", scenario["RSchiene"])
 
     #MBewEN - Summe der monetär bewerteter Einzelnutzen
     MBewEN = 0
@@ -228,7 +240,8 @@ def _checkNKVTable(Visum, Table):
 
 def _checkSzenarioTable(Visum):
     Table = Visum.Net.TableDefinitions.ItemByKey("Standi-Szenario")
-    for i in ["M","BK","BZ","BKa","UK","AF","I2016","NGaufI","NaNN","LAERM","KapIO","MBewEN","KapI","NKD","NKV"]:
+    for i in ["M","BK","BZ","BKa","UK","AF","I2016","NGaufI","NaNN","LAERM","FVSysF","ENERGIE","DVRaum","RSchiene",
+              "KapIO","MBewEN","KapI","NKD","NKV"]:
         if i not in np.array(Table.TableEntries.GetMultiAttValues("CODE"))[:,1]:
             Visum.Log(12288,_("CODE '%s' in Table 'Standi-Szenario' is missing!") %(i))
             return False
@@ -239,7 +252,7 @@ def _checkSzenarioTable(Visum):
 
     i = Table.TableEntries.Iterator
     while i.Valid:
-        if i.Item.AttValue("CODE") in ["BK","BKa","I2016","BZ","UK","AF"] and i.Item.AttValue("WERT") == "0":
+        if i.Item.AttValue("CODE") in ["BK","BKa","I2016","BZ","UK","AF"] and i.Item.AttValue("WERT") == 0:
             Visum.Log(12288,_("Value for CODE '%s' in Table 'Standi-Szenario' must not be 0!") %(i.Item.AttValue("CODE")))
             return False
         i.Next()
