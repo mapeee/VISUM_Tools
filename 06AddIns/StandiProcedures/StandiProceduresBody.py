@@ -178,7 +178,7 @@ def NKV():
 
 def Put_op(bc):
     Visum.Log(20480,_("PuT Service %s: Calculating!") %({True : _("Base case"), False : _("Planning case")}[bc]))
-    for i in ["LEERMASSE", "UKLL", "UKT", "UKTKM", "EVS", "ENERGIE", "ANSCHAFFUNGSK", "THG"]:
+    for i in ["LEERMASSE", "UKLL", "UKT", "UKTKM", "EVS", "ENERGIE", "ANSCHAFFUNGSK", "THG", "BEV"]:
         if not Visum.Net.VehicleUnits.AttrExists(i):
             Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\PuTVehAttributes.accdb", True)
             addIn.ReportMessage(_("UDA %s for VehicleUnits is empty/mising!")%(i))
