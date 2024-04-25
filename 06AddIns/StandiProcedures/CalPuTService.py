@@ -40,7 +40,7 @@ def PuTCosts(Visum,bc):
     ll_l = []
     c_l = []
     for VehUnit in Visum.Net.VehicleUnits.GetAll:
-        if VehUnit.AttValue(r"DISTINCT:VEHCOMBS\NO") == "":
+        if VehUnit.AttValue(r"SUM:VEHCOMBS\COUNT:VEHJOURNEYSECTIONS") in [None, 0]:
             ll_l.append(0)
             c_l.append(0)
             continue
@@ -149,11 +149,10 @@ def VehicleUnits(Visum,bc,):
     FZG = []
     for VehUnit in Visum.Net.VehicleUnits.GetAll:
         nVHUnits = 0
-        VehComb = VehUnit.AttValue(r"DISTINCT:VEHCOMBS\NO")
-        if VehComb == "":
+        if VehUnit.AttValue(r"SUM:VEHCOMBS\COUNT:VEHJOURNEYSECTIONS") in [None, 0]:
             FZG.append(0)
             continue
-    
+        VehComb = VehUnit.AttValue(r"DISTINCT:VEHCOMBS\NO")
         VehComb = list(map(int, VehComb.split(",")))
         VJ_Comb = VJ_VU[VJ_VU["VehNO"].isin(VehComb)]
         
@@ -173,7 +172,12 @@ def VehicleUnits(Visum,bc,):
                 
             nVHUnits = nVHUnits + round(Vehs_l * WZ, 2)
 
-        FZG.append(round(nVHUnits * BWR, 2))
+        if VehUnit.AttValue("BEV") == 1 and VehUnit.AttValue("TSYSSET") == "Bus":
+            vehkm = VehUnit.AttValue(r"SUM:VEHCOMBS\SUM:VEHJOURNEYSECTIONS\LENGTH") / nVHUnits
+            LR = (min(37, max(0, (-37 / (350 - 200) * 200) + ((37 / (350 - 200)) * vehkm)))) / 100
+        else: LR = 0
+
+        FZG.append(round(nVHUnits * (BWR + LR), 2))
     SetMulti(Visum.Net.VehicleUnits,_nVU,FZG,False)
   
     #overlapping VJ Lines
