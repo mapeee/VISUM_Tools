@@ -60,6 +60,8 @@ def calc(Visum,Case):
     Table.TableEntries.ItemByKey(16).SetAttValue(Case,np.array(Visum.Net.Links.GetMultiAttValues('VEHKMTRAVPRT(AP)')).astype("float")[:,1].sum()-d_T)
     Table.TableEntries.ItemByKey(17).SetAttValue(Case,(np.array(Visum.Net.Links.GetMultiAttValues('VEHHOURTRAVTCUR(AP)')).astype("float")[:,1].sum()-t_T)/60/60)
     Table.TableEntries.ItemByKey(18).SetAttValue(Case,Visum.Net.Matrices.ItemByKey(3).AttValue("SUM"))
+    if Visum.Net.Matrices.ItemByKey(3).AttValue("SUM") == 0:
+        return True
     Table.TableEntries.ItemByKey(19).SetAttValue(Case,d_T)
     Table.TableEntries.ItemByKey(20).SetAttValue(Case,t_T/60/60)
     Table.TableEntries.ItemByKey(21).SetAttValue(Case,Table.TableEntries.ItemByKey(19).AttValue(Case)/Table.TableEntries.ItemByKey(18).AttValue(Case))
