@@ -99,11 +99,7 @@ def CheckStops():
     if _State: Visum.Log(20480,_("Stops Check: OK"))
     return True
 
-def CheckTSys(Type = ["PUT","PrT","PUTWALK"]):
-    if Visum.Net.TSystems.AttrExists("SCHIENENBONUS") == False:
-        addIn.ReportMessage(_("TSys UDA 'SCHIENENBONUS' is missing!"))
-        return False
-    
+def CheckTSys(Type = ["PUT","PrT","PUTWALK"]): 
     for TSys in Visum.Net.TSystems.GetAll:
         if "PUT" in Type and TSys.AttValue("TYPE") == "PUT" and TSys.AttValue("CODE") not in ["Bus", "S", "U", "RV", "FV", "W"]:
             addIn.ReportMessage(_("%s TSys %s (%s) is missing!") %("PUT", TSys.AttValue("CODE"), TSys.AttValue("NAME")))
