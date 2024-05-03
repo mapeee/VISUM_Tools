@@ -22,6 +22,8 @@ def Run(param):
         if not SetPtt(): return
     if param["SetFareSystem"]:
         if not SetFareSystem(): return
+    if param["SetVarious"]:
+        if not SetVarious(): return
 
     Visum.Log(20480,_("Standi Tools: finished"))
 
@@ -224,6 +226,13 @@ def SetFareSystem():
     Visum.Log(20480,_("Set FareSystem: OK"))
     return True
 
+def SetVarious():
+    if Visum.Net.Links.AttrExists("VMAX_SCHIENE") == False: return
+    tRail = [[_RailTimes(i[0], i[1])][0] for i in tuple((x, y) for x, y in zip(Visum.Net.Links.GetMultiAttValues("LENGTH",False), Visum.Net.Links.GetMultiAttValues("VMAX_SCHIENE",False)))]
+    SetMulti(Visum.Net.Links,r"T_PUTSYS(FV)",tRail,False)
+    Visum.Log(20480,_("Set Various: OK"))
+    return True
+    
 def _conTimes(_index,_length,_locations=False):
     tacegr = 0.46*pow((_length*1000*1.2),0.4) #1.2 == Umwegfaktor
     tacegr = max(tacegr,3)
@@ -238,6 +247,12 @@ def _conTimes(_index,_length,_locations=False):
         else:
             tacegr = min(tacegr,3600)
     return tacegr
+
+def _RailTimes(_length, _speed):
+    l = _length[1]
+    v = _speed[1]
+    if v == 0: return 0
+    return l / v * 60 * 60
        
 if len(sys.argv) > 1:
     addIn = AddIn()
