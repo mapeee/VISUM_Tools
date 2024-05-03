@@ -8,7 +8,7 @@ _ = AddIn.gettext
 
 class InfoFrame(wx.Frame):
     def __init__(self, title):
-        super(InfoFrame, self).__init__(None, id=-1, title=title, style=wx.CAPTION | wx.STAY_ON_TOP, size=(170, 200))
+        super(InfoFrame, self).__init__(None, id=-1, title=title, style=wx.CAPTION | wx.STAY_ON_TOP, size=(190, 230))
         self.Centre()
         
         img = wx.Image(addIn.DirectoryPath +'logo.png',wx.BITMAP_TYPE_ANY)
@@ -31,6 +31,7 @@ class InfoFrame(wx.Frame):
         sizer.Add(wx.StaticText(self,label= _("16.02.2024")),0,wx.LEFT,10)
         sizer.AddSpacer(2)
         sizer.Add(wx.StaticText(self,label= _("Version 1.0: Initial")),0,wx.LEFT,10)
+        sizer.Add(wx.StaticText(self,label= _("Version 1.1: Set Various")),0,wx.LEFT,10)
         sizer.AddSpacer(10)
         sizer.Add(self.button,0,wx.ALIGN_CENTER,5)
         sizer.AddSpacer(5)
@@ -55,9 +56,11 @@ class MyDialog(wx.Dialog):
         self.label_CheckCon = wx.StaticText(self, -1, _("Check Connectors"))
         self.label_CheckStops = wx.StaticText(self, -1, _("Check Stops"))
         self.label_CheckTSys = wx.StaticText(self, -1, _("Check TSys"))
+        
         self.label_SetCon = wx.StaticText(self, -1, _("Set Connector times"))
         self.label_SetPtt = wx.StaticText(self, -1, _("Set Perceived travel times"))
         self.label_SetFS = wx.StaticText(self, -1, _("Set Fare Systems"))
+        self.label_SetV = wx.StaticText(self, -1, _("Set Various"))
 
         self.button2 = wx.Button(self, -1, _('Info'))
         self.button3 = wx.Button(self, -1, _("OK"))
@@ -70,9 +73,11 @@ class MyDialog(wx.Dialog):
         self.checkbox_CheckCon = wx.CheckBox(self)
         self.checkbox_CheckStops = wx.CheckBox(self)
         self.checkbox_CheckTSys = wx.CheckBox(self)
+        
         self.checkbox_SetCon = wx.CheckBox(self)
         self.checkbox_SetPtt = wx.CheckBox(self) 
         self.checkbox_SetFS = wx.CheckBox(self) 
+        self.checkbox_SetV = wx.CheckBox(self) 
         
         self.Bind(wx.EVT_BUTTON, self.OnHelp, self.button7)
         self.Bind(wx.EVT_BUTTON, self.OnHelp, self.button8)
@@ -100,6 +105,7 @@ class MyDialog(wx.Dialog):
         self.checkbox_SetCon.SetValue(param["SetCon"])
         self.checkbox_SetPtt.SetValue(param["SetPtt"])
         self.checkbox_SetFS.SetValue(param["SetFareSystem"])
+        self.checkbox_SetV.SetValue(param["SetVarious"])
    
     def __set_properties(self):
         self.SetTitle(_("Standi Tools"))
@@ -132,7 +138,9 @@ class MyDialog(wx.Dialog):
         box_2.Add(self.checkbox_SetFS, (1,1), wx.DefaultSpan, wx.LEFT, 5)
         box_2.Add(self.label_SetPtt, (2,0))
         box_2.Add(self.checkbox_SetPtt, (2,1), wx.DefaultSpan, wx.LEFT, 5)
-        box_2.Add(self.button8, (3,0), wx.DefaultSpan, wx.TOP,5)        
+        box_2.Add(self.label_SetV, (3,0))
+        box_2.Add(self.checkbox_SetV, (3,1), wx.DefaultSpan, wx.LEFT, 5)
+        box_2.Add(self.button8, (4,0), wx.DefaultSpan, wx.TOP,5)        
         sbSizer2.Add(box_2, 0, wx.ALL|wx.CENTER, 5)  
 
         box_3 = wx.GridBagSizer()
@@ -172,7 +180,7 @@ class MyDialog(wx.Dialog):
     def OnOK(self,event):
         param, paramOK = self.setParameter()
         
-        if not paramOK or True not in [param["SetFareSystem"],param["SetCon"],param["SetPtt"],
+        if not paramOK or True not in [param["SetFareSystem"],param["SetCon"],param["SetPtt"],param["SetVarious"],
                                        param["CheckTSys"],param["CheckCon"], param["CheckStops"]]:
             addIn.ReportMessage(_("Please select at least one procedure!"))
             return
@@ -188,6 +196,7 @@ class MyDialog(wx.Dialog):
         self.checkbox_SetCon.SetValue(True)
         self.checkbox_SetPtt.SetValue(True)
         self.checkbox_SetFS.SetValue(True)
+        self.checkbox_SetV.SetValue(True)
         
     def OnDeselectAll(self,event):
         self.checkbox_CheckCon.SetValue(False)
@@ -196,6 +205,7 @@ class MyDialog(wx.Dialog):
         self.checkbox_SetCon.SetValue(False)
         self.checkbox_SetPtt.SetValue(False)
         self.checkbox_SetFS.SetValue(False)
+        self.checkbox_SetV.SetValue(False)
     
     def setParameter(self):
         param = dict()
@@ -206,6 +216,7 @@ class MyDialog(wx.Dialog):
             param["SetCon"] = self.checkbox_SetCon.GetValue()
             param["SetPtt"] = self.checkbox_SetPtt.GetValue()
             param["SetFareSystem"] = self.checkbox_SetFS.GetValue()
+            param["SetVarious"] = self.checkbox_SetV.GetValue()
             return param, True
         except:
             addIn.HandleException(_("Standi Tools, value error: "))
