@@ -122,10 +122,10 @@ def SetCon():
     
     locations = Visum.Net.Connectors.GetMultiAttValues("ZONE\LAGE",False)
     
-    newPuT = [[i[0],_conTimes(i[0], i[1])] for i in Visum.Net.Connectors.GetMultiAttValues("LENGTH",False)]
+    newPuT = [[i[0],_conTimes(i[0], i[1])] for i in Visum.Net.Connectors.GetMultiAttValues("LENGTHDIR",False)]
     Visum.Net.Connectors.SetMultiAttValues("T0_TSYS(OVF)",newPuT)
     
-    newPrT = [[i[0],_conTimes(i[0], i[1], locations)] for i in Visum.Net.Connectors.GetMultiAttValues("LENGTH",False)]
+    newPrT = [[i[0],_conTimes(i[0], i[1], locations)] for i in Visum.Net.Connectors.GetMultiAttValues("LENGTHDIR",False)]
     Visum.Net.Connectors.SetMultiAttValues("T0_TSYS(B)",newPrT)
     Visum.Net.Connectors.SetMultiAttValues("T0_TSYS(C)",newPrT)
     Visum.Net.Connectors.SetMultiAttValues("T0_TSYS(F)",newPrT)
@@ -228,7 +228,7 @@ def SetFareSystem():
 
 def SetVarious():
     if Visum.Net.Links.AttrExists("VMAX_SCHIENE") == False: return
-    tRail = [[_RailTimes(i[0], i[1])][0] for i in tuple((x, y) for x, y in zip(Visum.Net.Links.GetMultiAttValues("LENGTH",False), Visum.Net.Links.GetMultiAttValues("VMAX_SCHIENE",False)))]
+    tRail = [[_RailTimes(i[0], i[1])][0] for i in tuple((x, y) for x, y in zip(Visum.Net.Links.GetMultiAttValues("LENGTHPOLY",False), Visum.Net.Links.GetMultiAttValues("VMAX_SCHIENE",False)))]
     SetMulti(Visum.Net.Links,r"T_PUTSYS(FV)",tRail,False)
     Visum.Log(20480,_("Set Various: OK"))
     return True
