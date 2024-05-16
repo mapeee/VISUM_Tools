@@ -63,8 +63,7 @@ class MyDialog(wx.Dialog):
         self.button5 = wx.Button(self, -1, _('Select all'))
         self.button6 = wx.Button(self, -1, _('Deselect all'))
         
-        UDA_m = [_("TSYS : SCHIENENBONUS : Rail Bonus"),
-                      _("ZONE : LAGE : Location"),
+        UDA_m = [_("ZONE : LAGE : Location"),
                       _("ZONE : PARKEN : Parking Impedance"),
                       _("TURN : GRUNDBELASTUNG : Base volume"),
                       _("LINK : BUSSPUR : Bus lane"),
@@ -81,8 +80,7 @@ class MyDialog(wx.Dialog):
                       _("LINK : BEL_OEV_OHNE : Vol PT base case")]
         self.checkList1 = wx.CheckListBox(self, -1, choices=[_(i) for i in UDA_m])
         self.checkList2 = wx.CheckListBox(self, -1, choices=[_(i) for i in UDA_a])        
-        for i in range(len(UDA_m)): self.checkList1.SetItemBackgroundColour(i,[wx.Colour(255,227,221),
-                                                                               wx.Colour(240,240,220),wx.Colour(240,240,220),
+        for i in range(len(UDA_m)): self.checkList1.SetItemBackgroundColour(i,[wx.Colour(240,240,220),wx.Colour(240,240,220),
                                                                                wx.Colour(245,245,245),
                                                                                wx.Colour(193,250,193),
                                                                                wx.Colour(193,250,193),wx.Colour(193,250,193),

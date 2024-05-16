@@ -10,8 +10,7 @@ _ = AddIn.gettext
 def Run(param):
     V = _("Standi-Verfahren")
     
-    comments = [["SCHIENENBONUS", _("Weighting of travel time for rail transport with 0.5")],
-                ["LAGE", _("Location in model area (PR=1, UR=3, EUR=4, UML=5)")],
+    comments = [["LAGE", _("Location in model area (PR=1, UR=3, EUR=4, UML=5)")],
                 ["PARKEN", _("Parking availability")],
                 ["GRUNDBELASTUNG", _("Base volume based on incoming link")],
                 ["BUSSPUR", _("0=no bus lane, 1=bus lane right, 3=bus lane mid, 4=Environmental route")],
@@ -44,10 +43,6 @@ def Run(param):
 
     for i in param["UDA_m"]:
         TYPE, ID, Name = i.split(" : ")
-        if TYPE in ["TSYS","Verkehrssysteme"]:
-            if Visum.Net.TSystems.AttrExists(ID)==True: continue
-            Visum.Net.TSystems.AddUserDefinedAttribute(ID, Name, Name,2,defval=1.0)
-            UDA = Visum.Net.TSystems.Attributes.ItemByKey(ID)
         if TYPE in ["ZONE","Bezirke"]:
             if Visum.Net.Zones.AttrExists(ID)==True: continue
             if ID =="LAGE": Visum.Net.Zones.AddUserDefinedAttribute(ID, Name, Name,1)
