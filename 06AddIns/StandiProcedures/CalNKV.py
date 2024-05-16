@@ -67,12 +67,9 @@ def calc(Visum,Table):
     UnfFk_MIV = bcpc["Pkw_Fzgkm"] * HF_PrT * 0.001 * 8.5 * 0.01
     
     #OEV
-    TSys = (np.array(Visum.Net.Lines.GetMultiAttValues("TSYSCODE"))[:,1])
-    Length_O = (np.array(Visum.Net.Lines.GetMultiAttValues("LL_O"))[:,1])
-    Length_M = (np.array(Visum.Net.Lines.GetMultiAttValues("LL_M"))[:,1])
-    Lines = pd.DataFrame(np.stack((TSys, Length_O, Length_M), axis=1), columns = ["TSYSCODE", "LL_O", "LL_M"])
-    Lines["LL_O"] = Lines["LL_O"].astype(float)
-    Lines["LL_M"] = Lines["LL_M"].astype(float)
+    Lines = pd.DataFrame(Visum.Net.Lines.GetMultipleAttributes(
+        ["TSYSCODE","LL_O","LL_M"], True))
+    Lines.columns = ["TSYSCODE", "LL_O", "LL_M"]
     Lines["Diff"] = (Lines["LL_M"] - Lines["LL_O"]) * HF_PT * 0.001 * 0.01
 
     value_SPNV = Lines.groupby(["TSYSCODE"])["Diff"].sum()["RV":"S"].sum() * 36.4
@@ -92,28 +89,16 @@ def calc(Visum,Table):
                 
     #OEV
     #Betrieb
-    VehCombNo = np.array(Visum.Net.VehicleCombinations.GetMultiAttValues("NO"))[:,1]
-    Energy = np.array(Visum.Net.VehicleCombinations.GetMultiAttValues("MIN:VEHUNITS\ENERGIE"))[:,1]
-    Ev_O = np.array(Visum.Net.VehicleCombinations.GetMultiAttValues("ENERGIEV_O"))[:,1]
-    Ev_M = np.array(Visum.Net.VehicleCombinations.GetMultiAttValues("ENERGIEV_M"))[:,1]
-    VehComb = pd.DataFrame(np.stack((VehCombNo, Energy, Ev_O, Ev_M), axis=1), columns = ["VehCombNo","Energy","Ev_O","Ev_M"])
-    VehComb["Ev_O"] = VehComb["Ev_O"].astype(float)
-    VehComb["Ev_M"] = VehComb["Ev_M"].astype(float)
+    VehComb = pd.DataFrame(Visum.Net.VehicleCombinations.GetMultipleAttributes(
+        ["NO","MIN:VEHUNITS\ENERGIE","ENERGIEV_O", "ENERGIEV_M"], True))
+    VehComb.columns = ["VehCombNo","Energy","Ev_O","Ev_M"]
     VehComb["CO2Diff"] = VehComb.apply(_CO2Diff_PuTService, _emissionfactor = emissionfactor, axis=1)
     OEV_B = VehComb["CO2Diff"].sum() * 0.001
     
     #Herstellung
-    VehUnitNo = np.array(Visum.Net.VehicleUnits.GetMultiAttValues("NO"))[:,1]
-    TSys = np.array(Visum.Net.VehicleUnits.GetMultiAttValues("TSYSSET"))[:,1]
-    Weight = np.array(Visum.Net.VehicleUnits.GetMultiAttValues("LEERMASSE"))[:,1]
-    THG = np.array(Visum.Net.VehicleUnits.GetMultiAttValues("THG"))[:,1]
-    FZG_O = np.array(Visum.Net.VehicleUnits.GetMultiAttValues("FZG_O"))[:,1]
-    FZG_M = np.array(Visum.Net.VehicleUnits.GetMultiAttValues("FZG_M"))[:,1]
-    VehUnit = pd.DataFrame(np.stack((VehUnitNo, TSys, Weight, THG, FZG_O, FZG_M), axis=1), columns = ["VehUnitNo","TSys","Weight","THG","FZG_O","FZG_M"])
-    VehUnit["THG"] = VehUnit["THG"].astype(float)
-    VehUnit["Weight"] = VehUnit["Weight"].astype(float)
-    VehUnit["FZG_O"] = VehUnit["FZG_O"].astype(float)
-    VehUnit["FZG_M"] = VehUnit["FZG_M"].astype(float)
+    VehUnit = pd.DataFrame(Visum.Net.VehicleUnits.GetMultipleAttributes(
+        ["NO","TSYSSET","LEERMASSE", "THG", "FZG_O", "FZG_M"], True))
+    VehUnit.columns = ["VehUnitNo","TSys","Weight","THG","FZG_O","FZG_M"]
     VehUnit["OEV_H"] = VehUnit.apply(_THGVehUnit, axis=1)
     
     OEV_H = VehUnit["OEV_H"].sum() * 0.001 * 0.001
@@ -267,7 +252,7 @@ def _checkMatrValues(Visum, matrices):
     return True
 
 def _CO2Diff_PuTService(data, _emissionfactor):
-    if data["Energy"] == None: return 0
+    if pd.isna(data["Energy"]): return 0
     O = (data["Ev_O"] * (_emissionfactor[data["Energy"]])) * 0.001
     M = (data["Ev_M"] * (_emissionfactor[data["Energy"]])) * 0.001
     CO2 = M - O
@@ -282,7 +267,7 @@ def _TableAddValue(Table, CODE, value, row=None):
                 i_row.SetAttValue("MESSGROESSE",value)
                 
 def _THGDiff_PuTService(data, _emissioncosts):
-    if data["Energy"] == None: return 0
+    if pd.isna(data["Energy"]): return 0
     O = (data["Ev_O"] * (_emissioncosts[data["Energy"]])) * 0.01
     M = (data["Ev_M"] * (_emissioncosts[data["Energy"]])) * 0.01
     SchadK = M - O

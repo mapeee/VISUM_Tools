@@ -72,21 +72,11 @@ def PuTCosts(Visum,bc):
     SetMulti(Visum.Net.VehicleUnits,_fk,c_l,False)
     
     #Energy costs - distance
-    Weight = np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues(r"VEHCOMB\SUM:VEHUNITS\LEERMASSE"))[:,1]
-    Length = np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues("LENGTH"))[:,1]
-    EVS = np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues(r"VEHCOMB\MAX:VEHUNITS\EVS"))[:,1]
-    Energy = np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues(r"VEHCOMB\MIN:VEHUNITS\ENERGIE"))[:,1]
-    TSys = np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues("TSYSCODE"))[:,1]
-    Line = np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues("VEHJOURNEY\LINEROUTE\LINENAME"))[:,1]
-    UKLL = np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues(r"VEHCOMB\SUM:VEHUNITS\UKLL"))[:,1]
-    UKTKM = np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues(r"VEHCOMB\SUM:VEHUNITS\UKTKM"))[:,1]
-    STOPS = np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues(r"VEHJOURNEY\STOPSSERVED"))[:,1]
-    DURATION = np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues(r"DURATION"))[:,1]
-    SUM_DEP = np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues(r"VEHJOURNEY\SUM:VEHJOURNEYITEMS\EXTDEPARTURE"))[:,1]
-    SUM_ARR = np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues(r"VEHJOURNEY\SUM:VEHJOURNEYITEMS\EXTARRIVAL"))[:,1]
-    VehCombNo = np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues("VEHCOMBNO"))[:,1]
+    VJ = pd.DataFrame(Visum.Net.VehicleJourneySections.GetMultipleAttributes(
+        [r"VEHCOMB\SUM:VEHUNITS\LEERMASSE", "LENGTH",r"VEHCOMB\MAX:VEHUNITS\EVS", r"VEHCOMB\MIN:VEHUNITS\ENERGIE",
+         "TSYSCODE", r"VEHJOURNEY\LINEROUTE\LINENAME", r"VEHCOMB\SUM:VEHUNITS\UKLL",r"VEHCOMB\SUM:VEHUNITS\UKTKM", r"VEHJOURNEY\STOPSSERVED",
+         "DURATION",r"VEHJOURNEY\SUM:VEHJOURNEYITEMS\EXTDEPARTURE",r"VEHJOURNEY\SUM:VEHJOURNEYITEMS\EXTARRIVAL","VEHCOMBNO"], True))
     
-    VJ = pd.DataFrame(np.stack((Weight, Length, EVS, Energy, TSys, Line, UKLL, UKTKM, STOPS, DURATION, SUM_DEP, SUM_ARR, VehCombNo), axis=1))
     VJ.columns = ["Weight","Length","EVS","Energy","TSys","Line","UKLL","UKTKM","STOPS","DURATION","SUM_DEP","SUM_ARR","VehCombNo"]
     VJ[["_ek","_ev"]] = VJ.apply(_EnergyCostVehSect, _energycosts = energycosts, _stopenergy_a = stopenergy_a, _stopenergy_b = stopenergy_b, _HF_PT = HF_PT,
                                  axis=1, result_type="expand")
@@ -130,19 +120,13 @@ def VehicleUnits(Visum,bc,):
 
     mins = range(360,540)
     
-    Dep = (np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues("DEP"))[:,1]/60).astype(int)
-    Arr = (np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues("ARR"))[:,1]/60).astype(int)
-    Lines = np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues(r"VEHJOURNEY\LINENAME"))[:,1]
-    VehNO = np.array(Visum.Net.VehicleJourneySections.GetMultiAttValues("VEHCOMBNO"))[:,1]
+    VJ = pd.DataFrame(Visum.Net.VehicleJourneySections.GetMultipleAttributes(
+        ["DEP","ARR",r"VEHJOURNEY\LINENAME","VEHCOMBNO"], True))
     
-    VJ = pd.DataFrame(np.stack((Dep, Arr, Lines, VehNO), axis=1))
     VJ.columns = ["Dep", "Arr", "Lines", "VehNO"]
-    VJ["Dep"] = VJ["Dep"].astype(int)
-    VJ["Arr"] = VJ["Arr"].astype(int)
-    VJ["Lines"] = VJ["Lines"].astype(str)
-    VJ["VehNO"] = VJ["VehNO"].astype(str)
-    VJ_VU = VJ.loc[VJ["VehNO"] != 'None']
-    VJ_VU["VehNO"] = VJ_VU["VehNO"].astype(float)
+    VJ["Dep"] = VJ["Dep"]/60
+    VJ["Arr"] = VJ["Arr"]/60
+    VJ_VU = VJ.loc[VJ["VehNO"].notna()]
     VJ_VU["VehNO"] = VJ_VU["VehNO"].astype(int)
     
     #VehicleUnits
@@ -209,8 +193,7 @@ def _CheckVehComb(Visum):
     return True
 
 def _EnergyCostVehSect(data, _energycosts, _stopenergy_a, _stopenergy_b, _HF_PT):
-    
-    if data["Weight"] == None: return 0
+    if pd.isna(data["Weight"]): return 0
     if data["TSys"] == "Bus":
         ek = data["Length"] * data["EVS"] * _HF_PT * 0.001 * (_energycosts[data["Energy"]])
         ev = data["Length"] * data["EVS"] * _HF_PT * 0.001
@@ -236,7 +219,7 @@ def _EnergyCostVehSect(data, _energycosts, _stopenergy_a, _stopenergy_b, _HF_PT)
     return ek, ev
 
 def _LengthOpCostLine(data, _HF_PT):
-    if data["UKLL"] == None: return 0
+    if pd.isna(data["UKLL"]): return 0
     if data["TSys"] == "Bus":
         v = data["Length"] * data["UKLL"] * _HF_PT * 0.001
     else:
