@@ -114,7 +114,7 @@ def CheckTSys(Type = ["PUT","PrT","PUTWALK"]):
             return False
     return True
 
-def SetCon():
+def SetCon():  
     if CheckTSys(["PUTWALK", "PRT"]) == False: return False
     if Visum.Net.Zones.AttrExists("LAGE") == False:
         addIn.ReportMessage(_("ZONE UDA 'LAGE' is missing!"))
@@ -271,7 +271,8 @@ if addIn.State != AddInState.OK:
 else:
     try:
         defaultParam = {"CheckTSys" : False, "CheckCon" : False, "CheckStops" : False,
-                        "SetCon" : False, "SetPtt" : False, "SetFareSystem" : False}
+                        "SetCon" : False, "SetPtt" : False, "SetFareSystem" : False,
+                        "SetVarious" : False}
         param = addInParam.Check(True, defaultParam)
         Run(param)
     except:
