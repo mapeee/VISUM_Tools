@@ -98,7 +98,8 @@ def PuTCosts(Visum,bc):
     for line in Visum.Net.Lines.GetAll:
         h = line.AttValue(r"SERVICETIME(AP)") / 60 / 60
         h = h * WZ * HF_PT
-        if line.AttValue("TSYSCODE") == "Bus": pk.append(h * 39 * 0.001)
+        if line.AttValue(r"MIN:LINEROUTES\MIN:VEHJOURNEYS\MIN:VEHJOURNEYSECTIONS\VEHCOMB\MIN:VEHUNITS\AUTOMATISIERT") == 1: pk.append(h * 8.5 * 0.001)
+        elif line.AttValue("TSYSCODE") == "Bus": pk.append(h * 39 * 0.001)
         elif line.AttValue("TSYSCODE") == "W": pk.append(h * 60 * 0.001)
         else: pk.append(h * 46 * 0.001)
     SetMulti(Visum.Net.Lines,_pk,pk,False)
@@ -187,7 +188,7 @@ def _CheckTSys(Visum):
 
 def _CheckVehComb(Visum):
     for Comb in Visum.Net.VehicleCombinations.GetAll:
-        if Comb.AttValue(r"MIN:VEHUNITS\ENERGIE") not in ["Diesel", "Strom konv.", "Strom regen.", "eFuel", "H2"]:
+        if Comb.AttValue(r"MIN:VEHUNITS\ENERGIE") not in ["Diesel", "Strom konv.", "Strom reg.", "eFuel", "H2"]:
             Visum.Log(12288,_("VehicleCombination %s is not predefined!") %(Comb.AttValue("Name")))
             return False
     return True
