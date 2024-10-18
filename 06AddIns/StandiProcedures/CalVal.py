@@ -31,7 +31,7 @@ def calc(Visum,Case):
     Table.TableEntries.ItemByKey(4).SetAttValue(Case,np.array(Visum.Net.TSystems.GetMultiAttValues('PASSHOURTRAV(AP)')).astype("float")[:,1].sum()/60/60)
     Table.TableEntries.ItemByKey(5).SetAttValue(Case,Table.TableEntries.ItemByKey(3).AttValue(Case)/assign_PuT)
     Table.TableEntries.ItemByKey(6).SetAttValue(Case,Table.TableEntries.ItemByKey(4).AttValue(Case)*60/assign_PuT)
-    Table.TableEntries.ItemByKey(7).SetAttValue(Case,int(assign_PuT-np.nan_to_num(np.array(Visum.Net.Zones.GetMultiAttValues(r"SUM:ORIGCONNECTORS\VOLPERSPUT(AP)")).astype("float")[:,1],False,0).sum()))
+    Table.TableEntries.ItemByKey(7).SetAttValue(Case,round(assign_PuT-np.nan_to_num(np.array(Visum.Net.Zones.GetMultiAttValues(r"SUM:ORIGCONNECTORS\VOLPERSPUT(AP)")).astype("float")[:,1],False,0).sum(),2))
     
     #PrT
     if Case == "Ohnefall":
@@ -54,7 +54,7 @@ def calc(Visum,Case):
     Table.TableEntries.ItemByKey(11).SetAttValue(Case,((np.array(Visum.Net.Links.GetMultiAttValues('VEHHOURTRAVTCUR(AP)')).astype("float")[:,1].sum()-t_T)*1.3)/60/60)
     Table.TableEntries.ItemByKey(12).SetAttValue(Case,Table.TableEntries.ItemByKey(10).AttValue(Case)/(assign_PrT*1.3))
     Table.TableEntries.ItemByKey(13).SetAttValue(Case,Table.TableEntries.ItemByKey(11).AttValue(Case)*60/(assign_PrT*1.3))
-    Table.TableEntries.ItemByKey(14).SetAttValue(Case,int(assign_PrT-np.nan_to_num(np.array(Visum.Net.Zones.GetMultiAttValues(r"SUM:ORIGCONNECTORS\VOLVEH_TSYS(C,AP)")).astype("float")[:,1],False,0).sum()))
+    Table.TableEntries.ItemByKey(14).SetAttValue(Case,round(assign_PrT-np.nan_to_num(np.array(Visum.Net.Zones.GetMultiAttValues(r"SUM:ORIGCONNECTORS\VOLVEH_TSYS(C,AP)")).astype("float")[:,1],False,0).sum(),2))
     
     Table.TableEntries.ItemByKey(15).SetAttValue(Case,sum_PrT)
     Table.TableEntries.ItemByKey(16).SetAttValue(Case,np.array(Visum.Net.Links.GetMultiAttValues('VEHKMTRAVPRT(AP)')).astype("float")[:,1].sum()-d_T)
