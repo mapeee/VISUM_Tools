@@ -25,16 +25,16 @@ Network = f[0]
 layout_path = f[1]
 access_db = f[2].replace("accdb","mdb")
 
-def VISUM_open(Net):
-    VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.24")  # type: ignore
-    VISUM.loadversion(Net)
+def Visum_open(Net):
+    VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.24")
+    VISUM.IO.loadversion(Net)
     VISUM.Filters.InitAll()
     return VISUM
 
-def VISUM_filter(VISUM,**optional):
-    VISUM.Filters.InitAll()
+def Visum_filter(_Visum,**optional):
+    _Visum.Filters.InitAll()
     
-    Lines = VISUM.Filters.LineGroupFilter()
+    Lines = _Visum.Filters.LineGroupFilter()
     
     LineRouteItems = Lines.LineRouteItemFilter()
     LineRouteItems.AddCondition("OP_NONE",False,"ISROUTEPOINT","EqualVal",1)   
@@ -52,20 +52,20 @@ def VISUM_filter(VISUM,**optional):
     Lines.UseFilterForVehJourneyItems = True
 
     Con_type = optional.get("Con_type", False)
-    Connector = VISUM.Filters.ConnectorFilter()
+    Connector = _Visum.Filters.ConnectorFilter()
     Connector.AddCondition("OP_NONE",False,r"Node\AddVal1","EqualVal",1)
     if Con_type != False: Connector.AddCondition("OP_AND",False,"TYPENO","EqualVal",Con_type)
     
-    Nodes = VISUM.Filters.NodeFilter()
+    Nodes = _Visum.Filters.NodeFilter()
     Nodes.AddCondition("OP_NONE",False,"AddVal1","EqualVal",1)
     
-    HST = VISUM.Filters.StopGroupFilter()
+    HST = _Visum.Filters.StopGroupFilter()
     HST.UseFilterForStopAreas = True
     HST.UseFilterForStopPoints = True
     HST = HST.StopPointFilter()
     HST.AddCondition("OP_NONE",False,r"Node\AddVal1","EqualVal",1)
 
-    InsertedLinks = VISUM.Filters.LinkFilter()
+    InsertedLinks = _Visum.Filters.LinkFilter()
     InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(1))
     
     Lines.UseFilterForLineRoutes = True
@@ -115,7 +115,7 @@ def VISUM_export(VISUM,layout,access,**optional):
     conn.close()
  
 def VISUM_import(VISUM,access,LinkType,shortcrit,open_blocked):
-    VISUM_filter(VISUM)
+    Visum_filter(VISUM)
     import_setting = VISUM.IO.CreateNetReadRouteSearchTsys()
     import_setting.SetAttValue("ChangeLinkTypeOfOpenedLinks",open_blocked)
     import_setting.SetAttValue("IncludeBlockedTurns",open_blocked)
@@ -184,20 +184,20 @@ def VISUM_import(VISUM,access,LinkType,shortcrit,open_blocked):
 def VISUM_end(VISUM,access):
     for Route in VISUM.Net.LineRoutes.GetAllActive:Route.SetAttValue("AddVal1",0)
     VISUM.Filters.InitAll()
-    VISUM_filter(VISUM)
+    Visum_filter(VISUM)
 
 
 #--processing--#
-V = VISUM_open(Network)
+V = Visum_open(Network)
 
 '''Export Line only or StopPoint to different Node'''
-VISUM_filter(VISUM=V, Con_type=9)
+Visum_filter(VISUM=V, Con_type=9)
 VISUM_export(VISUM=V, layout=layout_path, access=access_db)
 VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
 
 '''Change StopPoint from LineRoutes'''
-Stop = [[8000092,80000921],[0,0],[0,0]]
-VISUM_filter(VISUM=V)
+Stop = [[86025,86006],[0,0]]
+Visum_filter(VISUM=V)
 VISUM_export(VISUM=V, layout=layout_path, access=access_db, Stops=Stop)
 VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
 
