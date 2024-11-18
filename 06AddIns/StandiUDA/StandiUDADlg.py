@@ -77,7 +77,9 @@ class MyDialog(wx.Dialog):
                       _("LINK : BEL_MIV_MIT : Vol MT plannig case"),
                       _("LINK : BEL_MIV_OHNE : Vol MT base case"),
                       _("LINK : BEL_OEV_MIT : Vol PT planning case"),
-                      _("LINK : BEL_OEV_OHNE : Vol PT base case")]
+                      _("LINK : BEL_OEV_OHNE : Vol PT base case"),
+                      _("LINK : BEL_PKW_MIT : Vol Car planning case"),
+                      _("LINK : BEL_PKW_OHNE : Vol Car base case")]
         self.checkList1 = wx.CheckListBox(self, -1, choices=[_(i) for i in UDA_m])
         self.checkList2 = wx.CheckListBox(self, -1, choices=[_(i) for i in UDA_a])        
         for i in range(len(UDA_m)): self.checkList1.SetItemBackgroundColour(i,[wx.Colour(240,240,220),wx.Colour(240,240,220),

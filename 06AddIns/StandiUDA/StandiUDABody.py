@@ -25,7 +25,9 @@ def Run(param):
                 ["BEL_MIV_MIT", _("Volume MT (car+truck+PT base Volume) planning case")],
                 ["BEL_MIV_OHNE", _("Volume MT (car+truck+PT base Volume) base case")],
                 ["BEL_OEV_MIT", _("Volume PT planning case")],
-                ["BEL_OEV_OHNE", _("Volume PT base case")]]
+                ["BEL_OEV_OHNE", _("Volume PT base case")],
+                ["BEL_PKW_MIT", _("Volume Car planning case")],
+                ["BEL_PKW_OHNE", _("Volume Car base case")]]
     
     if Visum.Net.UserDefinedGroups.Count > 0:
         if np.any(np.array(Visum.Net.UserDefinedGroups.GetMultiAttValues("Name"))[:,1] == V) ==False: Visum.Net.AddUserDefinedGroup(V)
