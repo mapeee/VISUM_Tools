@@ -130,7 +130,12 @@ def calc(Visum,Table):
     _TableAddValue(Table, "NaNN", scenario["NaNN"])
             
     #FVSysF - Funktionsfähigkeit der Verkehrssysteme / Flächenverbrauch
-    _TableAddValue(Table, "FVSysF", scenario["FVSysF"])
+    FVSysF = pd.DataFrame(Visum.Net.Links.GetMultipleAttributes(
+        ["LENGTHPOLY","BEL_PKW_OHNE","BEL_PKW_MIT", "PUNKTE_FFDVS"], False))
+    FVSysF.columns = ["LENGTHPOLY","BEL_PKW_OHNE","BEL_PKW_MIT", "PUNKTE_FFDVS"]
+    FVSysF["Pkt"] = (FVSysF["BEL_PKW_MIT"] - FVSysF["BEL_PKW_OHNE"]) * FVSysF["LENGTHPOLY"] * 300 * 0.001 * FVSysF["PUNKTE_FFDVS"] * 0.001
+    
+    _TableAddValue(Table, "FVSysF", FVSysF["Pkt"].sum())
     
     #ENERGIE - Primärenergieverbrauch
     _TableAddValue(Table, "ENERGIE", scenario["ENERGIE"])
@@ -198,6 +203,10 @@ def _checkBDAs(Visum):
         if not Visum.Net.Lines.AttrExists(i):
             Visum.Log(12288,_("Lines UDA '%s' is missing!") %(i))
             return False
+    for i in ["PUNKTE_FFDVS", "BEL_PKW_OHNE", "BEL_PKW_MIT"]:
+        if not Visum.Net.Links.AttrExists(i):
+            Visum.Log(12288,_("Links UDA '%s' is missing!") %(i))
+            return False
     return True
 
 def _checkMatrExisting(Visum, matrices):
@@ -225,7 +234,7 @@ def _checkNKVTable(Visum, Table):
 
 def _checkSzenarioTable(Visum):
     Table = Visum.Net.TableDefinitions.ItemByKey("Standi-Szenario")
-    for i in ["M","BK","BZ","BKa","UK","AF","I2016","NGaufI","NaNN","LAERM","FVSysF","ENERGIE","DVRaum","RSchiene",
+    for i in ["M","BK","BZ","BKa","UK","AF","I2016","NGaufI","NaNN","LAERM","ENERGIE","DVRaum","RSchiene",
               "KapIO","MBewEN","KapI","NKD","NKV"]:
         if i not in np.array(Table.TableEntries.GetMultiAttValues("CODE"))[:,1]:
             Visum.Log(12288,_("CODE '%s' in Table 'Standi-Szenario' is missing!") %(i))
