@@ -129,16 +129,16 @@ def calc(Visum,Table):
     #NaNN - Nutzen anderer Netznutzer
     _TableAddValue(Table, "NaNN", scenario["NaNN"])
             
-    #FVSysF - Funktionsfähigkeit der Verkehrssysteme / Flächenverbrauch
-    FVSysF = pd.DataFrame(Visum.Net.Links.GetMultipleAttributes(
+    #FFDVS - Funktionsfähigkeit der Verkehrssysteme / Flächenverbrauch
+    FFDVS = pd.DataFrame(Visum.Net.Links.GetMultipleAttributes(
         ["LENGTHPOLY","BEL_PKW_OHNE","BEL_PKW_MIT", "PUNKTE_FFDVS"], False))
-    FVSysF.columns = ["LENGTHPOLY","BEL_PKW_OHNE","BEL_PKW_MIT", "PUNKTE_FFDVS"]
-    FVSysF["Pkt"] = (FVSysF["BEL_PKW_MIT"] - FVSysF["BEL_PKW_OHNE"]) * FVSysF["LENGTHPOLY"] * 300 * 0.001 * FVSysF["PUNKTE_FFDVS"] * 0.001
+    FFDVS.columns = ["LENGTHPOLY","BEL_PKW_OHNE","BEL_PKW_MIT", "PUNKTE_FFDVS"]
+    FFDVS["Pkt"] = (FFDVS["BEL_PKW_MIT"] - FFDVS["BEL_PKW_OHNE"]) * FFDVS["LENGTHPOLY"] * 300 * 0.001 * FFDVS["PUNKTE_FFDVS"] * 0.001
     
-    _TableAddValue(Table, "FVSysF", FVSysF["Pkt"].sum())
+    _TableAddValue(Table, "FFDVS", FFDVS["Pkt"].sum())
     
-    #ENERGIE - Primärenergieverbrauch
-    _TableAddValue(Table, "ENERGIE", scenario["ENERGIE"])
+    #PENERGIE - Primärenergieverbrauch
+    _TableAddValue(Table, "PENERGIE", scenario["PENERGIE"])
     
     #DVRaum - Daseinsvorsorge / raumordnerische Aspekte
     _TableAddValue(Table, "DVRaum", scenario["DVRaum"])
@@ -222,7 +222,7 @@ def _checkNKVTable(Visum, Table):
         return
     
     for i in ["FgNu","FahrG","BetrK","UnterM","UnterO","UnfFK","CO2E","SchadK","LAERM","NGaufI","NaNN",
-              "FVSysF","ENERGIE","DVRaum","RSchiene","MBewEN","KapI","KapIM","KapIO","NKD","NKV"]:
+              "FFDVS","PENERGIE","DVRaum","RSchiene","MBewEN","KapI","KapIM","KapIO","NKD","NKV"]:
         if i not in np.array(Table.TableEntries.GetMultiAttValues("CODE"))[:,1]:
             _addTableEntries(Visum)
             return
@@ -234,7 +234,7 @@ def _checkNKVTable(Visum, Table):
 
 def _checkSzenarioTable(Visum):
     Table = Visum.Net.TableDefinitions.ItemByKey("Standi-Szenario")
-    for i in ["M","BK","BZ","BKa","UK","AF","I2016","NGaufI","NaNN","LAERM","ENERGIE","DVRaum","RSchiene",
+    for i in ["M","BK","BZ","BKa","UK","AF","I2016","NGaufI","NaNN","LAERM","DVRaum","RSchiene",
               "KapIO","MBewEN","KapI","NKD","NKV"]:
         if i not in np.array(Table.TableEntries.GetMultiAttValues("CODE"))[:,1]:
             Visum.Log(12288,_("CODE '%s' in Table 'Standi-Szenario' is missing!") %(i))
