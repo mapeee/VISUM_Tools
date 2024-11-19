@@ -15,6 +15,7 @@ def calc(Visum,Table):
     
     emissionfactor = dict((x, y) for x, y in Visum.Net.TableDefinitions.ItemByKey("Standi-Energie").TableEntries.GetMultipleAttributes(["ENERGIEART","EMISSIONSFAKTOR"]))
     emissioncosts = dict((x, y) for x, y in Visum.Net.TableDefinitions.ItemByKey("Standi-Energie").TableEntries.GetMultipleAttributes(["ENERGIEART","EMISSIONSKOSTENSATZ"]))
+    penergyfactor = dict((x, y) for x, y in Visum.Net.TableDefinitions.ItemByKey("Standi-Energie").TableEntries.GetMultipleAttributes(["ENERGIEART","ENERGIEFAKTOR"]))
     scenario = dict((x, y) for x, y in Visum.Net.TableDefinitions.ItemByKey("Standi-Szenario").TableEntries.GetMultipleAttributes(["CODE","WERT"]))
     bcpc = dict((x, y) for x, y in Visum.Net.TableDefinitions.ItemByKey("Ohnefall-Mitfall-Vergleich").TableEntries.GetMultipleAttributes(["CODE","DIFF_ABS"]))
     parameter = dict((x, y) for x, y in Visum.Net.TableDefinitions.ItemByKey("Standi-Parameter").TableEntries.GetMultipleAttributes(["CODE","WERT"]))
@@ -133,12 +134,20 @@ def calc(Visum,Table):
     FFDVS = pd.DataFrame(Visum.Net.Links.GetMultipleAttributes(
         ["LENGTHPOLY","BEL_PKW_OHNE","BEL_PKW_MIT", "PUNKTE_FFDVS"], False))
     FFDVS.columns = ["LENGTHPOLY","BEL_PKW_OHNE","BEL_PKW_MIT", "PUNKTE_FFDVS"]
-    FFDVS["Pkt"] = (FFDVS["BEL_PKW_MIT"] - FFDVS["BEL_PKW_OHNE"]) * FFDVS["LENGTHPOLY"] * 300 * 0.001 * FFDVS["PUNKTE_FFDVS"] * 0.001
+    FFDVS["Pkt"] = (FFDVS["BEL_PKW_MIT"] - FFDVS["BEL_PKW_OHNE"]) * FFDVS["LENGTHPOLY"] * HF_PrT * 0.001 * FFDVS["PUNKTE_FFDVS"] * 0.001
     
     _TableAddValue(Table, "FFDVS", FFDVS["Pkt"].sum())
     
     #PENERGIE - Primärenergieverbrauch
-    _TableAddValue(Table, "PENERGIE", scenario["PENERGIE"])
+    PENERGIE_OEV = pd.DataFrame(Visum.Net.VehicleCombinations.GetMultipleAttributes(
+        ["NO","MIN:VEHUNITS\ENERGIE","ENERGIEV_O", "ENERGIEV_M"], False))
+    PENERGIE_OEV.columns = ["VehCombNo","Energy","Ev_O","Ev_M"]
+    PENERGIE_OEV["PENERGIE"] = PENERGIE_OEV.apply(_PENERGY_PuTService, _penergyfactor = penergyfactor, axis=1)
+    PENERGIE_OEV = PENERGIE_OEV["PENERGIE"].sum()
+    
+    PENERGIE_MIV = bcpc["Pkw_Fzgkm"] * HF_PrT * 0.001 * 1.8
+    PENERGIE = (PENERGIE_MIV + PENERGIE_OEV) * -0.9 * 0.001
+    _TableAddValue(Table, "PENERGIE", PENERGIE)
     
     #DVRaum - Daseinsvorsorge / raumordnerische Aspekte
     _TableAddValue(Table, "DVRaum", scenario["DVRaum"])
@@ -266,6 +275,13 @@ def _CO2Diff_PuTService(data, _emissionfactor):
     M = (data["Ev_M"] * (_emissionfactor[data["Energy"]])) * 0.001
     CO2 = M - O
     return CO2
+
+def _PENERGY_PuTService(data, _penergyfactor):
+    if pd.isna(data["Energy"]): return 0
+    O = (data["Ev_O"] * (_penergyfactor[data["Energy"]]))
+    M = (data["Ev_M"] * (_penergyfactor[data["Energy"]]))
+    PE = M - O
+    return PE
 
 def _TableAddValue(Table, CODE, value, row=None):
     for i in Table.TableEntries:
