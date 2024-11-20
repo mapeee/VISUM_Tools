@@ -74,16 +74,7 @@ def Run(param):
     
     if param["Val_bc"] or param["Val_pc"]:
         if param["Val_bc"]:
-            if np.any(np.array(Visum.Net.UserDefinedGroups.GetMultiAttValues("Name"))[:,1] == _("Standi-Verfahren")) == False:
-                Visum.Net.AddUserDefinedGroup(_("Standi-Verfahren"))
-            if "Ohnefall-Mitfall-Vergleich" not in [i.AttValue("NAME") for i in Visum.Net.TableDefinitions.GetAll]:
-                Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\base_planning_case.accdb", True)
-            for i in ["CODE","OHNEFALL","MITFALL","KENNWERT","DIFF_ABS","DIFF_REL"]:
-                if i not in [e.ID for e in Visum.Net.TableDefinitions.ItemByKey("Ohnefall-Mitfall-Vergleich").TableEntries.Attributes.GetAll]:
-                    Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\base_planning_case.accdb", True)
-            if Visum.Net.TableDefinitions.ItemByKey("Ohnefall-Mitfall-Vergleich").TableEntries.Count != 22:
-                Visum.Net.TableDefinitions.ItemByKey("Ohnefall-Mitfall-Vergleich").TableEntries.RemoveAll()
-                Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\base_planning_caseEntries.accdb", True)
+            Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\base_planning_case.accdb", True)
             
             if CalVal.calc(Visum,"Ohnefall"):
                 Visum.Log(20480,_("Base case values: calculated!"))
@@ -139,35 +130,13 @@ def Del_NKV():
             if Visum.Net.VehicleUnits.AttrExists(i+c): Visum.Net.VehicleUnits.DeleteUserDefinedAttribute(i+c)
 
 def Import_NKV():
-    if np.any(np.array(Visum.Net.UserDefinedGroups.GetMultiAttValues("Name"))[:,1] == _("Standi-Verfahren")) == False:
-        Visum.Net.AddUserDefinedGroup(_("Standi-Verfahren"))
-    Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_NKV.accdb", True)
-    Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_NKVEntries.accdb", True)
-    Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_Energie.accdb", True)
-    Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_EnergieEntries.accdb", True)
-    Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_Parameter.accdb", True)
-    Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_ParameterEntries.accdb", True)
-    Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_Scenario.accdb", True)
-    Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_ScenarioEntries.accdb", True)
-    Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\PuTService_bc.accdb", True)
-    Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\PuTService_pc.accdb", True)
+    Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_tables.accdb", True)
 
 def NKV():
     Visum.Log(20480,_("NKV Calculation: starting!"))
-    if np.any(np.array(Visum.Net.UserDefinedGroups.GetMultiAttValues("Name"))[:,1] == _("Standi-Verfahren")) == False:
-        Visum.Net.AddUserDefinedGroup(_("Standi-Verfahren"))
-    if "Standi-NKV" not in [i.AttValue("NAME") for i in Visum.Net.TableDefinitions.GetAll]:
-        Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_NKV.accdb", True)
-        Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_NKVEntries.accdb", True)
-    if "Standi-Energie" not in [i.AttValue("NAME") for i in Visum.Net.TableDefinitions.GetAll]:
-        Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_Energie.accdb", True)
-        Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_EnergieEntries.accdb", True)
-    if "Standi-Parameter" not in [i.AttValue("NAME") for i in Visum.Net.TableDefinitions.GetAll]:
-        Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_Parameter.accdb", True)
-        Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_ParameterEntries.accdb", True)
-    if "Standi-Szenario" not in [i.AttValue("NAME") for i in Visum.Net.TableDefinitions.GetAll]:
-        Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_Scenario.accdb", True)
-        Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_ScenarioEntries.accdb", True)
+    standi_tables = [i.AttValue("NAME") for i in Visum.Net.TableDefinitions.GetAll]
+    Import_NKV()
+    if "Standi-Szenario" not in standi_tables:
         Visum.Log(12288,_("Table 'Standi-Szenario' was created but is empty!"))
         return False
 
@@ -184,12 +153,9 @@ def Put_op(bc):
             addIn.ReportMessage(_("UDA %s for VehicleUnits is empty/mising!")%(i))
             return False
         
-    if "Standi-Energie" not in [i.AttValue("NAME") for i in Visum.Net.TableDefinitions.GetAll]:
-        Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_Energie.accdb", True)
-        Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_EnergieEntries.accdb", True)
-    if "Standi-Parameter" not in [i.AttValue("NAME") for i in Visum.Net.TableDefinitions.GetAll]:
-        Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_Parameter.accdb", True)
-        Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_ParameterEntries.accdb", True)
+    for t in ["Standi-Energie", "Standi-Parameter"]:
+        if t not in [i.AttValue("NAME") for i in Visum.Net.TableDefinitions.GetAll]:
+            Import_NKV()
         
     v, v_db = "O", "bc"
     if bc == False: v, v_db = "M", "pc"
