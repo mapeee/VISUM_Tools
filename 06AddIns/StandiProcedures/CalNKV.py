@@ -197,7 +197,7 @@ def calc(Visum,Table):
 def _addTableEntries(Visum):
     addIn = AddIn(Visum)
     Visum.Net.TableDefinitions.ItemByKey("Standi-NKV").TableEntries.RemoveAll()
-    Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_NKVEntries.accdb", True)
+    Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\Standi_tables.accdb", True)
 
 def _checkBDAs(Visum):
     for i in ["FAHRZEUGK_M"]:
