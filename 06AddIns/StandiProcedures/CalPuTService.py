@@ -13,9 +13,8 @@ _ = AddIn.gettext
 def PuTCosts(Visum,bc):
     Visum.Log(20480,_("PuT costs: Starting!"))
     
-    energycosts = dict((x, y) for x, y in Visum.Net.TableDefinitions.ItemByKey("Standi-Energie").TableEntries.GetMultipleAttributes(["ENERGIEART","ENERGIEPREIS"]))
-    stopenergy_a = dict((x, y) for x, y in Visum.Net.TableDefinitions.ItemByKey("Standi-Energie").TableEntries.GetMultipleAttributes(["ENERGIEART","HALTEVERBRAUCH_A"]))
-    stopenergy_b = dict((x, y) for x, y in Visum.Net.TableDefinitions.ItemByKey("Standi-Energie").TableEntries.GetMultipleAttributes(["ENERGIEART","HALTEVERBRAUCH_B"]))
+    energy = dict((x, {"price" : y, "a" : z, "b" : zz}) for x, y, z, zz in Visum.Net.TableDefinitions.ItemByKey("Standi-Energie").
+                  TableEntries.GetMultipleAttributes(["ENERGIEART", "ENERGIEPREIS", "HALTEVERBRAUCH_A", "HALTEVERBRAUCH_B"]))
     parameter = dict((x, y) for x, y in Visum.Net.TableDefinitions.ItemByKey("Standi-Parameter").TableEntries.GetMultipleAttributes(["CODE","WERT"]))
     HF_PT = parameter["HF_OEV"]
     WZ = parameter["WZ"] / 100 + 1
@@ -78,7 +77,7 @@ def PuTCosts(Visum,bc):
          "DURATION",r"VEHJOURNEY\SUM:VEHJOURNEYITEMS\EXTDEPARTURE",r"VEHJOURNEY\SUM:VEHJOURNEYITEMS\EXTARRIVAL","VEHCOMBNO"], True))
     
     VJ.columns = ["Weight","Length","EVS","Energy","TSys","Line","UKLL","UKTKM","STOPS","DURATION","SUM_DEP","SUM_ARR","VehCombNo"]
-    VJ[["_ek","_ev"]] = VJ.apply(_EnergyCostVehSect, _energycosts = energycosts, _stopenergy_a = stopenergy_a, _stopenergy_b = stopenergy_b, _HF_PT = HF_PT,
+    VJ[["_ek","_ev"]] = VJ.apply(_EnergyCostVehSect, _energy = energy, _HF_PT = HF_PT,
                                  axis=1, result_type="expand")
     
     #UkLL - Lines
@@ -193,25 +192,25 @@ def _CheckVehComb(Visum):
             return False
     return True
 
-def _EnergyCostVehSect(data, _energycosts, _stopenergy_a, _stopenergy_b, _HF_PT):
+def _EnergyCostVehSect(data, _energy, _HF_PT):
     if pd.isna(data["Weight"]): return 0
     if data["TSys"] == "Bus":
-        ek = data["Length"] * data["EVS"] * _HF_PT * 0.001 * (_energycosts[data["Energy"]])
+        ek = data["Length"] * data["EVS"] * _HF_PT * 0.001 * (_energy[data["Energy"]]["price"])
         ev = data["Length"] * data["EVS"] * _HF_PT * 0.001
     else:
-        ek = data["Weight"] * data["Length"] * data["EVS"] * _HF_PT * 0.001 * 0.001 * (_energycosts[data["Energy"]])
+        ek = data["Weight"] * data["Length"] * data["EVS"] * _HF_PT * 0.001 * 0.001 * (_energy[data["Energy"]]["price"])
         ev = data["Weight"] * data["Length"] * data["EVS"] * _HF_PT * 0.001 * 0.001
     #Stops
     if data["TSys"] in ["RV","S"]:
         Tf = data["DURATION"] / 60
         Th = (data["SUM_DEP"] / 60) - (data["SUM_ARR"] / 60)
-        a = _stopenergy_a[data["Energy"]]
-        b = _stopenergy_b[data["Energy"]]
+        a = _energy[data["Energy"]]["a"]
+        b = _energy[data["Energy"]]["b"]
         speed = 3.6 / (a * (data["STOPS"] - 1)) * ((55.6 * (Tf-Th))-math.sqrt(max(pow(55.6 * (Tf-Th), 2) - (2 * a * data["Length"] * 1000 * (data["STOPS"] - 1)),0)))
         
         e = b * pow(speed, 2) * data["Weight"] * 0.000001
         
-        ek_stops = e * (data["STOPS"] - 1) * _HF_PT * 0.001 * (_energycosts[data["Energy"]])
+        ek_stops = e * (data["STOPS"] - 1) * _HF_PT * 0.001 * (_energy[data["Energy"]]["price"])
         ev_stops = e * (data["STOPS"] - 1) * _HF_PT * 0.001
 
         ek = ek + ek_stops
