@@ -74,7 +74,8 @@ def Run(param):
     
     if param["Val_bc"] or param["Val_pc"]:
         if param["Val_bc"]:
-            Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\base_planning_case.accdb", True)
+            if "Ohnefall-Mitfall-Vergleich" not in [i.AttValue("NAME") for i in Visum.Net.TableDefinitions.GetAll]:
+                Visum.IO.LoadAccessDatabase(addIn.DirectoryPath + "Data\\base_planning_case.accdb", True)
             
             if CalVal.calc(Visum,"Ohnefall"):
                 Visum.Log(20480,_("Base case values: calculated!"))
@@ -134,9 +135,8 @@ def Import_NKV():
 
 def NKV():
     Visum.Log(20480,_("NKV Calculation: starting!"))
-    standi_tables = [i.AttValue("NAME") for i in Visum.Net.TableDefinitions.GetAll]
-    Import_NKV()
-    if "Standi-Szenario" not in standi_tables:
+    # Import_NKV()
+    if "Standi-Szenario" not in [i.AttValue("NAME") for i in Visum.Net.TableDefinitions.GetAll]:
         Visum.Log(12288,_("Table 'Standi-Szenario' was created but is empty!"))
         return False
 
@@ -179,6 +179,7 @@ def Put_op(bc):
     
     Visum.Log(20480,_("PuT operating values: calculated!"))
     return True
+
 
 if len(sys.argv) > 1:
     addIn = AddIn()
