@@ -191,13 +191,13 @@ def VISUM_end(VISUM,access):
 V = Visum_open(Network)
 
 '''Export Line only or StopPoint to different Node'''
-Visum_filter(VISUM=V, Con_type=9)
+Visum_filter(_Visum=V, Con_type=9)
 VISUM_export(VISUM=V, layout=layout_path, access=access_db)
 VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
 
 '''Change StopPoint from LineRoutes'''
-Stop = [[86025,86006],[0,0]]
-Visum_filter(VISUM=V)
+Stop = [[0,0],[0,0]]
+Visum_filter(_Visum=V)
 VISUM_export(VISUM=V, layout=layout_path, access=access_db, Stops=Stop)
 VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
 
