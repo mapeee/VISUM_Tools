@@ -26,10 +26,10 @@ layout_path = f[1]
 access_db = f[2].replace("accdb","mdb")
 
 def Visum_open(Net):
-    VISUM = win32com.client.dynamic.Dispatch("Visum.Visum.24")
-    VISUM.IO.loadversion(Net)
-    VISUM.Filters.InitAll()
-    return VISUM
+    _Visum = win32com.client.dynamic.Dispatch("Visum.Visum.24")
+    _Visum.IO.loadversion(Net)
+    _Visum.Filters.InitAll()
+    return _Visum
 
 def Visum_filter(_Visum,**optional):
     _Visum.Filters.InitAll()
@@ -70,21 +70,21 @@ def Visum_filter(_Visum,**optional):
     
     Lines.UseFilterForLineRoutes = True
     
-def VISUM_export(VISUM,layout,access,**optional):
+def Visum_export(_Visum,layout,access,**optional):
     global journeys_before
     global servingstops_before
-    journeys_before = VISUM.Net.VehicleJourneys.Count ##number of journeys before export
-    servingstops_before = VISUM.Net.StopPoints.GetMultipleAttributes(["Count:ServingVehJourneys"])
+    journeys_before = _Visum.Net.VehicleJourneys.Count ##number of journeys before export
+    servingstops_before = _Visum.Net.StopPoints.GetMultipleAttributes(["Count:ServingVehJourneys"])
     servingstops_before = int(sum(list(map(sum, list(servingstops_before)))))
     
-    VISUM.IO.SaveAccessDatabase(access,layout,True,False,True)
-    VISUM.Net.LineRoutes.RemoveAll()
-    VISUM.Net.Connectors.RemoveAll()
-    VISUM.Net.StopAreas.RemoveAll()
-    VISUM.Net.StopPoints.RemoveAll()
+    _Visum.IO.SaveAccessDatabase(access,layout,True,False,True)
+    _Visum.Net.LineRoutes.RemoveAll()
+    _Visum.Net.Connectors.RemoveAll()
+    _Visum.Net.StopAreas.RemoveAll()
+    _Visum.Net.StopPoints.RemoveAll()
 
     global change_nodes
-    change_nodes = VISUM.Net.Nodes.GetMultipleAttributes(["No"],True)
+    change_nodes = _Visum.Net.Nodes.GetMultipleAttributes(["No"],True)
 
     ## Access
     conn = pyodbc.connect(r"Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ="+access+";")
@@ -114,96 +114,96 @@ def VISUM_export(VISUM,layout,access,**optional):
         conn.commit()
     conn.close()
  
-def VISUM_import(VISUM,access,LinkType,shortcrit,open_blocked):
-    Visum_filter(VISUM)
-    import_setting = VISUM.IO.CreateNetReadRouteSearchTsys()
+def Visum_import(_Visum,access,LinkType,shortcrit,open_blocked):
+    Visum_filter(_Visum)
+    import_setting = _Visum.IO.CreateNetReadRouteSearchTsys()
     import_setting.SetAttValue("ChangeLinkTypeOfOpenedLinks",open_blocked)
     import_setting.SetAttValue("IncludeBlockedTurns",open_blocked)
     import_setting.SetAttValue("HowToHandleIncompleteRoute", 2) ##search shortest path
     import_setting.SetAttValue("LinkTypeForInsertedLinksReplacingMissingShortestPaths",1)
-    import_setting.SetAttValue("ShortestPathCriterion",shortcrit) ##1 = travel time; 3 = link length
+    import_setting.SetAttValue("ShortestPathCriterion",shortcrit) ##1 = travel time; 2 = travel time from linktype; 3 = link length
     import_setting.SetAttValue("MaxDeviationFactor",50)
     import_setting.SetAttValue("WhatToDoIfShortestPathNotFound",2) ##insert link if necessary
     import_setting.SetAttValue("LinkTypeForInsertedLinksReplacingMissingShortestPaths",LinkType)
     import_setting.SetAttValue("WhatToDoIfStopPointIsBlocked", 2) ##Open the StopPoint
     import_setting.SetAttValue("WhatToDoIfStopPointNotFound", 0) ##do not read lineroute
-    PuT_import = VISUM.IO.CreateNetReadRouteSearch()
+    PuT_import = _Visum.IO.CreateNetReadRouteSearch()
     PuT_import.SetForAllTSys(import_setting)
-    VISUM.IO.LoadAccessDatabase(access,True,PuT_import)
+    _Visum.IO.LoadAccessDatabase(access,True,PuT_import)
     
-    VISUM.Filters.NodeFilter().Init()
-    Nodes = VISUM.Filters.NodeFilter()
+    _Visum.Filters.NodeFilter().Init()
+    Nodes = _Visum.Filters.NodeFilter()
     Nodes.AddCondition("OP_NONE",False,"AddVal1","GreaterVal",0)
-    for N in VISUM.Net.Nodes.GetAllActive:
+    for N in _Visum.Net.Nodes.GetAllActive:
         N.SetAttValue("Name","")
         N.SetAttValue("AddVal1",0)
     
-    VISUM.Filters.NodeFilter().Init()
-    VISUM.Filters.StopGroupFilter().Init()
-    VISUM.Filters.ConnectorFilter().Init()
+    _Visum.Filters.NodeFilter().Init()
+    _Visum.Filters.StopGroupFilter().Init()
+    _Visum.Filters.ConnectorFilter().Init()
     
     ##location / name of Nodes, Stops and StopAreas
     if len(change_nodes) > 0:
         for i in change_nodes:
-            Node = VISUM.Net.Nodes.ItemByKey(int(i[0]))
+            Node = _Visum.Net.Nodes.ItemByKey(int(i[0]))
             
             Node.SetAttValue("Name",Node.AttValue(r"MIN:STOPPOINTS\Name"))
-            Area = VISUM.Net.StopAreas.ItemByKey(int(i[0]))
+            Area = _Visum.Net.StopAreas.ItemByKey(int(i[0]))
             Area.SetAttValue("XCOORD",Area.AttValue(r"MIN:STOPPOINTS\XCOORD"))
             Area.SetAttValue("YCOORD",Area.AttValue(r"MIN:STOPPOINTS\YCOORD"))
-            try: Stop = VISUM.Net.Stops.ItemByKey(int(i[0]))
+            try: Stop = _Visum.Net.Stops.ItemByKey(int(i[0]))
             except: continue
             if int(Stop.AttValue("NumStopAreas")) == 1:
                 Stop.SetAttValue("XCOORD",Stop.AttValue(r"MIN:STOPAREAS\XCOORD"))
                 Stop.SetAttValue("YCOORD",Stop.AttValue(r"MIN:STOPAREAS\YCOORD"))
 
     #--testing after the import--#
-    InsertedLinks = VISUM.Filters.LinkFilter().Init() 
-    InsertedLinks = VISUM.Filters.LinkFilter()
+    InsertedLinks = _Visum.Filters.LinkFilter().Init() 
+    InsertedLinks = _Visum.Filters.LinkFilter()
     InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(LinkType))
-    if VISUM.Net.Links.CountActive > 0: print("> "+str(VISUM.Net.Links.CountActive)+" new links of type "+str(LinkType)+" added \n") 
-    VISUM.Filters.LinkFilter().Init()
+    if _Visum.Net.Links.CountActive > 0: print("> "+str(_Visum.Net.Links.CountActive)+" new links of type "+str(LinkType)+" added \n") 
+    _Visum.Filters.LinkFilter().Init()
     
     global journeys_after
-    journeys_after = VISUM.Net.VehicleJourneys.Count ##number of journeys after processing
+    journeys_after = _Visum.Net.VehicleJourneys.Count ##number of journeys after processing
     if journeys_before != journeys_after:
         print("> missing VehicleJourneys")
         print("> before: "+str(journeys_before))
         print("> after: "+str(journeys_after)+"\n")
 
     global servingstops_after
-    servingstops_after = VISUM.Net.StopPoints.GetMultipleAttributes(["Count:ServingVehJourneys"])
+    servingstops_after = _Visum.Net.StopPoints.GetMultipleAttributes(["Count:ServingVehJourneys"])
     servingstops_after = int(sum(list(map(sum, list(servingstops_after)))))
     if servingstops_before != servingstops_after:
         print("> missing servings at stops")
         print("> before: "+str(servingstops_before))
         print("> after: "+str(servingstops_after)+"\n")
         
-    VISUM.Filters.LineGroupFilter().LineRouteFilter().RemoveCondition(2) ##Remove Aktive:StopPoint > 0 
+    _Visum.Filters.LineGroupFilter().LineRouteFilter().RemoveCondition(2) ##Remove Aktive:StopPoint > 0 
 
-def VISUM_end(VISUM,access):
-    for Route in VISUM.Net.LineRoutes.GetAllActive:Route.SetAttValue("AddVal1",0)
-    VISUM.Filters.InitAll()
-    Visum_filter(VISUM)
+def Visum_end(_Visum,access):
+    for Route in _Visum.Net.LineRoutes.GetAllActive:Route.SetAttValue("AddVal1",0)
+    _Visum.Filters.InitAll()
+    Visum_filter(_Visum)
 
 
 #--processing--#
-V = Visum_open(Network)
+Visum = Visum_open(Network)
 
 '''Export Line only or StopPoint to different Node'''
-Visum_filter(_Visum=V, Con_type=9)
-VISUM_export(VISUM=V, layout=layout_path, access=access_db)
-VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
+Visum_filter(_Visum=Visum, Con_type=9)
+Visum_export(_Visum=Visum, layout=layout_path, access=access_db)
+Visum_import(_Visum=Visum, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 2=linktype; 3=length
 
 '''Change StopPoint from LineRoutes'''
 Stop = [[0,0],[0,0]]
-Visum_filter(_Visum=V)
-VISUM_export(VISUM=V, layout=layout_path, access=access_db, Stops=Stop)
-VISUM_import(VISUM=V, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 3=length
+Visum_filter(_Visum=Visum)
+Visum_export(_Visum=Visum, layout=layout_path, access=access_db, Stops=Stop)
+Visum_import(_Visum=Visum, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 2=linktype; 3=length
 
 ##end
-VISUM_end(VISUM=V, access=access_db)
-V.SaveVersion(Network)
+Visum_end(_Visum=Visum, access=access_db)
+Visum.SaveVersion(Network)
 time.sleep(2)
 try:send2trash(access_db)
 except:pass
