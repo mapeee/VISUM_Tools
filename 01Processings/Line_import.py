@@ -11,20 +11,30 @@
 #-------------------------------------------------------------------------------
 import win32com.client.dynamic
 import pyodbc
-import time
-from send2trash import send2trash
+import sys
 
 from pathlib import Path
 path = Path.home() / 'python32' / 'python_dir.txt'
 path = open(path, mode='r').readlines()
 path = path[0] +"\\"+'VISUM_Tools'+"\\"+'Line_import.txt'
 f = open(path, mode='r').read().splitlines()
+sys.path.insert(0,f[3])
+from VisumPy.helpers import SetMulti
 
 #--Path--#
 Network = f[0]
 layout_path = f[1]
 access_db = f[2].replace("accdb","mdb")
 
+def setSRtimeBus(_Visum):
+    _Visum.Filters.InitAll()
+    SRLinks = _Visum.Filters.LinkFilter()
+    SRLinks.AddCondition("OP_NONE",False,r"COUNTACTIVE:SYSROUTES","GreaterVal",0)
+    SRLinks.AddCondition("OP_AND",False,"TSYSSET","ContainsAll","Bus")
+    SetMulti(Visum.Net.Links, r"T_PUTSYS(BUS)", Visum.Net.Links.CountActive*[1], True)
+    print("> Set bus TravelTime on SystemRoutes")
+    _Visum.Filters.InitAll()
+    
 def Visum_open(Net):
     _Visum = win32com.client.dynamic.Dispatch("Visum.Visum.24")
     _Visum.IO.loadversion(Net)
@@ -181,14 +191,15 @@ def Visum_import(_Visum,access,LinkType,shortcrit,open_blocked):
         
     _Visum.Filters.LineGroupFilter().LineRouteFilter().RemoveCondition(2) ##Remove Aktive:StopPoint > 0 
 
-def Visum_end(_Visum,access):
-    for Route in _Visum.Net.LineRoutes.GetAllActive:Route.SetAttValue("AddVal1",0)
+def Visum_end(_Visum):
+    SetMulti(_Visum.Net.LineRoutes, "AddVal1", Visum.Net.LineRoutes.CountActive*[0], True)
     _Visum.Filters.InitAll()
     Visum_filter(_Visum)
 
-
 #--processing--#
 Visum = Visum_open(Network)
+
+setSRtimeBus(Visum)
 
 '''Export Line only or StopPoint to different Node'''
 Visum_filter(_Visum=Visum, Con_type=9)
@@ -202,8 +213,5 @@ Visum_export(_Visum=Visum, layout=layout_path, access=access_db, Stops=Stop)
 Visum_import(_Visum=Visum, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 2=linktype; 3=length
 
 ##end
-Visum_end(_Visum=Visum, access=access_db)
+Visum_end(_Visum=Visum)
 Visum.SaveVersion(Network)
-time.sleep(2)
-try:send2trash(access_db)
-except:pass
