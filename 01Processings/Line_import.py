@@ -26,12 +26,13 @@ Network = f[0]
 layout_path = f[1]
 access_db = f[2].replace("accdb","mdb")
 
-def setSRtimeBus(_Visum):
+def setSRtimeBus(_Visum, _kph):
     _Visum.Filters.InitAll()
     SRLinks = _Visum.Filters.LinkFilter()
     SRLinks.AddCondition("OP_NONE",False,r"COUNTACTIVE:SYSROUTES","GreaterVal",0)
     SRLinks.AddCondition("OP_AND",False,"TSYSSET","ContainsAll","Bus")
-    SetMulti(Visum.Net.Links, r"T_PUTSYS(BUS)", Visum.Net.Links.CountActive*[1], True)
+    tBus = [i[1] / _kph * 60 * 60 for i in Visum.Net.Links.GetMultiAttValues("LENGTHPOLY",True)]
+    SetMulti(_Visum.Net.Links, r"T_PUTSYS(BUS)", tBus, True)
     print("> Set bus TravelTime on SystemRoutes")
     _Visum.Filters.InitAll()
     
@@ -39,20 +40,36 @@ def Visum_open(Net):
     _Visum = win32com.client.dynamic.Dispatch("Visum.Visum.24")
     _Visum.IO.loadversion(Net)
     _Visum.Filters.InitAll()
+    SetMulti(_Visum.Net.LineRoutes, "AddVal1", _Visum.Net.LineRoutes.Count*[0], False)
+    SetMulti(_Visum.Net.Nodes, "AddVal1", _Visum.Net.Nodes.Count*[0], False)
     return _Visum
 
-def Visum_filter(_Visum,**optional):
+def Visum_filter(_Visum, **optional):
     _Visum.Filters.InitAll()
+
+    Nodes = _Visum.Filters.NodeFilter()
+    Nodes.AddCondition("OP_NONE",False,"AddVal1","EqualVal",1)
+
+    Con_type = optional.get("Con_type", False)
+    Connector = _Visum.Filters.ConnectorFilter()
+    Connector.AddCondition("OP_NONE",False,r"Node\AddVal1","EqualVal",1)
+    if Con_type != False: Connector.AddCondition("OP_AND",False,"TYPENO","EqualVal",Con_type)
+    
+    Stops = _Visum.Filters.StopGroupFilter()
+    Stops.UseFilterForStopAreas = True
+    Stops.UseFilterForStopPoints = True
+    Stops = Stops.StopPointFilter()
+    Stops.AddCondition("OP_NONE",False,r"Node\AddVal1","EqualVal",1)
+
+    InsertedLinks = _Visum.Filters.LinkFilter()
+    InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(1))
     
     Lines = _Visum.Filters.LineGroupFilter()
-    
     LineRouteItems = Lines.LineRouteItemFilter()
     LineRouteItems.AddCondition("OP_NONE",False,"ISROUTEPOINT","EqualVal",1)   
-    
     LineRoutes = Lines.LineRouteFilter()
-    LineRoutes.AddCondition("OP_NONE",False,"AddVal1","EqualVal",1) ##no more filter,not complementary
-    LineRoutes.AddCondition("OP_OR",False,r"COUNTACTIVE:STOPPOINTS","GreaterVal",0) ##no more filter,not complementary
-    
+    LineRoutes.AddCondition("OP_NONE",False,"AddVal1","EqualVal",1)
+    LineRoutes.AddCondition("OP_OR",False,r"COUNTACTIVE:STOPPOINTS","GreaterVal",0)
     Lines.UseFilterForLineRoutes = True
     Lines.UseFilterForLineRouteItems = True
     Lines.UseFilterForTimeProfiles = True
@@ -60,33 +77,12 @@ def Visum_filter(_Visum,**optional):
     Lines.UseFilterForVehJourneys = True
     Lines.UseFilterForVehJourneySections = True
     Lines.UseFilterForVehJourneyItems = True
-
-    Con_type = optional.get("Con_type", False)
-    Connector = _Visum.Filters.ConnectorFilter()
-    Connector.AddCondition("OP_NONE",False,r"Node\AddVal1","EqualVal",1)
-    if Con_type != False: Connector.AddCondition("OP_AND",False,"TYPENO","EqualVal",Con_type)
     
-    Nodes = _Visum.Filters.NodeFilter()
-    Nodes.AddCondition("OP_NONE",False,"AddVal1","EqualVal",1)
-    
-    HST = _Visum.Filters.StopGroupFilter()
-    HST.UseFilterForStopAreas = True
-    HST.UseFilterForStopPoints = True
-    HST = HST.StopPointFilter()
-    HST.AddCondition("OP_NONE",False,r"Node\AddVal1","EqualVal",1)
-
-    InsertedLinks = _Visum.Filters.LinkFilter()
-    InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(1))
-    
-    Lines.UseFilterForLineRoutes = True
-    
-def Visum_export(_Visum,layout,access,**optional):
+def Visum_export(_Visum, layout, access, **optional):
     global journeys_before
     global servingstops_before
     journeys_before = _Visum.Net.VehicleJourneys.Count ##number of journeys before export
-    servingstops_before = _Visum.Net.StopPoints.GetMultipleAttributes(["Count:ServingVehJourneys"])
-    servingstops_before = int(sum(list(map(sum, list(servingstops_before)))))
-    
+    servingstops_before = sum(i[0] for i in _Visum.Net.StopPoints.GetMultipleAttributes(["Count:ServingVehJourneys"]))
     _Visum.IO.SaveAccessDatabase(access,layout,True,False,True)
     _Visum.Net.LineRoutes.RemoveAll()
     _Visum.Net.Connectors.RemoveAll()
@@ -99,32 +95,19 @@ def Visum_export(_Visum,layout,access,**optional):
     ## Access
     conn = pyodbc.connect(r"Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ="+access+";")
     cursor = conn.cursor()
-    
-    cursor.execute('''
-                    UPDATE LINEROUTEITEM
-                    INNER JOIN LINEROUTE
-                    ON LINEROUTEITEM.LINEROUTENAME = LINEROUTE.NAME
-                    SET LINEROUTEITEM.ADDVAL = LINEROUTE.ADDVAL1
-                    ''')
-    conn.commit()       
-    cursor.execute('''
-                    DELETE FROM LINEROUTEITEM 
-                    WHERE ISROUTEPOINT = 0 or ISROUTEPOINT is NULL
-                    ''')
-    conn.commit()
-
+          
     Stops = optional.get("Stops", False)
     if Stops == False: return
     for i in Stops:
         cursor.execute('''
                         UPDATE LINEROUTEITEM
                         SET NODENO = '''+str(i[1])+''', STOPPOINTNO = '''+str(i[1])+'''
-                        WHERE STOPPOINTNO = '''+str(i[0])+''' and ADDVAL = '''+str(1)+'''
+                        WHERE STOPPOINTNO = '''+str(i[0])+'''
                         ''')              
         conn.commit()
     conn.close()
  
-def Visum_import(_Visum,access,LinkType,shortcrit,open_blocked):
+def Visum_import(_Visum, access, LinkType, shortcrit, open_blocked):
     Visum_filter(_Visum)
     import_setting = _Visum.IO.CreateNetReadRouteSearchTsys()
     import_setting.SetAttValue("ChangeLinkTypeOfOpenedLinks",open_blocked)
@@ -182,8 +165,7 @@ def Visum_import(_Visum,access,LinkType,shortcrit,open_blocked):
         print("> after: "+str(journeys_after)+"\n")
 
     global servingstops_after
-    servingstops_after = _Visum.Net.StopPoints.GetMultipleAttributes(["Count:ServingVehJourneys"])
-    servingstops_after = int(sum(list(map(sum, list(servingstops_after)))))
+    servingstops_after = sum(i[0] for i in _Visum.Net.StopPoints.GetMultipleAttributes(["Count:ServingVehJourneys"]))
     if servingstops_before != servingstops_after:
         print("> missing servings at stops")
         print("> before: "+str(servingstops_before))
@@ -192,14 +174,14 @@ def Visum_import(_Visum,access,LinkType,shortcrit,open_blocked):
     _Visum.Filters.LineGroupFilter().LineRouteFilter().RemoveCondition(2) ##Remove Aktive:StopPoint > 0 
 
 def Visum_end(_Visum):
-    SetMulti(_Visum.Net.LineRoutes, "AddVal1", Visum.Net.LineRoutes.CountActive*[0], True)
+    SetMulti(_Visum.Net.LineRoutes, "AddVal1", _Visum.Net.LineRoutes.CountActive*[0], True)
     _Visum.Filters.InitAll()
     Visum_filter(_Visum)
 
 #--processing--#
 Visum = Visum_open(Network)
 
-setSRtimeBus(Visum)
+setSRtimeBus(Visum, 200) ## for 200 kph
 
 '''Export Line only or StopPoint to different Node'''
 Visum_filter(_Visum=Visum, Con_type=9)
@@ -207,7 +189,7 @@ Visum_export(_Visum=Visum, layout=layout_path, access=access_db)
 Visum_import(_Visum=Visum, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 2=linktype; 3=length
 
 '''Change StopPoint from LineRoutes'''
-Stop = [[0,0],[0,0]]
+Stop = [[50007,40212],[0,0]]
 Visum_filter(_Visum=Visum)
 Visum_export(_Visum=Visum, layout=layout_path, access=access_db, Stops=Stop)
 Visum_import(_Visum=Visum, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 2=linktype; 3=length
