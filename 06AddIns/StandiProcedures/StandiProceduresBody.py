@@ -10,6 +10,7 @@ from VisumPy.AddIn import AddIn, AddInState, AddInParameter
 _ = AddIn.gettext
 
 def Run(param):
+    Visum.Log(20480,_("Standi procedures: running...."))
     Visum.Filters.InitAll()
     
     operations = Visum.Procedures.Operations.GetAll
@@ -17,20 +18,22 @@ def Run(param):
     
     if True in [param["PrT_bc"], param["PuT_bc"], param["PrT_pc"], param["PrT_pcput"],
                 param["PuT_pc"], param["PuT_pcprt"]]:
+        
+        if not CheckUDAs(): return
+        
         for i in operations:
             i.SetAttValue("ACTIVE",False)
             if Visum.Procedures.Operations.GetParent(i) is not None: i.SetAttValue("ACTIVE",True)
             Visum.Procedures.Operations.ItemByKey(1).SetAttValue("ACTIVE",True)
-            Visum.Procedures.Operations.ItemByKey(6).SetAttValue("ACTIVE",True)
+            Visum.Procedures.Operations.ItemByKey(3).SetAttValue("ACTIVE",True)
+            Visum.Procedures.Operations.ItemByKey(4).SetAttValue("ACTIVE",True)
+            Visum.Procedures.Operations.ItemByKey(5).SetAttValue("ACTIVE",True)
 
     if param["PrT_bc"]:
         Visum.Procedures.Operations.ItemByKey(2).SetAttValue("ACTIVE",True)
-        Visum.Procedures.Operations.ItemByKey(3).SetAttValue("ACTIVE",True)
         Visum.Procedures.Operations.ItemByKey(operations_code.index("1")+1).SetAttValue("ACTIVE",True)
 
     if param["PrT_pc"] or param["PrT_pcput"]:
-        Visum.Procedures.Operations.ItemByKey(4).SetAttValue("ACTIVE",True)
-        Visum.Procedures.Operations.ItemByKey(5).SetAttValue("ACTIVE",True)
         Visum.Procedures.Operations.ItemByKey(operations_code.index("2")+1).SetAttValue("ACTIVE",True)
         Visum.Procedures.Operations.ItemByKey(operations_code.index("3")+1).SetAttValue("ACTIVE",True)
         if param["PrT_pcput"]:
@@ -42,12 +45,9 @@ def Run(param):
             
     if param["PuT_bc"]:
         Visum.Procedures.Operations.ItemByKey(2).SetAttValue("ACTIVE",True)
-        Visum.Procedures.Operations.ItemByKey(3).SetAttValue("ACTIVE",True)
         Visum.Procedures.Operations.ItemByKey(operations_code.index("4")+1).SetAttValue("ACTIVE",True)
 
     if param["PuT_pc"] or param["PuT_pcprt"]:
-        Visum.Procedures.Operations.ItemByKey(4).SetAttValue("ACTIVE",True)
-        Visum.Procedures.Operations.ItemByKey(5).SetAttValue("ACTIVE",True)
         Visum.Procedures.Operations.ItemByKey(operations_code.index("5")+1).SetAttValue("ACTIVE",True)
         Visum.Procedures.Operations.ItemByKey(operations_code.index("6")+1).SetAttValue("ACTIVE",True)
         if param["PuT_pcprt"]: Visum.Procedures.Operations.ItemByKey(operations_code.index("7")+1).SetAttValue("ACTIVE",True)
@@ -116,6 +116,12 @@ def Run(param):
         
         
     Visum.Log(20480,_("Standi procedures: finished!"))
+
+def CheckUDAs():
+    if Visum.Net.Matrices.AttrExists("Szenario") == False:
+        addIn.ReportMessage(_("Matrices UDA 'Szenario' is missing!"))
+        return False
+    return True
 
 def Del_NKV():
     for i in ["Standi-NKV", "Standi-Szenario", "Standi-Energie", "Standi-Parameter"]:
