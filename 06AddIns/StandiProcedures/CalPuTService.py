@@ -10,7 +10,7 @@ from VisumPy.helpers import SetMulti
 _ = AddIn.gettext
 
 
-def PuTCosts(Visum,bc):
+def PuTCosts(Visum, bc):
     Visum.Log(20480,_("PuT costs: Starting!"))
     
     energy = dict((x, {"price" : y, "a" : z, "b" : zz}) for x, y, z, zz in Visum.Net.TableDefinitions.ItemByKey("Standi-Energie").
@@ -27,30 +27,30 @@ def PuTCosts(Visum,bc):
     if bc:_ev, _fk, _nVU, _ll, _pk, _ek, _ukll = "ENERGIEV_O", "FAHRZEUGK_O", "FZG_O", "LL_O", "PERSONALK_O", "ENERGIEK_O", "UKLL_O"
     else: _ev, _fk, _nVU, _ll, _pk, _ek, _ukll = "ENERGIEV_M", "FAHRZEUGK_M", "FZG_M", "LL_M", "PERSONALK_M", "ENERGIEK_M", "UKLL_M"
     
-    SetMulti(Visum.Net.VehicleCombinations,_ev,[0]*Visum.Net.VehicleCombinations.Count,False)
-    SetMulti(Visum.Net.VehicleUnits,_fk,[0]*Visum.Net.VehicleUnits.Count,False)
-    SetMulti(Visum.Net.VehicleUnits,_ll,[0]*Visum.Net.VehicleUnits.Count,False)
-    SetMulti(Visum.Net.Lines,_ll,[0]*Visum.Net.Lines.Count,False)
-    SetMulti(Visum.Net.Lines,_pk,[0]*Visum.Net.Lines.Count,False)
-    SetMulti(Visum.Net.Lines,_ek,[0]*Visum.Net.Lines.Count,False)
-    SetMulti(Visum.Net.Lines,_ukll,[0]*Visum.Net.Lines.Count,False)
+    SetMulti(Visum.Net.VehicleCombinations, _ev, [0] * Visum.Net.VehicleCombinations.Count, False)
+    SetMulti(Visum.Net.VehicleUnits, _fk, [0] * Visum.Net.VehicleUnits.Count, False)
+    SetMulti(Visum.Net.VehicleUnits, _ll, [0] * Visum.Net.VehicleUnits.Count, False)
+    SetMulti(Visum.Net.Lines, _ll, [0] * Visum.Net.Lines.Count, False)
+    SetMulti(Visum.Net.Lines, _pk, [0] * Visum.Net.Lines.Count, False)
+    SetMulti(Visum.Net.Lines, _ek, [0] * Visum.Net.Lines.Count, False)
+    SetMulti(Visum.Net.Lines, _ukll, [0] * Visum.Net.Lines.Count, False)
     
     #VehicleCosts
-    ll_l = []
-    c_l = []
+    ll_l, c_l = [], []
+
     for VehUnit in Visum.Net.VehicleUnits.GetAll:
+        tsysset = VehUnit.AttValue("TSYSSET")
+        
         if VehUnit.AttValue(r"SUM:VEHCOMBS\COUNT:VEHJOURNEYSECTIONS") in [None, 0]:
             ll_l.append(0)
             c_l.append(0)
             continue
         
         #Kapitaldienst
-        if VehUnit.AttValue("TSYSSET") == "Bus": c1 = VehUnit.AttValue("ANSCHAFFUNGSK") * VehUnit.AttValue(_nVU) * 0.0928
-        else: c1 = VehUnit.AttValue("ANSCHAFFUNGSK") * VehUnit.AttValue(_nVU) * 0.0428
+        c1 = VehUnit.AttValue("ANSCHAFFUNGSK") * VehUnit.AttValue(_nVU) * (0.0928 if tsysset == "Bus" else 0.0428)
         
         #UkT
-        if VehUnit.AttValue("TSYSSET") == "Bus": c2 = VehUnit.AttValue(_nVU) * VehUnit.AttValue("UKT") * 0.001
-        else: c2 = VehUnit.AttValue(_nVU) * VehUnit.AttValue("UKT") * VehUnit.AttValue("LEERMASSE") * 0.001
+        c2 = VehUnit.AttValue(_nVU) * VehUnit.AttValue("UKT") * 0.001 * (1 if tsysset == "Bus" else VehUnit.AttValue("LEERMASSE"))
         
         #UkLL - VehicleUnit
         VehCombos = VehUnit.AttValue(r"DISTINCT:VEHCOMBS\NO")
@@ -63,12 +63,13 @@ def PuTCosts(Visum,bc):
             ll = ll + ((Combo.AttValue(r"SUM:VEHJOURNEYSECTIONS\LENGTH") * nCombo) * HF_PT)
             
         ll_l.append(round(ll / HF_PT / 1000, 1))
-        if VehUnit.AttValue("TSYSSET") == "Bus": c3 = ll * VehUnit.AttValue("UKLL") * 0.001
-        else: c3 = VehUnit.AttValue("UKLL") * (ll * VehUnit.AttValue("LEERMASSE") * 0.001) * 0.001
-        c_l.append(round(c1+c2+c3, 1))
+        
+        c3 = ll * VehUnit.AttValue("UKLL") * 0.001 * (1 if tsysset == "Bus" else VehUnit.AttValue("LEERMASSE") * 0.001)
+
+        c_l.append(round(c1 + c2 + c3, 1))
   
-    SetMulti(Visum.Net.VehicleUnits,_ll,ll_l,False)
-    SetMulti(Visum.Net.VehicleUnits,_fk,c_l,False)
+    SetMulti(Visum.Net.VehicleUnits, _ll, ll_l, False)
+    SetMulti(Visum.Net.VehicleUnits, _fk, c_l, False)
     
     #Energy costs - distance
     VJ = pd.DataFrame(Visum.Net.VehicleJourneySections.GetMultipleAttributes(
@@ -101,11 +102,11 @@ def PuTCosts(Visum,bc):
         elif line.AttValue("TSYSCODE") == "Bus": pk.append(h * 39 * 0.001)
         elif line.AttValue("TSYSCODE") == "W": pk.append(h * 60 * 0.001)
         else: pk.append(h * 46 * 0.001)
-    SetMulti(Visum.Net.Lines,_pk,pk,False)
+    SetMulti(Visum.Net.Lines, _pk, pk, False)
 
     return True
         
-def VehicleUnits(Visum,bc,):
+def VehicleUnits(Visum, bc):
     Visum.Log(20480,_("PuT vehicle units: Starting!"))
     
     parameter = dict((x, y) for x, y in Visum.Net.TableDefinitions.ItemByKey("Standi-Parameter").TableEntries.GetMultipleAttributes(["CODE","WERT"]))
@@ -115,8 +116,8 @@ def VehicleUnits(Visum,bc,):
     if bc: _nVU, _nLine = "FZG_O", "FAHRTEN_O"
     else: _nVU, _nLine = "FZG_M", "FAHRTEN_M"
     
-    SetMulti(Visum.Net.VehicleUnits,_nVU,[0]*Visum.Net.VehicleUnits.Count,False)
-    SetMulti(Visum.Net.Lines,_nLine,[0]*Visum.Net.Lines.Count,False)
+    SetMulti(Visum.Net.VehicleUnits, _nVU, [0] * Visum.Net.VehicleUnits.Count, False)
+    SetMulti(Visum.Net.Lines, _nLine, [0] * Visum.Net.Lines.Count, False)
 
     mins = range(360,540)
     
@@ -162,20 +163,11 @@ def VehicleUnits(Visum,bc,):
         else: LR = 0
 
         FZG.append(round(nVHUnits * (BWR + LR), 2))
-    SetMulti(Visum.Net.VehicleUnits,_nVU,FZG,False)
+    SetMulti(Visum.Net.VehicleUnits, _nVU, FZG, False)
   
-    #overlapping VJ Lines
-    FzgE = []
-    for Line in Visum.Net.Lines.GetAll:
-        nLines = 0
-        
-        VJ_Lines = VJ[VJ["Lines"]==Line.AttValue("NAME")]
-        for minute in mins:
-            n = VJ_Lines[(VJ_Lines["Dep"]<=minute) & (VJ_Lines["Arr"]>minute)]
-            nLines = max(nLines, len(n))
-        
-        FzgE.append(nLines)  
-    SetMulti(Visum.Net.Lines,_nLine,FzgE,False)
+    FzgE = [max(len(VJ_Line[(VJ_Line["Dep"] <= m) & (VJ_Line["Arr"] > m)])
+                for m in mins)for line_name, VJ_Line in VJ.groupby("Lines")]    
+    SetMulti(Visum.Net.Lines, _nLine, FzgE, False)
     
 def _CheckTSys(Visum):
     for TSys in Visum.Net.TSystems.GetAll:
@@ -220,13 +212,10 @@ def _EnergyCostVehSect(data, _energy, _HF_PT):
 
 def _LengthOpCostLine(data, _HF_PT):
     if pd.isna(data["UKLL"]): return 0
-    if data["TSys"] == "Bus":
-        v = data["Length"] * data["UKLL"] * _HF_PT * 0.001
-    else:
-        v = data["Length"] * data["UKTKM"] * _HF_PT * 0.001
+    v = data["Length"] * _HF_PT * 0.001 * (data["UKLL"] if data["TSys"] == "Bus" else data["UKTKM"])
     return v
 
-def _SetMultiList(data,groupby,sumval,v):
+def _SetMultiList(data, groupby, sumval, v):
     l = []
     l_gb = data.groupby([groupby])[sumval].sum()
     for i in v:
