@@ -1,20 +1,26 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Jan 29 14:07:35 2025
+# -*- coding: cp1252 -*-
+#!/usr/bin/python
 
-@author: peter
-"""
-import win32com.client.dynamic
+#-------------------------------------------------------------------------------
+# Name:        Script to prepare a Visum file for storing AFZ data with daily resolution.
+# Author:      mape
+# Created:     29/01/2025
+# Copyright:   (c) mape 2025
+# Licence:     GNU GENERAL PUBLIC LICENSE
+#-------------------------------------------------------------------------------
+
 from datetime import datetime, timedelta
+import json
+from pathlib import Path
+import os
+import sys
+import win32com.client.dynamic
 
+directory = Path(os.path.dirname(os.path.abspath(sys.argv[0])))
+with open(os.path.join(directory ,"config.json"), "r") as json_file:
+    data = json.load(json_file)
 
-Visum = win32com.client.dynamic.Dispatch("Visum.Visum.25")
-Visum.IO.loadversion(r"")
-Visum.Filters.InitAll()
-
-years = [2024]
-
-
+# generate string for each day a year
 def generate_date_strings(_year):
     start_date = datetime(_year, 1, 1)
     date_list = []
@@ -27,20 +33,29 @@ def generate_date_strings(_year):
     return date_list
 
 
-maxinterval = max(Visum.Net.TimeIntervalSets.GetMultiAttValues("NO"))[1] + 1
+# load Visum
+Visum = win32com.client.dynamic.Dispatch("Visum.Visum.25")
+Visum.IO.loadversion(data["Network"])
+Visum.Filters.InitAll()
+
+# parameter
+years = [2024] # list containing years to enter
+maxTimeIntervalNo = max(Visum.Net.TimeIntervalSets.GetMultiAttValues("NO"))[1] + 1
+
 
 for e, year in enumerate(years):
-    TimeIntNo = int(maxinterval + e)
+    TimeIntNo = int(maxTimeIntervalNo + e)
     TimeIntSet = Visum.Net.AddTimeIntervalSet(TimeIntNo)
     TimeIntSet.SetAttValue("CODE", str(year))
     TimeIntSet.SetAttValue("Name", "AFZ")
 
+    # create time interval for each string / day a year
     date_strings = generate_date_strings(year)
     for i, date in enumerate(date_strings):
         TimeInt = TimeIntSet.AddTimeInterval(date[1], i + (date[2] * 3600), i + 1  + (date[2] * 3600), DayIndex=1)
         TimeInt.SetAttValue("Name", date[0])
     
- 
+    # create additional user defined attributes to organize AFZ data
     for UDA in [f"FahrtNr_AFZ_{year}", f"Einsteiger_AFZ_{year}", f"Aussteiger_AFZ_{year}", f"FzgNr_AFZ_{year}", f"Belastung_ab_AFZ_{year}"]:
         Visum.Net.VehicleJourneyItems.AddUserDefinedAttribute(UDA, UDA, UDA, 1, 0, DefVal = "", CanBeEmpty = True, SubAttr = f"TISET_{TimeIntNo}")
         UDG = Visum.Net.VehicleJourneyItems.Attributes.ItemByKey(UDA)
