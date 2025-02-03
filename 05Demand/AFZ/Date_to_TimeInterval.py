@@ -22,7 +22,8 @@ def generate_date_strings(_year):
         current_date = start_date + timedelta(days=i)
         date_string1 = current_date.strftime("%b_%a_%d")
         date_string2 = current_date.strftime("%d.%m.%Y")
-        date_list.append([date_string1, date_string2])
+        month_number = current_date.month
+        date_list.append([date_string1, date_string2, month_number])
     return date_list
 
 
@@ -36,12 +37,16 @@ for e, year in enumerate(years):
 
     date_strings = generate_date_strings(year)
     for i, date in enumerate(date_strings):
-        TimeInt = TimeIntSet.AddTimeInterval(date[1], i, i + 1, DayIndex=1)
+        TimeInt = TimeIntSet.AddTimeInterval(date[1], i + (date[2] * 3600), i + 1  + (date[2] * 3600), DayIndex=1)
         TimeInt.SetAttValue("Name", date[0])
     
  
-    for UDA in ["FahrtNr_AFZ", "Einsteiger_AFZ", "Aussteiger_AFZ", "FzgNr_AFZ"]:
-        Visum.Net.VehicleJourneyItems.AddUserDefinedAttribute(UDA, UDA, UDA, 1)
+    for UDA in [f"FahrtNr_AFZ_{year}", f"Einsteiger_AFZ_{year}", f"Aussteiger_AFZ_{year}", f"FzgNr_AFZ_{year}", f"Belastung_ab_AFZ_{year}"]:
+        Visum.Net.VehicleJourneyItems.AddUserDefinedAttribute(UDA, UDA, UDA, 1, 0, DefVal = "", CanBeEmpty = True, SubAttr = f"TISET_{TimeIntNo}")
+        UDG = Visum.Net.VehicleJourneyItems.Attributes.ItemByKey(UDA)
+        UDG.UserDefinedGroup = "AFZ"
+        
+        
     
     
 
