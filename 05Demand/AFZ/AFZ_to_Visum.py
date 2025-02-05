@@ -18,6 +18,8 @@ import os
 import pandas as pd
 from pathlib import Path
 import sys
+import time
+start_time = time.time()
 import win32com.client.dynamic
 
 directory = Path(os.path.dirname(os.path.abspath(sys.argv[0])))
@@ -26,23 +28,23 @@ with open(os.path.join(directory ,"config.json"), "r") as json_file:
 
 def AFZ_info(_AFZ_data):
     # translate time stringe into seconds a day 
-    _lines = ', '.join(_AFZ_data['LinieNo'].unique())
+    _lines = ", ".join(_AFZ_data["LinieNo"].unique())
     print("> Linien:", _lines)
     print()
     
-    first_date = _AFZ_data['Date'].min()
-    last_date = _AFZ_data['Date'].max()
-    print("> Startdatum:", first_date.strftime('%d.%m.%Y'))
-    print("> Endatum:", last_date.strftime('%d.%m.%Y'))
+    first_date = _AFZ_data["Date"].min()
+    last_date = _AFZ_data["Date"].max()
+    print("> Startdatum:", first_date.strftime("%d.%m.%Y"))
+    print("> Endatum:", last_date.strftime("%d.%m.%Y"))
     print("-" * 30)
     print()
-    
+
 def extrapolate_AFZ(_AFZ_extra):
     _AFZ_extra["HstIDXprev"] = _AFZ_extra["HstIDX"].shift(1) # to compare IDX later
     _AFZ_extra["HstIDXprev"] = _AFZ_extra["HstIDXprev"].fillna(0) # for first row
-    _AFZ_extra['HstIDXreset'] = _AFZ_extra["HstIDXprev"] + 1 != _AFZ_extra["HstIDX"]
-    _AFZ_extra['HstIDXresetGroup'] = _AFZ_extra['HstIDXreset'].cumsum()
-    _AFZ_extra['Belastung'] = _AFZ_extra.groupby('HstIDXresetGroup')['EinAusSaldo'].cumsum().groupby(_AFZ_extra['HstIDXresetGroup']).apply(lambda x: np.maximum(x, 0)).reset_index(drop=True)
+    _AFZ_extra["HstIDXreset"] = _AFZ_extra["HstIDXprev"] + 1 != _AFZ_extra["HstIDX"]
+    _AFZ_extra["HstIDXresetGroup"] = _AFZ_extra["HstIDXreset"].cumsum()
+    _AFZ_extra["Belastung"] = _AFZ_extra.groupby("HstIDXresetGroup")["EinAusSaldo"].cumsum().groupby(_AFZ_extra["HstIDXresetGroup"]).apply(lambda x: np.maximum(x, 0)).reset_index(drop=True)
     return _AFZ_extra
     
 def filter_lines(_Visum, _AFZ):
@@ -51,7 +53,7 @@ def filter_lines(_Visum, _AFZ):
         return 1 if l in _uniqueLines else 0
     
     _Lines = _Visum.Net.Lines.GetMultiAttValues("Name", False)
-    _uniqueLines = _AFZ['LinieNo'].unique()
+    _uniqueLines = _AFZ["LinieNo"].unique()
     replacetuple = tuple((i[0], _checkLine(i[1], _uniqueLines)) for i in _Lines)
     _Visum.Net.Lines.SetMultiAttValues("AddVal3", replacetuple, False)
 
@@ -72,15 +74,27 @@ def filter_lines(_Visum, _AFZ):
     InsertedLinks.AddCondition("OP_NONE",False,"ONACTIVELINEROUTE", "EqualVal", 1)
     
 def modify_AFZ(_AFZmod):
-    _AFZmod['Abzeit_seconds'] = _AFZmod['Abzeit'].apply(time_to_seconds)
+    _AFZmod["Abzeit_seconds"] = _AFZmod["Abzeit"].apply(time_to_seconds)
     _AFZmod["LinieNo"] = _AFZmod["Linie"].astype(str).str[2:6]
-    _AFZmod['Date'] = pd.to_datetime(_AFZmod['Datum'], format='%d.%m.%Y')
+    _AFZmod["Date"] = pd.to_datetime(_AFZmod["Datum"], format="%d.%m.%Y")
     _AFZmod["EinAusSaldo"] = _AFZmod["Ein"] - _AFZmod["Aus"]
     AFZ_info(_AFZmod)
     return _AFZmod
 
+def test_matching(_AFZ_data, _V_data, _path):
+    test_df = pd.merge(_V_data, _AFZ_data, on = ["AbHst", "AnHst", "Abzeit_seconds", "LinieNo", "Hst"], how = "right")
+    test_df["Test"] = test_df["Journey"].isna().map({True: "missing", False: "ok"})
+    test_df["Journey"] = test_df["Journey"].fillna(0)
+    test_df["Journey"] = test_df["Journey"].astype(int)
+    test_df = test_df.fillna("")
+    test_df = test_df.drop(columns=["Date", "HstIDXprev", "HstIDXreset", "HstIDXresetGroup", "Abzeit_seconds"])
+    
+    dir_path = os.path.dirname(_path)
+    new_file_path = os.path.join(dir_path, "test")
+    test_df.to_csv(new_file_path+".csv", sep = ";", index=False)
+
 def time_to_seconds(time_str):
-    hours, minutes = map(int, time_str.split(':'))
+    hours, minutes = map(int, time_str.split(":"))
     return hours * 3600 + minutes * 60
 
 
@@ -98,22 +112,26 @@ Visum.IO.loadversion(data["Network"])
 Visum.Graphic.StopDrawing = True
 Visum.Filters.InitAll()
 filter_lines(Visum, AFZ_data)
+Date_Journeys_V = pd.DataFrame(Visum.Net.VehicleJourneyItems.GetMultipleAttributes([r"VEHJOURNEY\FROMSTOPPOINT\ISA_NO", r"VEHJOURNEY\TOSTOPPOINT\ISA_NO", r"VEHJOURNEY\DEP", 
+                                                                                    r"VEHJOURNEY\LINENAME", r"TIMEPROFILEITEM\LINEROUTEITEM\STOPPOINT\ISA_NO", "VEHJOURNEYNO"], True),
+                               columns = ["AbHst", "AnHst", "Abzeit_seconds", "LinieNo", "Hst", "Journey"])
+Date_Journeys_V = Date_Journeys_V.astype({"AbHst":int, "AnHst":int, "Abzeit_seconds":int, "LinieNo":str, "Hst":int, "Journey":int})
+
+test_matching(AFZ_data, Date_Journeys_V, data["AFZ_data"])
 
 # iterate over all journey days in the given AFZ dataset
 journey_day = AFZ_data.groupby("Datum")
 for journey_day_name, journey_day_data in journey_day:
     # get attributes of journeyItems from the model to merge with AFZ data
-    Date_Journeys_V = pd.DataFrame(Visum.Net.VehicleJourneyItems.GetMultipleAttributes([r"VEHJOURNEY\FROMSTOPPOINT\ISA_NO", r"VEHJOURNEY\TOSTOPPOINT\ISA_NO", r"VEHJOURNEY\DEP", 
-                                                                                        r"VEHJOURNEY\LINENAME", r"TIMEPROFILEITEM\LINEROUTEITEM\STOPPOINT\ISA_NO"], True),
-                                   columns = ["AbHst", "AnHst", "Abzeit_seconds", "LinieNo", "Hst"])
-    Date_Journeys_V = Date_Journeys_V.astype({'AbHst':int, 'AnHst':int, 'Abzeit_seconds':int, 'LinieNo':str, 'Hst':int})
-    merged_df = pd.merge(Date_Journeys_V, journey_day_data, on = ['AbHst', 'AnHst', 'Abzeit_seconds', 'LinieNo', 'Hst'], how = 'left')
+    merged_df = pd.merge(Date_Journeys_V, journey_day_data, on = ["AbHst", "AnHst", "Abzeit_seconds", "LinieNo", "Hst"], how = "left")
     merged_df = merged_df.fillna("")
     
-    Values = merged_df[['FahrtNr', 'FzgNr', "Ein", "Aus", "Belastung"]].values.tolist()
-    Attributes = [rf'FAHRTNR_AFZ_{year}({journey_day_name})', rf'FZGNR_AFZ_{year}({journey_day_name})',
-                  rf'EINSTEIGER_AFZ_{year}({journey_day_name})', rf'Aussteiger_AFZ_{year}({journey_day_name})', rf'BELASTUNG_AB_AFZ_{year}({journey_day_name})']
+    Values = merged_df[["FahrtNr", "FzgNr", "Ein", "Aus", "Belastung"]].values.tolist()
+    Attributes = [rf"FAHRTNR_AFZ_{year}({journey_day_name})", rf"FZGNR_AFZ_{year}({journey_day_name})",
+                  rf"EINSTEIGER_AFZ_{year}({journey_day_name})", rf"Aussteiger_AFZ_{year}({journey_day_name})", rf"BELASTUNG_AB_AFZ_{year}({journey_day_name})"]
     Visum.Net.VehicleJourneyItems.SetMultipleAttributes(Attributes, Values, True)
 
 # finalizing
 Visum.Graphic.StopDrawing = False
+elapsed_time = time.time() - start_time
+print(f"> Script runtime: {elapsed_time:.2f} seconds")
