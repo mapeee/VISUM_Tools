@@ -19,7 +19,6 @@ import pandas as pd
 from pathlib import Path
 import sys
 import time
-start_time = time.time()
 import win32com.client.dynamic
 
 directory = Path(os.path.dirname(os.path.abspath(sys.argv[0])))
@@ -44,7 +43,9 @@ def extrapolate_AFZ(_AFZ_extra):
     _AFZ_extra["HstIDXprev"] = _AFZ_extra["HstIDXprev"].fillna(0) # for first row
     _AFZ_extra["HstIDXreset"] = _AFZ_extra["HstIDXprev"] + 1 != _AFZ_extra["HstIDX"]
     _AFZ_extra["HstIDXresetGroup"] = _AFZ_extra["HstIDXreset"].cumsum()
-    _AFZ_extra["Belastung"] = _AFZ_extra.groupby("HstIDXresetGroup")["EinAusSaldo"].cumsum().groupby(_AFZ_extra["HstIDXresetGroup"]).apply(lambda x: np.maximum(x, 0)).reset_index(drop=True)
+    _AFZ_extra["Belastung"] = _AFZ_extra.groupby("HstIDXresetGroup")["EinAusHstSaldo"].cumsum().groupby(_AFZ_extra["HstIDXresetGroup"]).apply(lambda x: np.maximum(x, 0)).reset_index(drop=True)
+    _AFZ_extra = _AFZ_extra.loc[(_AFZ_extra['EinAusSumSaldo'] >= -5) & 
+                            (_AFZ_extra['EinAusSumSaldo'] <= 5)].reset_index(drop=True) # only Journeys with EinAusSaldo between -5 and 5
     return _AFZ_extra
     
 def filter_lines(_Visum, _AFZ):
@@ -77,7 +78,9 @@ def modify_AFZ(_AFZmod):
     _AFZmod["Abzeit_seconds"] = _AFZmod["Abzeit"].apply(time_to_seconds)
     _AFZmod["LinieNo"] = _AFZmod["Linie"].astype(str).str[2:6]
     _AFZmod["Date"] = pd.to_datetime(_AFZmod["Datum"], format="%d.%m.%Y")
-    _AFZmod["EinAusSaldo"] = _AFZmod["Ein"] - _AFZmod["Aus"]
+    _AFZmod[["EinSum", "AusSum"]] = _AFZmod.groupby(["FahrtNr", "Datum"])[["Ein", "Aus"]].transform("sum")
+    _AFZmod["EinAusSumSaldo"] = _AFZmod["EinSum"] - _AFZmod["AusSum"]
+    _AFZmod["EinAusHstSaldo"] = _AFZmod["Ein"] - _AFZmod["Aus"]
     AFZ_info(_AFZmod)
     return _AFZmod
 
@@ -111,6 +114,7 @@ Visum = win32com.client.dynamic.Dispatch("Visum.Visum.25")
 Visum.IO.loadversion(data["Network"])
 Visum.Graphic.StopDrawing = True
 Visum.Filters.InitAll()
+start_time = time.time() # to avoid Visum loading time into elapsed time
 filter_lines(Visum, AFZ_data)
 Date_Journeys_V = pd.DataFrame(Visum.Net.VehicleJourneyItems.GetMultipleAttributes([r"VEHJOURNEY\FROMSTOPPOINT\ISA_NO", r"VEHJOURNEY\TOSTOPPOINT\ISA_NO", r"VEHJOURNEY\DEP", 
                                                                                     r"VEHJOURNEY\LINENAME", r"TIMEPROFILEITEM\LINEROUTEITEM\STOPPOINT\ISA_NO", "VEHJOURNEYNO"], True),
