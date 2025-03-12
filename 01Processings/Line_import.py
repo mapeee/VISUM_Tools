@@ -37,7 +37,7 @@ def setSRtimeBus(_Visum, _kph):
     _Visum.Filters.InitAll()
     
 def Visum_open(Net):
-    _Visum = win32com.client.dynamic.Dispatch("Visum.Visum.24")
+    _Visum = win32com.client.dynamic.Dispatch("Visum.Visum.25")
     _Visum.IO.loadversion(Net)
     _Visum.Filters.InitAll()
     SetMulti(_Visum.Net.LineRoutes, "AddVal1", _Visum.Net.LineRoutes.Count*[0], False)
@@ -79,9 +79,10 @@ def Visum_filter(_Visum, **optional):
     Lines.UseFilterForVehJourneyItems = True
     
 def Visum_export(_Visum, layout, access, **optional):
-    global journeys_before
-    global servingstops_before
-    journeys_before = _Visum.Net.VehicleJourneys.Count ##number of journeys before export
+    global journeys_before, servingstops_before, chainedVehSec_before
+
+    journeys_before = _Visum.Net.VehicleJourneys.Count
+    chainedVehSec_before = _Visum.Net.ChainedUpVehicleJourneySections.Count
     servingstops_before = sum(i[0] for i in _Visum.Net.StopPoints.GetMultipleAttributes(["Count:ServingVehJourneys"]))
     _Visum.IO.SaveAccessDatabase(access,layout,True,False,True)
     _Visum.Net.LineRoutes.RemoveAll()
@@ -108,6 +109,8 @@ def Visum_export(_Visum, layout, access, **optional):
     conn.close()
  
 def Visum_import(_Visum, access, LinkType, shortcrit, open_blocked):
+    global journeys_after, servingstops_after, chainedVehSec_after
+    
     Visum_filter(_Visum)
     import_setting = _Visum.IO.CreateNetReadRouteSearchTsys()
     import_setting.SetAttValue("ChangeLinkTypeOfOpenedLinks",open_blocked)
@@ -157,14 +160,18 @@ def Visum_import(_Visum, access, LinkType, shortcrit, open_blocked):
     if _Visum.Net.Links.CountActive > 0: print("> "+str(_Visum.Net.Links.CountActive)+" new links of type "+str(LinkType)+" added \n") 
     _Visum.Filters.LinkFilter().Init()
     
-    global journeys_after
     journeys_after = _Visum.Net.VehicleJourneys.Count ##number of journeys after processing
     if journeys_before != journeys_after:
         print("> missing VehicleJourneys")
         print("> before: "+str(journeys_before))
         print("> after: "+str(journeys_after)+"\n")
+        
+    chainedVehSec_after = _Visum.Net.ChainedUpVehicleJourneySections.Count
+    if chainedVehSec_before != chainedVehSec_after:
+        print("> missing Chained VehicleJourneySections")
+        print("> before: "+str(chainedVehSec_before))
+        print("> after: "+str(chainedVehSec_after)+"\n")
 
-    global servingstops_after
     servingstops_after = sum(i[0] for i in _Visum.Net.StopPoints.GetMultipleAttributes(["Count:ServingVehJourneys"]))
     if servingstops_before != servingstops_after:
         print("> missing servings at stops")
@@ -189,7 +196,7 @@ Visum_export(_Visum=Visum, layout=layout_path, access=access_db)
 Visum_import(_Visum=Visum, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 2=linktype; 3=length
 
 '''Change StopPoint from LineRoutes'''
-Stop = [[50007,40212],[0,0]]
+Stop = [[0,0],[0,0]]
 Visum_filter(_Visum=Visum)
 Visum_export(_Visum=Visum, layout=layout_path, access=access_db, Stops=Stop)
 Visum_import(_Visum=Visum, access=access_db, LinkType=1, shortcrit=1, open_blocked=False) ##1=time; 2=linktype; 3=length
