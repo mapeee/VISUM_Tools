@@ -7,7 +7,7 @@ from VisumPy.AddIn import AddIn, AddInState, AddInParameter
 _ = AddIn.gettext
 
 
-def Run(param):
+def Run():
     SetMulti(Visum.Net.Nodes,"AddVal1",[0]*Visum.Net.Nodes.Count,False)
     SetMulti(Visum.Net.Nodes,"AddVal2",[0]*Visum.Net.Nodes.Count,False)
     SetMulti(Visum.Net.Nodes,"AddVal3",[0]*Visum.Net.Nodes.Count,False)
@@ -76,8 +76,6 @@ if addIn.State != AddInState.OK:
     addIn.ReportMessage(addIn.ErrorObjects[0].ErrorMessage)
 else:
     try:
-        defaultParam = {"AddVal" : "..."}
-        param = addInParam.Check(True, defaultParam)
-        Run(param)
+        Run()
     except:
         addIn.HandleException(addIn.TemplateText.MainApplicationError)
