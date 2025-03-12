@@ -12,6 +12,7 @@
 import numpy as np
 import pandas as pd
 
+
 # Functions
 def minutes_to_timestring(minutes):
     hours = minutes // 60  # Get hours
@@ -111,7 +112,7 @@ for table_name in ["TNM Spitzenbedarf Teilnetz", "TNM Spitzenbedarf Linie", "TNM
                         FZG_Rang_prev = FZG_Rang
                         FZG_TN_prev = FZG_TN
                 else:
-                    results.append([TN, FZG_Name, 0, int(result_df[FZG_TN].max()), int(result_df[FZG_TN].max()), str(minutes_to_timestring(mins[result_df.loc[result_df[FZG_TN].idxmax(), "Minute"]]))])
+                    results.append([TN, "", 0, int(result_df[FZG_TN].max()), int(result_df[FZG_TN].max()), str(minutes_to_timestring(mins[result_df.loc[result_df[FZG_TN].idxmax(), "Minute"]]))])
                     FZG_Rang_prev = 99
                     FZG_TN_prev = ''
             del result_df
