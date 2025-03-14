@@ -112,7 +112,7 @@ def Visum_import(_Visum, access, LinkType, shortcrit, open_blocked):
     global journeys_after, servingstops_after, chainedVehSec_after
     
     Visum_filter(_Visum)
-    import_setting = _Visum.IO.CreateNetReadRouteSearchTsys()
+    import_setting = _Visum.IO.CreateNetReadRouteSearchTSys()
     import_setting.SetAttValue("ChangeLinkTypeOfOpenedLinks",open_blocked)
     import_setting.SetAttValue("IncludeBlockedTurns",open_blocked)
     import_setting.SetAttValue("HowToHandleIncompleteRoute", 2) ##search shortest path
