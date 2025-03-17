@@ -125,6 +125,9 @@ def PTImport(Visum, changed_nodes = [0], PTcounts = False):
         Area = Visum.Net.StopAreas.ItemByKey(i)
         Area.SetAttValue("XCOORD",Area.AttValue(r"MIN:STOPPOINTS\XCOORD"))
         Area.SetAttValue("YCOORD",Area.AttValue(r"MIN:STOPPOINTS\YCOORD"))
+        for Turn in Node.ViaNodeTurns.GetAll:
+            if Turn.AttValue("ANGLE") == 360:
+                Turn.SetAttValue("TSYSSET","")
         try: Stop = Visum.Net.Stops.ItemByKey(i)
         except: continue
         if int(Stop.AttValue("NumStopAreas")) == 1:
