@@ -26,9 +26,11 @@ class MyDialog(wx.Dialog):
 
         self.button_export = wx.Button(self, -1, _('Export'), name = "Export")
         self.button_import = wx.Button(self, -1, _('Import'), name = "Import")
+        self.button_export_import = wx.Button(self, -1, _('Export / Import'), name = "Export_Import")
         self.button_finish = wx.Button(self, -1, _('Finish'), name = "Finish")
         self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_export)
         self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_import)
+        self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_export_import)
         self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_finish)
         
         self.button_help = wx.Button(self, -1, _('Help'))
@@ -70,6 +72,9 @@ class MyDialog(wx.Dialog):
         sbSizer_exportimport.AddSpacer(10)
         sbSizer_exportimport.Add(sizer_export, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
         sbSizer_exportimport.Add(self.button_import, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
+        sbSizer_exportimport.AddSpacer(5)
+        sbSizer_exportimport.Add(self.button_export_import, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
+        sbSizer_exportimport.AddSpacer(5)
         sbSizer_exportimport.Add(self.button_finish, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
 
         sb_end = wx.StaticBox(self, -1, _("End"))
@@ -138,6 +143,10 @@ class MyDialog(wx.Dialog):
             else:
                 PTLEE.PTImport(Visum)
             Visum.Log(20480,_("Import finished"))
+        elif ProcName == "Export_Import":
+            self.PTExport_State, self.PTExport, self.Nodes = PTLEE.PTExport(Visum, addIn.DirectoryPath, self.stop_data)
+            PTLEE.PTImport(Visum, self.Nodes, self.PTExport)
+            Visum.Log(20480,_("Export / Import finished"))
         else:
             param["Proc"] = ProcName
             addInParam.SaveParameter(param)
