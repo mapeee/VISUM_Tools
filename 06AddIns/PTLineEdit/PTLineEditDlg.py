@@ -119,6 +119,7 @@ class MyDialog(wx.Dialog):
         elif ProcName == "PTFilter":
             PTLEE.PTFilter(Visum)
             Visum.Log(20480,_("All filters ready for export"))
+            addIn.ReportMessage(_("Ok"), 2)
         elif ProcName == "SetSRtimeBus":
             PTLEE.SRtimeBus(Visum, True)
             Visum.Log(20480,_("Set bus link times based on SystemRoutes"))
@@ -130,23 +131,26 @@ class MyDialog(wx.Dialog):
             PTLEE.PTFilter(Visum)
             Visum.Log(20480,_("Finished"))
         elif ProcName == "Export":
-            if hasattr(self, "stop_data"):
-                Stops = self.stop_data
-            else: 
-                Stops = [["0", "0"]]
+            if hasattr(self, "stop_data"): Stops = self.stop_data
+            else: Stops = [["0", "0"]]
             self.PTExport_State, self.PTExport, self.Nodes = PTLEE.PTExport(Visum, addIn.DirectoryPath, Stops)
             if self.PTExport_State == True:
                 Visum.Log(20480,_("Export finished"))
+            addIn.ReportMessage(_("Ok"), 2)
         elif ProcName == "Import":
             if hasattr(self, "PTExport_State"):
                 PTLEE.PTImport(Visum, self.Nodes, self.PTExport)
             else:
                 PTLEE.PTImport(Visum)
             Visum.Log(20480,_("Import finished"))
+            addIn.ReportMessage(_("Ok"), 2)
         elif ProcName == "Export_Import":
-            self.PTExport_State, self.PTExport, self.Nodes = PTLEE.PTExport(Visum, addIn.DirectoryPath, self.stop_data)
+            if hasattr(self, "stop_data"): Stops = self.stop_data
+            else: Stops = [["0", "0"]]
+            self.PTExport_State, self.PTExport, self.Nodes = PTLEE.PTExport(Visum, addIn.DirectoryPath, Stops)
             PTLEE.PTImport(Visum, self.Nodes, self.PTExport)
             Visum.Log(20480,_("Export / Import finished"))
+            addIn.ReportMessage(_("Ok"), 2)
         else:
             param["Proc"] = ProcName
             addInParam.SaveParameter(param)
