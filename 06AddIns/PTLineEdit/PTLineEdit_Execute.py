@@ -134,29 +134,30 @@ def PTImport(Visum, changed_nodes = [0], PTcounts = False):
             Stop.SetAttValue("XCOORD",Stop.AttValue(r"MIN:STOPAREAS\XCOORD"))
             Stop.SetAttValue("YCOORD",Stop.AttValue(r"MIN:STOPAREAS\YCOORD"))
 
+    Visum.Filters.LineGroupFilter().LineRouteFilter().RemoveCondition(2) ##Remove Aktive:StopPoint > 0
+
     ##tests for missing elements
     PTFilter(Visum)
     InsertedLinks = Visum.Filters.LinkFilter().Init() 
     InsertedLinks = Visum.Filters.LinkFilter()
     InsertedLinks.AddCondition("OP_NONE",False,"TYPENO", "ContainedIn", str(1))
     if Visum.Net.Links.CountActive > 0:
-        Visum.Log(12288, _("> "+str(Visum.Net.Links.CountActive)+" new links of type "+str(1)+" added"))
+        Visum.Log(16384, _("> "+str(Visum.Net.Links.CountActive)+" new links of type "+str(1)+" added"))
     Visum.Filters.LinkFilter().Init()
     
     if PTcounts:
         journeys = PTcounts[0] - Visum.Net.VehicleJourneys.Count
         if journeys != 0:
             Visum.Log(12288, _("missing VehicleJourneys: "+str(journeys)))
-            
+            return False
         servingstops = int(PTcounts[1] - sum(i[0] for i in Visum.Net.StopPoints.GetMultipleAttributes(["Count:ServingVehJourneys"])))
         if servingstops != 0:
             Visum.Log(12288, _("missing servings at stops: "+str(servingstops)))
-            
+            return False
         chainedVehSec = PTcounts[2] - Visum.Net.ChainedUpVehicleJourneySections.Count
         if chainedVehSec != 0:
             Visum.Log(12288, _("missing Chained VehicleJourneySections: "+str(chainedVehSec)))
-        
-    Visum.Filters.LineGroupFilter().LineRouteFilter().RemoveCondition(2) ##Remove Aktive:StopPoint > 0
+            return False
 
 def SRtimeBus(Visum, mode):
     Visum.Filters.InitAll()
