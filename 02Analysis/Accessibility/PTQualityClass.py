@@ -135,7 +135,7 @@ def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
                 feature_def = _Shape.GetLayerDefn()
                 feature = ogr.Feature(feature_def)
                 feature.SetGeometry(buffered_polygon)
-                feature.SetField("Category", f"StopNo: {StopNo} - Cat: {category} - Dep: {Dep}")
+                feature.SetField("Category", f"StopNo: {StopNo} - Cat: {category} - Dep: {Dep} - Scenario: {Scenario}")
                 feature.SetField("Class", PTClass)
                 feature.SetField("Distance", distance)
                 feature.SetField("StopNo", StopNo)
@@ -171,7 +171,7 @@ ShapePolygons = CreatePolygons(Visum, ShapeDef, Stops, DataSource)
 ImportShapePOI(Visum, ShapePath)
 
 Visum.Log(20480, "Open GraphicParameters to display accessibility measures")
-gpa_path = Path(__file__).resolve().parents[2] / "Grafikparameter" / "OEV_Gueteklassen.gpa"
+gpa_path = Path.cwd() / "Grafikparameter" / "OEV_Gueteklassen.gpa"
 Visum.Net.GraphicParameters.Open(gpa_path)
 
 Visum.Log(20480, "Finished!")
