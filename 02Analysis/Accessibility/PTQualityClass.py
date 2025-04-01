@@ -1,7 +1,16 @@
+#-------------------------------------------------------------------------------
+# Name:        Calculate PT Quality Classes in PTV Visum on Stop-level
+# Author:      mape
+# Created:     25/03/2025
+# Copyright:   (c) mape 2025
+# Licence:     GNU GENERAL PUBLIC LICENSE
+# #---------------------
+
 import numpy as np
 import os
 from osgeo import ogr, osr
 import pandas as pd
+from pathlib import Path
 import tempfile
 from VisumPy.helpers import SetMulti
 
@@ -61,11 +70,11 @@ def StopCategories(_Visum):
         "V", "VI", "VII",
         ]
     
-    _Stops["OVGK"] = np.select(conditions, choices, default="VII")
+    _Stops["HKAT"] = np.select(conditions, choices, default="VII")
     
-    # to Visum UDA 'OVGK'
-    PTClass = _Stops["OVGK"].tolist()
-    SetMulti(_Visum.Net.Stops, "OVGK", PTClass, True)
+    # to Visum UDA 'HKAT'
+    PTClass = _Stops["HKAT"].tolist()
+    SetMulti(_Visum.Net.Stops, "HKAT", PTClass, True)
     
     _Visum.Log(20480, "Stop categories calculated")
     return _Stops
@@ -98,7 +107,7 @@ def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
     _Visum.Log(20480, "Start creating polygons")
     
     cases = {
-        "I": ["500m:A", "750m:B", "1000m:C"],
+        "I": ["300m:A", "500m:A", "750m:B", "1000m:C"],
         "II": ["300m:A", "500m:B", "750m:C", "1000m:D"],
         "III": ["300m:B", "500m:C", "750m:D", "1000m:E"],
         "IV": ["300m:C", "500m:D", "750m:E", "1000m:F"],
@@ -108,10 +117,10 @@ def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
     }
     
     for category, distances in cases.items():
-        stops_cat = _stops[_stops["OVGK"] == category]
-        stops_cat = list(zip(stops_cat["StopNo"], stops_cat["StopName"], stops_cat["X"], stops_cat["Y"]))
+        stops_cat = _stops[_stops["HKAT"] == category]
+        stops_cat = list(zip(stops_cat["StopNo"].astype(int), stops_cat["StopName"], stops_cat["X"], stops_cat["Y"], stops_cat["Dep0818"]))
         
-        for StopNo, StopName, x, y in stops_cat:
+        for StopNo, StopName, x, y, Dep in stops_cat:
             point = ogr.Geometry(ogr.wkbPoint)
             point.AddPoint(x, y)
             point.AssignSpatialReference(_Shape.GetSpatialRef())
@@ -126,11 +135,11 @@ def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
                 feature_def = _Shape.GetLayerDefn()
                 feature = ogr.Feature(feature_def)
                 feature.SetGeometry(buffered_polygon)
-                feature.SetField("Category", category)
+                feature.SetField("Category", f"StopNo: {StopNo} - Cat: {category} - Dep: {Dep}")
                 feature.SetField("Class", PTClass)
                 feature.SetField("Distance", distance)
                 feature.SetField("StopNo", StopNo)
-                feature.SetField("StopName", StopName)
+                feature.SetField("StopName", f"{StopName} - {distance}m")
         
                 # Add to layer
                 _Shape.CreateFeature(feature)
@@ -146,6 +155,7 @@ def ImportShapePOI(_Visum, _Shape):
     ShapeImport = _Visum.IO.CreateImportShapeFilePara()
     ShapeImport.AddAttributeAllocation("StopName", "Name")
     ShapeImport.AddAttributeAllocation("Class", "Code")
+    ShapeImport.AddAttributeAllocation("Category", "Comment")
     ShapeImport.ObjectType = 9 # import as POI
     ShapeImport.SetAttValue("POIKEY", 40) # POI Category 40
     
@@ -159,5 +169,9 @@ Stops = StopCategories(Visum)
 ShapePath, DataSource, ShapeDef = CreateShape(Visum)
 ShapePolygons = CreatePolygons(Visum, ShapeDef, Stops, DataSource)
 ImportShapePOI(Visum, ShapePath)
+
+Visum.Log(20480, "Open GraphicParameters to display accessibility measures")
+gpa_path = Path(__file__).resolve().parents[2] / "Grafikparameter" / "OEV_Gueteklassen.gpa"
+Visum.Net.GraphicParameters.Open(gpa_path)
 
 Visum.Log(20480, "Finished!")
