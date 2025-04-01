@@ -13,12 +13,30 @@ UDGS = {
 
 # UDA (User defined attributes)
 UDAS = {
-    "Stops": {"ID": "HKAT",
-              "Name": "Haltestellenkategorie",
-              "VT": 5,
-              "DefVal": "VII",
-              "Comment": "Haltestellenkategorie (ÖV-Güteklasse)"}
+    "Stops": {
+        "ID": "HKAT",
+        "Name": "Haltestellenkategorie",
+        "VT": 5,
+        "DefVal": "VII",
+        "Comment": "Haltestellenkategorie (ÖV-Güteklasse)"
+    },
+    "StopAreas": {
+        "CC_SNAMUTS": {
+            "ID": "CC_SNAMUTS",
+            "Name": "Closeness Centrality",
+            "VT": 2,
+            "DefVal": 0,
+            "Comment": "Closeness Centrality (SNAMUTS)"
+        },
+        "DC_SNAMUTS": {
+            "ID": "DC_SNAMUTS",
+            "Name": "Degree Centrality",
+            "VT": 2,
+            "DefVal": 0,
+            "Comment": "Degree Centrality (SNAMUTS)"
+        }
     }
+}
 
 # POI Categories
 POICats = {
@@ -57,6 +75,18 @@ def UDA(_UDAS):
                 UDA_Visum.UserDefinedGroup = "Erreichbarkeiten"
                 UDA_Visum.Comment = attr["Comment"]
                 Visum.Log(20480, f"Stops-UserDefinedAttribute: '{attr['ID']}' added")
+        if UDA == "StopAreas":
+            for _key, subdict in _UDAS["StopAreas"].items():
+                if Add == False and Visum.Net.StopAreas.AttrExists(subdict["ID"]):
+                    Visum.Net.StopAreas.DeleteUserDefinedAttribute(subdict["ID"])
+                    Visum.Log(20480, f"StopAreas-UserDefinedAttribute: '{subdict['ID']}' deleted")
+                    continue
+                if Add == True and Visum.Net.StopAreas.AttrExists(subdict["ID"]) == False:
+                    Visum.Net.StopAreas.AddUserDefinedAttribute(subdict["ID"], subdict["Name"], subdict["Name"], subdict["VT"], DefVal = subdict["DefVal"])
+                    UDA_Visum = Visum.Net.StopAreas.Attributes.ItemByKey(subdict["ID"])
+                    UDA_Visum.UserDefinedGroup = "Erreichbarkeiten"
+                    UDA_Visum.Comment = subdict["Comment"]
+                    Visum.Log(20480, f"StopAreas-UserDefinedAttribute: '{subdict['ID']}' added")
                 
 def POI(_POICats):
     for POICat, attr in _POICats.items():
