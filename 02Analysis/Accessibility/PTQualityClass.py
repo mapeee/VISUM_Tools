@@ -28,8 +28,19 @@ def StopCategories(_Visum):
     
     # open corresponding Stops
     _Stops = pd.DataFrame(_Visum.Net.Stops.GetMultipleAttributes(
-        ["NO", "Name", r"MIN:STOPAREAS\MIN:STOPPOINTS\ANGEBOT", "XCOORD", "YCOORD"], True))
-    _Stops.columns = ["StopNo", "StopName", "PTLevel", "X", "Y"]
+        ["NO", "Name", r"DISTINCTACTIVE:STOPAREAS\DISTINCTACTIVE:STOPPOINTS\DISTINCTACTIVE:SERVINGVEHJOURNEYS\LINEROUTE\LINE\MAINLINENAME",
+         "XCOORD", "YCOORD"], True))
+    _Stops.columns = ["StopNo", "StopName", "MAINLINES", "X", "Y"]
+    
+    mapping = {'IC': 1, 'ICE': 1, 'ICE(S)': 1, 'Nightjet': 1,
+               'RE': 2, 'RB': 2,
+               'S-Bahn': 3, 'AKN': 3,
+               'U-Bahn': 4,
+               'XpressBus': 5,
+               'Metrobus': 6, 'Nachtbus': 6, 'Bus': 6, 'Schiff': 6,
+               '': 10}
+    _Stops['PTLevel'] = _Stops['MAINLINES'].apply(lambda x: min(mapping[i] for i in x.split(',')))
+    
     
     # count StopDepartures in VHI for each strop
     StopCounts = VJI["StopNo"].value_counts().reset_index()
