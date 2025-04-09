@@ -14,12 +14,10 @@ from pathlib import Path
 import tempfile
 from VisumPy.helpers import SetMulti
 
-# > Finalisierung Skript (auch in Doku)
-# > adding StopNo and StopName to new UDA or No only or with DepNumber
 
 def StopCategories(_Visum):
     _Visum.Log(20480, "Calculate Stop categories for %s Stop(s)" % _Visum.Net.Stops.CountActive)
-    fromTime, toTime = (8 * 60 * 60), (18 * 60 * 60)
+    fromTime, toTime = (fromHour * 60 * 60), (toHour * 60 * 60)
     
     VJI = pd.DataFrame(_Visum.Net.VehicleJourneyItems.GetMultipleAttributes(
         ["Dep",r"TIMEPROFILEITEM\LINEROUTEITEM\STOPPOINT\STOPAREA\STOPNO"], True))
@@ -35,30 +33,31 @@ def StopCategories(_Visum):
     
     # count StopDepartures in VHI for each strop
     StopCounts = VJI["StopNo"].value_counts().reset_index()
-    StopCounts.columns = ["StopNo", "Dep0818"]
+    StopCounts.columns = ["StopNo", "DepNo"]
     _Stops = _Stops.merge(StopCounts, on="StopNo", how="left")
-    _Stops["Dep0818"] = _Stops["Dep0818"].fillna(0).astype(int)
-    _Stops["Hour"] = _Stops["Dep0818"] / 10
+    _Stops["DepNo"] = _Stops["DepNo"].fillna(0).astype(int)
+    _Stops["Hour"] = _Stops["DepNo"] / (toHour - fromHour)
+    # _Stops["Hour"] = _Stops["Hour"].round(0)
     
     # Stop categories in PTV Visum
     conditions = [
-        (_Stops["Hour"] > 24) & (_Stops["PTLevel"] < 5),
-        (_Stops["Hour"] > 24),
-        (_Stops["Hour"] > 12) & (_Stops["PTLevel"] < 4),
-        (_Stops["Hour"] > 12) & (_Stops["PTLevel"] == 4),
-        (_Stops["Hour"] > 12),
-        (_Stops["Hour"] > 6) & (_Stops["PTLevel"] < 4),
-        (_Stops["Hour"] > 6) & (_Stops["PTLevel"] == 4),
-        (_Stops["Hour"] > 6),
-        (_Stops["Hour"] > 4) & (_Stops["PTLevel"] < 4),
-        (_Stops["Hour"] > 4) & (_Stops["PTLevel"] == 4),
-        (_Stops["Hour"] > 4),
-        (_Stops["Hour"] > 2) & (_Stops["PTLevel"] < 4),
-        (_Stops["Hour"] > 2) & (_Stops["PTLevel"] == 4),
-        (_Stops["Hour"] > 2),
-        (_Stops["Hour"] > 1) & (_Stops["PTLevel"] < 4),
-        (_Stops["Hour"] > 1) & (_Stops["PTLevel"] == 4),
-        (_Stops["Hour"] > 1)
+        (_Stops["Hour"] >= 24) & (_Stops["PTLevel"] < 5),
+        (_Stops["Hour"] >= 24),
+        (_Stops["Hour"] >= 12) & (_Stops["PTLevel"] < 4),
+        (_Stops["Hour"] >= 12) & (_Stops["PTLevel"] == 4),
+        (_Stops["Hour"] >= 12),
+        (_Stops["Hour"] >= 6) & (_Stops["PTLevel"] < 4),
+        (_Stops["Hour"] >= 6) & (_Stops["PTLevel"] == 4),
+        (_Stops["Hour"] >= 6),
+        (_Stops["Hour"] >= 4) & (_Stops["PTLevel"] < 4),
+        (_Stops["Hour"] >= 4) & (_Stops["PTLevel"] == 4),
+        (_Stops["Hour"] >= 4),
+        (_Stops["Hour"] >= 2) & (_Stops["PTLevel"] < 4),
+        (_Stops["Hour"] >= 2) & (_Stops["PTLevel"] == 4),
+        (_Stops["Hour"] >= 2),
+        (_Stops["Hour"] >= 1) & (_Stops["PTLevel"] < 4),
+        (_Stops["Hour"] >= 1) & (_Stops["PTLevel"] == 4),
+        (_Stops["Hour"] >= 1)
         ]
 
     choices = [
@@ -118,7 +117,7 @@ def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
     
     for category, distances in cases.items():
         stops_cat = _stops[_stops["HKAT"] == category]
-        stops_cat = list(zip(stops_cat["StopNo"].astype(int), stops_cat["StopName"], stops_cat["X"], stops_cat["Y"], stops_cat["Dep0818"]))
+        stops_cat = list(zip(stops_cat["StopNo"].astype(int), stops_cat["StopName"], stops_cat["X"], stops_cat["Y"], stops_cat["DepNo"]))
         
         for StopNo, StopName, x, y, Dep in stops_cat:
             point = ogr.Geometry(ogr.wkbPoint)
@@ -151,6 +150,7 @@ def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
     
 def ImportShapePOI(_Visum, _Shape):
     _Visum.Log(20480, "Importing shape to Visum-POI")
+    _Visum.Net.POICategories.ItemByKey(40).POIs.RemoveAll()
     
     ShapeImport = _Visum.IO.CreateImportShapeFilePara()
     ShapeImport.AddAttributeAllocation("StopName", "Name")
