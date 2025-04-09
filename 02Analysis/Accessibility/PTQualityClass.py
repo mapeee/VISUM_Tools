@@ -52,7 +52,8 @@ def StopCategories(_Visum):
     
     # Stop categories in PTV Visum
     conditions = [
-        (_Stops["Hour"] >= 24) & (_Stops["PTLevel"] < 5),
+        (_Stops["Hour"] >= 24) & (_Stops["PTLevel"] < 4),
+        (_Stops["Hour"] >= 24) & (_Stops["PTLevel"] == 4),
         (_Stops["Hour"] >= 24),
         (_Stops["Hour"] >= 12) & (_Stops["PTLevel"] < 4),
         (_Stops["Hour"] >= 12) & (_Stops["PTLevel"] == 4),
@@ -72,7 +73,7 @@ def StopCategories(_Visum):
         ]
 
     choices = [
-        "I", "II", 
+        "I", "I", "II", 
         "I", "II", "III",
         "II", "III", "IV",
         "III", "IV", "V",
@@ -117,13 +118,13 @@ def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
     _Visum.Log(20480, "Start creating polygons")
     
     cases = {
-        "I": ["300m:A", "500m:A", "750m:B", "1000m:C"],
-        "II": ["300m:A", "500m:B", "750m:C", "1000m:D"],
-        "III": ["300m:B", "500m:C", "750m:D", "1000m:E"],
-        "IV": ["300m:C", "500m:D", "750m:E", "1000m:F"],
-        "V": ["300m:D", "500m:E", "750m:F"],
-        "VI": ["300m:E", "500m:F"],
-        "VII": ["300m:F"],
+        "I": ["300m:A", "500m:A", "750m:B", "1000m:C", "1250m:D"],
+        "II": ["300m:A", "500m:B", "750m:C", "1000m:D", "1250m:E"],
+        "III": ["300m:B", "500m:C", "750m:D", "1000m:E", "1250m:F"],
+        "IV": ["300m:C", "500m:D", "750m:E", "1000m:F", "1250m:G"],
+        "V": ["300m:D", "500m:E", "750m:F", "1000m:G"],
+        "VI": ["300m:E", "500m:F", "750m:G"],
+        "VII": ["300m:F", "500m:G"],
     }
     
     for category, distances in cases.items():
