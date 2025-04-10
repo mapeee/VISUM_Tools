@@ -22,18 +22,18 @@ UDAS = {
     },
     "StopAreas": {
         "CC_SNAMUTS": {
-            "ID": "CC_SNAMUTS",
-            "Name": "Closeness Centrality",
+            "ID": "Cc_SNAMUTS",
+            "Name": "Closeness centrality",
             "VT": 2,
             "DefVal": 0,
-            "Comment": "Closeness Centrality (SNAMUTS)"
+            "Comment": "Closeness centrality (SNAMUTS)"
         },
         "DC_SNAMUTS": {
-            "ID": "DC_SNAMUTS",
-            "Name": "Degree Centrality",
+            "ID": "Dc_SNAMUTS",
+            "Name": "Degree centrality",
             "VT": 2,
             "DefVal": 0,
-            "Comment": "Degree Centrality (SNAMUTS)"
+            "Comment": "Degree centrality (SNAMUTS)"
         }
     }
 }
