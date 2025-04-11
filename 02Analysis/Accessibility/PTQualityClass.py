@@ -14,81 +14,103 @@ from pathlib import Path
 import tempfile
 from VisumPy.helpers import SetMulti
 
-
 def StopCategories(_Visum):
     _Visum.Log(20480, "Calculate Stop categories for %s Stop(s)" % _Visum.Net.Stops.CountActive)
     fromTime, toTime = (fromHour * 60 * 60), (toHour * 60 * 60)
     
-    VJI = pd.DataFrame(_Visum.Net.VehicleJourneyItems.GetMultipleAttributes(
-        ["Dep",r"TIMEPROFILEITEM\LINEROUTEITEM\STOPPOINT\STOPAREA\STOPNO"], True))
-    VJI.columns = ["Dep", "StopNo"]
-    VJI = VJI[VJI["Dep"].notna()]
-    VJI = VJI[(VJI["Dep"] >= fromTime) & (VJI["Dep"] <= toTime)]
-    VJI = VJI.reset_index(drop=True)
-    
-    # open corresponding Stops
-    _Stops = pd.DataFrame(_Visum.Net.Stops.GetMultipleAttributes(
-        ["NO", "Name", r"DISTINCTACTIVE:STOPAREAS\DISTINCTACTIVE:STOPPOINTS\DISTINCTACTIVE:SERVINGVEHJOURNEYS\LINEROUTE\LINE\MAINLINENAME",
-         "XCOORD", "YCOORD"], True))
-    _Stops.columns = ["StopNo", "StopName", "MAINLINES", "X", "Y"]
-    
-    mapping = {'IC': 1, 'ICE': 1, 'ICE(S)': 1, 'Nightjet': 1,
+    mainlines = {
+        "StopType1": {'IC': 1, 'ICE': 1, 'ICE(S)': 1, 'Nightjet': 1,
                'RE': 2, 'RB': 2,
                'S-Bahn': 3, 'AKN': 3,
                'U-Bahn': 3,
-               'XpressBus': 5,
+               '': 10},
+        "StopType2": {'': 10},
+        "StopType3": {'XpressBus': 5,
                'Metrobus': 6, 'Nachtbus': 6, 'Bus': 6, 'Schiff': 6,
                '': 10}
-    _Stops['PTLevel'] = _Stops['MAINLINES'].apply(lambda x: min(mapping[i] for i in x.split(',')))
+        }
+    mainlines_all = {**mainlines["StopType1"], **mainlines["StopType2"], **mainlines["StopType3"]}
     
+    VJI = pd.DataFrame(_Visum.Net.VehicleJourneyItems.GetMultipleAttributes(
+        ["VEHJOURNEYNO", "Dep",r"TIMEPROFILEITEM\LINEROUTEITEM\STOPPOINT\STOPAREA\STOPNO" , r"VEHJOURNEY\LINEROUTE\LINE\MAINLINENAME"], True))
+    VJI.columns = ["VJNO", "Dep", "StopNo", "Mainline"]
+    VJI = VJI[VJI["Dep"].notna()]
+    # Filter out rows where StopNo is equal to the previous row's StopNo (to Departures at same Stop)
+    VJI = VJI[~(
+    (VJI['StopNo'] == VJI['StopNo'].shift(1)) & 
+    (VJI['VJNO'] == VJI['VJNO'].shift(1)))]
     
-    # count StopDepartures in VHI for each strop
-    StopCounts = VJI["StopNo"].value_counts().reset_index()
-    StopCounts.columns = ["StopNo", "DepNo"]
-    _Stops = _Stops.merge(StopCounts, on="StopNo", how="left")
-    _Stops["DepNo"] = _Stops["DepNo"].fillna(0).astype(int)
-    _Stops["Hour"] = _Stops["DepNo"] / (toHour - fromHour)
-    _Stops["Hour"] = _Stops["Hour"].round(0) #round departures
+    VJI = VJI[(VJI["Dep"] >= fromTime) & (VJI["Dep"] <= toTime)]
+    VJI = VJI.reset_index(drop=True)
+    VJI["StopType"] = VJI["Mainline"].apply(lambda x: _get_stop_type(x, mainlines))
     
-    # Stop categories in PTV Visum
-    conditions = [
-        (_Stops["Hour"] >= 24) & (_Stops["PTLevel"] < 4),
-        (_Stops["Hour"] >= 24) & (_Stops["PTLevel"] == 4),
-        (_Stops["Hour"] >= 24),
-        (_Stops["Hour"] >= 12) & (_Stops["PTLevel"] < 4),
-        (_Stops["Hour"] >= 12) & (_Stops["PTLevel"] == 4),
-        (_Stops["Hour"] >= 12),
-        (_Stops["Hour"] >= 6) & (_Stops["PTLevel"] < 4),
-        (_Stops["Hour"] >= 6) & (_Stops["PTLevel"] == 4),
-        (_Stops["Hour"] >= 6),
-        (_Stops["Hour"] >= 4) & (_Stops["PTLevel"] < 4),
-        (_Stops["Hour"] >= 4) & (_Stops["PTLevel"] == 4),
-        (_Stops["Hour"] >= 4),
-        (_Stops["Hour"] >= 2) & (_Stops["PTLevel"] < 4),
-        (_Stops["Hour"] >= 2) & (_Stops["PTLevel"] == 4),
-        (_Stops["Hour"] >= 2),
-        (_Stops["Hour"] >= 1) & (_Stops["PTLevel"] < 4),
-        (_Stops["Hour"] >= 1) & (_Stops["PTLevel"] == 4),
-        (_Stops["Hour"] >= 1)
-        ]
-
-    choices = [
-        "I", "I", "II", 
-        "I", "II", "III",
-        "II", "III", "IV",
-        "III", "IV", "V",
-        "IV", "V", "VI",
-        "V", "VI", "VII",
-        ]
+    # open corresponding Stops
+    _StopsDF = pd.DataFrame(_Visum.Net.Stops.GetMultipleAttributes(
+        ["NO", "Name", r"DISTINCTACTIVE:STOPAREAS\DISTINCTACTIVE:STOPPOINTS\DISTINCTACTIVE:SERVINGVEHJOURNEYS\LINEROUTE\LINE\MAINLINENAME",
+         "XCOORD", "YCOORD"], True))
+    _StopsDF.columns = ["StopNo", "StopName", "MAINLINES", "X", "Y"]
     
-    _Stops["HKAT"] = np.select(conditions, choices, default="VII")
+    for i in [["StopType1", "HKATT1"], ["StopType2", "HKATT2"], ["StopType3", "HKATT3"], ["all", "HKAT"]]:
+        _Stops = _StopsDF 
     
-    # to Visum UDA 'HKAT'
-    PTClass = _Stops["HKAT"].tolist()
-    SetMulti(_Visum.Net.Stops, "HKAT", PTClass, True)
+        # Get StopType
+        if i[0] == "all": _Stops[i[0]] = _Stops['MAINLINES'].apply(lambda x: min(mainlines_all.get(e, 10) for e in x.split(',')))
+        else: _Stops[i[0]] = _Stops['MAINLINES'].apply(lambda x: min(mainlines[i[0]].get(e, 10) for e in x.split(',')))
+        
+        # count StopDepartures in VHI for each strop
+        if i[0] == "all": StopCounts = VJI["StopNo"].value_counts().reset_index()
+        else: StopCounts = VJI[VJI["StopType"] == i[0]]["StopNo"].value_counts().reset_index()
+        StopCounts.columns = ["StopNo", "DepNo"]
+        _Stops = _Stops.merge(StopCounts, on="StopNo", how="left")
+        _Stops["DepNo"] = _Stops["DepNo"].fillna(0).astype(int)
+        _Stops["Hour"] = _Stops["DepNo"] / (toHour - fromHour)
+        _Stops["Hour"] = _Stops["Hour"].round(0) #round departures
+        
+        # Stop categories from StopType and departures  in PTV Visum
+        conditions = [
+            (_Stops["Hour"] >= 24) & (_Stops[i[0]] < 4),
+            (_Stops["Hour"] >= 24) & (_Stops[i[0]] == 4),
+            (_Stops["Hour"] >= 24) & (_Stops[i[0]] < 10),
+            (_Stops["Hour"] >= 12) & (_Stops[i[0]] < 4),
+            (_Stops["Hour"] >= 12) & (_Stops[i[0]] == 4),
+            (_Stops["Hour"] >= 12) & (_Stops[i[0]] < 10),
+            (_Stops["Hour"] >= 6) & (_Stops[i[0]] < 4),
+            (_Stops["Hour"] >= 6) & (_Stops[i[0]] == 4),
+            (_Stops["Hour"] >= 6) & (_Stops[i[0]] < 10),
+            (_Stops["Hour"] >= 4) & (_Stops[i[0]] < 4),
+            (_Stops["Hour"] >= 4) & (_Stops[i[0]] == 4),
+            (_Stops["Hour"] >= 4) & (_Stops[i[0]] < 10),
+            (_Stops["Hour"] >= 2) & (_Stops[i[0]] < 4),
+            (_Stops["Hour"] >= 2) & (_Stops[i[0]] == 4),
+            (_Stops["Hour"] >= 2) & (_Stops[i[0]] < 10),
+            (_Stops["Hour"] >= 1) & (_Stops[i[0]] < 4),
+            (_Stops["Hour"] >= 1) & (_Stops[i[0]] == 4),
+            (_Stops["Hour"] >= 1) & (_Stops[i[0]] < 10)
+            ]
+    
+        choices = [
+            "I", "I", "II", 
+            "I", "II", "III",
+            "II", "III", "IV",
+            "III", "IV", "V",
+            "IV", "V", "VI",
+            "V", "VI", "VII",
+            ]
+        
+        _Stops[i[1]] = np.select(conditions, choices, default = "X")
+        
+        # to Visum UDA 'HKAT'
+        PTClass = _Stops[i[1]].tolist()
+        SetMulti(_Visum.Net.Stops, i[1], PTClass, True)
     
     _Visum.Log(20480, "Stop categories calculated")
     return _Stops
+
+def checks(_Visum):
+    if _Visum.Net.Stops.CountActive == 0:
+        _Visum.Log(12288, "No active stops!")
+        return False
+    return True
 
 def CreateShape(_Visum):
     spatial_ref = osr.SpatialReference()
@@ -118,10 +140,10 @@ def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
     _Visum.Log(20480, "Start creating polygons")
     
     cases = {
-        "I": ["300m:A", "400m:A", "600m:B", "1000m:C", "1250m:D"],
-        "II": ["300m:A", "400m:B", "600m:C", "1000m:D", "1250m:E"],
-        "III": ["300m:B", "400m:C", "600m:D", "1000m:E", "1250m:F"],
-        "IV": ["300m:C", "400m:D", "600m:E", "1000m:F", "1250m:G"],
+        "I": ["300m:A", "400m:A", "600m:B", "1000m:C", "1500m:D"],
+        "II": ["300m:A", "400m:B", "600m:C", "1000m:D", "1500m:E"],
+        "III": ["300m:B", "400m:C", "600m:D", "1000m:E", "1500m:F"],
+        "IV": ["300m:C", "400m:D", "600m:E", "1000m:F", "1500m:G"],
         "V": ["300m:D", "400m:E", "600m:F", "1000m:G"],
         "VI": ["300m:E", "400m:F", "600m:G"],
         "VII": ["300m:F", "400m:G"],
@@ -174,10 +196,18 @@ def ImportShapePOI(_Visum, _Shape):
     
     _Visum.IO.ImportShapefile(_Shape, ShapeImport)
     
+def _get_stop_type(mainline, mainlines):
+    for stop_type in ["StopType1", "StopType2", "StopType3"]:
+        value = mainlines[stop_type].get(mainline)
+        if value is not None:
+            return stop_type
+    return "not found"  # default 
     
 ## Calculations ##
 Visum.Log(20480, "Starting...")
 
+if not checks(Visum):
+    raise Exception("")
 Stops = StopCategories(Visum)
 ShapePath, DataSource, ShapeDef = CreateShape(Visum)
 ShapePolygons = CreatePolygons(Visum, ShapeDef, Stops, DataSource)
