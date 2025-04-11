@@ -35,7 +35,7 @@ def StopCategories(_Visum):
     mapping = {'IC': 1, 'ICE': 1, 'ICE(S)': 1, 'Nightjet': 1,
                'RE': 2, 'RB': 2,
                'S-Bahn': 3, 'AKN': 3,
-               'U-Bahn': 4,
+               'U-Bahn': 3,
                'XpressBus': 5,
                'Metrobus': 6, 'Nachtbus': 6, 'Bus': 6, 'Schiff': 6,
                '': 10}
@@ -48,7 +48,7 @@ def StopCategories(_Visum):
     _Stops = _Stops.merge(StopCounts, on="StopNo", how="left")
     _Stops["DepNo"] = _Stops["DepNo"].fillna(0).astype(int)
     _Stops["Hour"] = _Stops["DepNo"] / (toHour - fromHour)
-    # _Stops["Hour"] = _Stops["Hour"].round(0)
+    _Stops["Hour"] = _Stops["Hour"].round(0) #round departures
     
     # Stop categories in PTV Visum
     conditions = [
@@ -118,13 +118,13 @@ def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
     _Visum.Log(20480, "Start creating polygons")
     
     cases = {
-        "I": ["300m:A", "500m:A", "750m:B", "1000m:C", "1250m:D"],
-        "II": ["300m:A", "500m:B", "750m:C", "1000m:D", "1250m:E"],
-        "III": ["300m:B", "500m:C", "750m:D", "1000m:E", "1250m:F"],
-        "IV": ["300m:C", "500m:D", "750m:E", "1000m:F", "1250m:G"],
-        "V": ["300m:D", "500m:E", "750m:F", "1000m:G"],
-        "VI": ["300m:E", "500m:F", "750m:G"],
-        "VII": ["300m:F", "500m:G"],
+        "I": ["300m:A", "400m:A", "600m:B", "1000m:C", "1250m:D"],
+        "II": ["300m:A", "400m:B", "600m:C", "1000m:D", "1250m:E"],
+        "III": ["300m:B", "400m:C", "600m:D", "1000m:E", "1250m:F"],
+        "IV": ["300m:C", "400m:D", "600m:E", "1000m:F", "1250m:G"],
+        "V": ["300m:D", "400m:E", "600m:F", "1000m:G"],
+        "VI": ["300m:E", "400m:F", "600m:G"],
+        "VII": ["300m:F", "400m:G"],
     }
     
     for category, distances in cases.items():
@@ -162,7 +162,8 @@ def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
     
 def ImportShapePOI(_Visum, _Shape):
     _Visum.Log(20480, "Importing shape to Visum-POI")
-    _Visum.Net.POICategories.ItemByKey(40).POIs.RemoveAll()
+    if deloldPOI:
+        _Visum.Net.POICategories.ItemByKey(40).POIs.RemoveAll()
     
     ShapeImport = _Visum.IO.CreateImportShapeFilePara()
     ShapeImport.AddAttributeAllocation("StopName", "Name")
