@@ -14,29 +14,46 @@ UDGS = {
 # UDA (User defined attributes)
 UDAS = {
     "Stops": {
-        "ID": "HKAT",
-        "Name": "Haltestellenkategorie",
-        "VT": 5,
-        "DefVal": "VII",
-        "Comment": "Haltestellenkategorie (ÖV-Güteklasse)"
-    },
+        "HKAT": {
+            "ID": "HKAT",
+            "Name": "Haltestellenkategorie",
+            "VT": 5,
+            "DefVal": "X",
+            "Comment": "Haltestellenkategorie (ÖV-Güteklasse)"},
+        "HKATT1": {
+            "ID": "HKATT1",
+            "Name": "Haltestellenkategorie HstTyp 1",
+            "VT": 5,
+            "DefVal": "X",
+            "Comment": "Haltestellenkategorie für Haltestellentyp 1 (ÖV-Güteklasse)"},
+        "HKATT2": {
+            "ID": "HKATT2",
+            "Name": "Haltestellenkategorie HstTyp 2",
+            "VT": 5,
+            "DefVal": "X",
+            "Comment": "Haltestellenkategorie für Haltestellentyp 2 (ÖV-Güteklasse)"},
+        "HKATT3": {
+            "ID": "HKATT3",
+            "Name": "Haltestellenkategorie HstTyp 3",
+            "VT": 5,
+            "DefVal": "X",
+            "Comment": "Haltestellenkategorie für Haltestellentyp 3 (ÖV-Güteklasse)"}
+            },
     "StopAreas": {
         "CC_SNAMUTS": {
             "ID": "Cc_SNAMUTS",
             "Name": "Closeness centrality",
             "VT": 2,
             "DefVal": 0,
-            "Comment": "Closeness centrality (SNAMUTS)"
-        },
+            "Comment": "Closeness centrality (SNAMUTS)"},
         "DC_SNAMUTS": {
             "ID": "Dc_SNAMUTS",
             "Name": "Degree centrality",
             "VT": 2,
             "DefVal": 0,
-            "Comment": "Degree centrality (SNAMUTS)"
-        }
+            "Comment": "Degree centrality (SNAMUTS)"}
+                }
     }
-}
 
 # POI Categories
 POICats = {
@@ -65,16 +82,17 @@ def UDG(_UDGS):
 def UDA(_UDAS):
     for UDA, attr in _UDAS.items():
         if UDA == "Stops":
-            if Add == False and Visum.Net.Stops.AttrExists(attr["ID"]):
-                Visum.Net.Stops.DeleteUserDefinedAttribute(attr["ID"])
-                Visum.Log(20480, f"Stops-UserDefinedAttribute: '{attr['ID']}' deleted")
-                continue
-            if Add == True and Visum.Net.Stops.AttrExists(attr["ID"]) == False:
-                Visum.Net.Stops.AddUserDefinedAttribute(attr["ID"], attr["Name"], attr["Name"], attr["VT"], DefVal = attr["DefVal"])
-                UDA_Visum = Visum.Net.Stops.Attributes.ItemByKey(attr["ID"])
-                UDA_Visum.UserDefinedGroup = "Erreichbarkeiten"
-                UDA_Visum.Comment = attr["Comment"]
-                Visum.Log(20480, f"Stops-UserDefinedAttribute: '{attr['ID']}' added")
+            for _key, subdict in _UDAS["Stops"].items():
+                if Add == False and Visum.Net.Stops.AttrExists(subdict["ID"]):
+                    Visum.Net.Stops.DeleteUserDefinedAttribute(subdict["ID"])
+                    Visum.Log(20480, f"Stops-UserDefinedAttribute: '{subdict['ID']}' deleted")
+                    continue
+                if Add == True and Visum.Net.Stops.AttrExists(subdict["ID"]) == False:
+                    Visum.Net.Stops.AddUserDefinedAttribute(subdict["ID"], subdict["Name"], subdict["Name"], subdict["VT"], DefVal = subdict["DefVal"])
+                    UDA_Visum = Visum.Net.Stops.Attributes.ItemByKey(subdict["ID"])
+                    UDA_Visum.UserDefinedGroup = "Erreichbarkeiten"
+                    UDA_Visum.Comment = subdict["Comment"]
+                    Visum.Log(20480, f"Stops-UserDefinedAttribute: '{subdict['ID']}' added")
         if UDA == "StopAreas":
             for _key, subdict in _UDAS["StopAreas"].items():
                 if Add == False and Visum.Net.StopAreas.AttrExists(subdict["ID"]):
