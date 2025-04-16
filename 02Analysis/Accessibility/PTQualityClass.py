@@ -14,10 +14,12 @@ from pathlib import Path
 import tempfile
 from VisumPy.helpers import SetMulti
 
+pd.set_option('future.no_silent_downcasting', True)
+
 def StopCategories(_Visum):
     _Visum.Log(20480, "Calculate Stop categories for %s Stop(s)" % _Visum.Net.Stops.CountActive)
-    fromTime, toTime = (fromHour * 60 * 60), (toHour * 60 * 60)
-    
+    fromTime1, toTime1 = (int(fromHour1) * 60 * 60), (int(toHour1) * 60 * 60)
+    fromTime2, toTime2 = (int(fromHour2) * 60 * 60), (int(toHour2) * 60 * 60)
     mainlines = {
         "StopType1": {'IC': 1, 'ICE': 1, 'ICE(S)': 1, 'Nightjet': 1,
                'RE': 2, 'RB': 2,
@@ -40,7 +42,13 @@ def StopCategories(_Visum):
     (VJI['StopNo'] == VJI['StopNo'].shift(1)) & 
     (VJI['VJNO'] == VJI['VJNO'].shift(1)))]
     
-    VJI = VJI[(VJI["Dep"] >= fromTime) & (VJI["Dep"] <= toTime)]
+    if fromTime2 == toTime2:
+        VJI = VJI[(VJI["Dep"] >= fromTime1) & (VJI["Dep"] <= toTime1)]
+    else:
+        VJI = VJI[
+        ((VJI["Dep"] >= fromTime1) & (VJI["Dep"] <= toTime1)) |
+        ((VJI["Dep"] >= fromTime2) & (VJI["Dep"] <= toTime2))
+        ]
     VJI = VJI.reset_index(drop=True)
     VJI["StopType"] = VJI["Mainline"].apply(lambda x: _get_stop_type(x, mainlines))
     
@@ -63,7 +71,7 @@ def StopCategories(_Visum):
         StopCounts.columns = ["StopNo", "DepNo"]
         _Stops = _Stops.merge(StopCounts, on="StopNo", how="left")
         _Stops["DepNo"] = _Stops["DepNo"].fillna(0).astype(int)
-        _Stops["Hour"] = _Stops["DepNo"] / (toHour - fromHour)
+        _Stops["Hour"] = _Stops["DepNo"] / (int(toHour1) - int(fromHour1) + int(toHour2) - int(fromHour2))
         _Stops["Hour"] = _Stops["Hour"].round(0) #round departures
         
         # Stop categories from StopType and departures  in PTV Visum
@@ -102,6 +110,9 @@ def StopCategories(_Visum):
         # to Visum UDA 'HKAT'
         PTClass = _Stops[i[1]].tolist()
         SetMulti(_Visum.Net.Stops, i[1], PTClass, True)
+    
+    _Stops_FHH = _stopcat_fhh(_Visum)
+    _Stops = _Stops.merge(_Stops_FHH[['StopNo', 'HKAT_FHH']], on='StopNo', how='left')
     
     _Visum.Log(20480, "Stop categories calculated")
     return _Stops
@@ -150,7 +161,7 @@ def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
     }
     
     for category, distances in cases.items():
-        stops_cat = _stops[_stops["HKAT"] == category]
+        stops_cat = _stops[_stops["HKAT_FHH"] == category]
         stops_cat = list(zip(stops_cat["StopNo"].astype(int), stops_cat["StopName"], stops_cat["X"], stops_cat["Y"], stops_cat["DepNo"]))
         
         for StopNo, StopName, x, y, Dep in stops_cat:
@@ -202,6 +213,27 @@ def _get_stop_type(mainline, mainlines):
         if value is not None:
             return stop_type
     return "not found"  # default 
+
+def _stopcat_fhh(_Visum):
+    _StopsDF = pd.DataFrame(_Visum.Net.Stops.GetMultipleAttributes(
+        ["NO", "HKAT", "HKATT1", "HKATT2", "HKATT3"], True))
+    _StopsDF.columns = ["StopNo", "HKAT", "HKATT1", "HKATT2", "HKATT3"]
+    
+    # Roman numeral conversion dictionaries
+    roman_to_int = {'I':1, 'II':2, 'III':3, 'IV':4, 'V':5, 'VI':6, 'VII':7, 'VIII':8, 'IX':9, 'X':10}
+    int_to_roman = {v: k for k, v in roman_to_int.items()}
+    # Convert to integers
+    _StopsDF_int = _StopsDF.replace(roman_to_int)
+    # Calculate new column
+    _StopsDF['HKAT_FHH'] = (_StopsDF_int[['HKATT1', 'HKATT2', 'HKATT3']].min(axis=1) - 1).clip(lower=1)
+    _StopsDF['HKAT_FHH'] = _StopsDF_int[['HKAT']].join(_StopsDF['HKAT_FHH']).max(axis=1)
+    # # Convert back to Roman
+    _StopsDF['HKAT_FHH'] = _StopsDF['HKAT_FHH'].map(int_to_roman)
+
+    _stopcat_fhh = _StopsDF['HKAT_FHH'].tolist()
+    SetMulti(_Visum.Net.Stops, 'HKAT_FHH', _stopcat_fhh, True)
+    
+    return _StopsDF
     
 ## Calculations ##
 Visum.Log(20480, "Starting...")
