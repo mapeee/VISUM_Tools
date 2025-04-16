@@ -20,6 +20,12 @@ UDAS = {
             "VT": 5,
             "DefVal": "X",
             "Comment": "Haltestellenkategorie (ÖV-Güteklasse)"},
+        "HKAT_FHH": {
+            "ID": "HKAT_FHH",
+            "Name": "Haltestellenkategorie in FHH",
+            "VT": 5,
+            "DefVal": "X",
+            "Comment": "Haltestellenkategorie für Haltestellentyp 1 (ÖV-Güteklasse)"},
         "HKATT1": {
             "ID": "HKATT1",
             "Name": "Haltestellenkategorie HstTyp 1",
