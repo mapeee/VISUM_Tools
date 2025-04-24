@@ -37,7 +37,7 @@ def StopCategories(_Visum):
         ["VEHJOURNEYNO", "Dep",r"TIMEPROFILEITEM\LINEROUTEITEM\STOPPOINT\STOPAREA\STOPNO" , r"VEHJOURNEY\LINEROUTE\LINE\MAINLINENAME"], True))
     VJI.columns = ["VJNO", "Dep", "StopNo", "Mainline"]
     VJI = VJI[VJI["Dep"].notna()]
-    # Filter out rows where StopNo is equal to the previous row's StopNo (to Departures at same Stop)
+    # Filter out rows where StopNo is equal to the previous row's StopNo (two Departures at same Stop)
     VJI = VJI[~(
     (VJI['StopNo'] == VJI['StopNo'].shift(1)) & 
     (VJI['VJNO'] == VJI['VJNO'].shift(1)))]
@@ -120,6 +120,12 @@ def StopCategories(_Visum):
 def checks(_Visum):
     if _Visum.Net.Stops.CountActive == 0:
         _Visum.Log(12288, "No active stops!")
+        return False
+    if int(fromHour1) > int(toHour1)  or int(fromHour2) > int(toHour2) :
+        _Visum.Log(12288, "End time must be after start time!")
+        return False
+    if int(toHour1) > int(fromHour2):
+        _Visum.Log(12288, "Time intervals are overlapping!")
         return False
     return True
 
