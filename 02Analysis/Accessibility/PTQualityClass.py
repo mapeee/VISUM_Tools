@@ -34,14 +34,21 @@ def StopCategories(_Visum):
     mainlines_all = {**mainlines["StopType1"], **mainlines["StopType2"], **mainlines["StopType3"]}
     
     VJI = pd.DataFrame(_Visum.Net.VehicleJourneyItems.GetMultipleAttributes(
-        ["VEHJOURNEYNO", "Dep",r"TIMEPROFILEITEM\LINEROUTEITEM\STOPPOINT\STOPAREA\STOPNO" , r"VEHJOURNEY\LINEROUTE\LINE\MAINLINENAME"], True))
-    VJI.columns = ["VJNO", "Dep", "StopNo", "Mainline"]
+        ["VEHJOURNEYNO", "INDEX", "Dep",r"TIMEPROFILEITEM\LINEROUTEITEM\STOPPOINT\STOPAREA\STOPNO" ,
+         r"VEHJOURNEY\LINEROUTE\LINE\MAINLINENAME", r"COUNT:COUPLEDVEHJOURNEYITEMS"], True))
+    VJI.columns = ["VJNO", "INDEX", "Dep", "StopNo", "Mainline", "Coupled"]
     VJI = VJI[VJI["Dep"].notna()]
+    
     # Filter out rows where StopNo is equal to the previous row's StopNo (two Departures at same Stop)
     VJI = VJI[~(
     (VJI['StopNo'] == VJI['StopNo'].shift(1)) & 
     (VJI['VJNO'] == VJI['VJNO'].shift(1)))]
     
+    # Coupled sections and line ends
+    VJI["nDep"] = 1 / VJI["Coupled"] # Coupled sections reducing the weight of departures
+    if LineEnd: VJI.loc[VJI["INDEX"] == 1, "nDep"] *= 2 # Count first index *2 for missing arrivals
+    
+    # Selecting VehJour in time intervals
     if fromTime2 == toTime2:
         VJI = VJI[(VJI["Dep"] >= fromTime1) & (VJI["Dep"] <= toTime1)]
     else:
@@ -65,9 +72,9 @@ def StopCategories(_Visum):
         if i[0] == "all": _Stops[i[0]] = _Stops['MAINLINES'].apply(lambda x: min(mainlines_all.get(e, 10) for e in x.split(',')))
         else: _Stops[i[0]] = _Stops['MAINLINES'].apply(lambda x: min(mainlines[i[0]].get(e, 10) for e in x.split(',')))
         
-        # count StopDepartures in VHI for each strop
-        if i[0] == "all": StopCounts = VJI["StopNo"].value_counts().reset_index()
-        else: StopCounts = VJI[VJI["StopType"] == i[0]]["StopNo"].value_counts().reset_index()
+        # count StopDepartures in VHI for each stop
+        if i[0] == "all": StopCounts = VJI.groupby("StopNo", as_index = False)["nDep"].sum()
+        else: StopCounts = VJI[VJI["StopType"] == i[0]].groupby("StopNo", as_index = False)["nDep"].sum()
         StopCounts.columns = ["StopNo", "DepNo"]
         _Stops = _Stops.merge(StopCounts, on="StopNo", how="left")
         _Stops["DepNo"] = _Stops["DepNo"].fillna(0).astype(int)
@@ -121,10 +128,10 @@ def checks(_Visum):
     if _Visum.Net.Stops.CountActive == 0:
         _Visum.Log(12288, "No active stops!")
         return False
-    if int(fromHour1) > int(toHour1)  or int(fromHour2) > int(toHour2) :
+    if int(fromHour1) > int(toHour1) or int(fromHour2) > int(toHour2):
         _Visum.Log(12288, "End time must be after start time!")
         return False
-    if int(toHour1) > int(fromHour2):
+    if int(toHour1) > int(fromHour2) and int(fromHour2) < int(toHour2):
         _Visum.Log(12288, "Time intervals are overlapping!")
         return False
     return True
