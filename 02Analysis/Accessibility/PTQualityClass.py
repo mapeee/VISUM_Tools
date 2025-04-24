@@ -150,7 +150,7 @@ def CreateShape(_Visum):
 def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
     _Visum.Log(20480, "Start creating polygons")
     
-    cases = {
+    categories = {
         "I": ["300m:A", "400m:A", "600m:B", "1000m:C", "1500m:D"],
         "II": ["300m:A", "400m:B", "600m:C", "1000m:D", "1500m:E"],
         "III": ["300m:B", "400m:C", "600m:D", "1000m:E", "1500m:F"],
@@ -160,8 +160,8 @@ def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
         "VII": ["300m:F", "400m:G"],
     }
     
-    for category, distances in cases.items():
-        stops_cat = _stops[_stops["HKAT_FHH"] == category]
+    for category, distances in categories.items():
+        stops_cat = _stops[_stops[HKAT] == category]
         stops_cat = list(zip(stops_cat["StopNo"].astype(int), stops_cat["StopName"], stops_cat["X"], stops_cat["Y"], stops_cat["DepNo"]))
         
         for StopNo, StopName, x, y, Dep in stops_cat:
