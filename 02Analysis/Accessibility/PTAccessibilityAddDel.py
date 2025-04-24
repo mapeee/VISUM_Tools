@@ -19,31 +19,31 @@ UDAS = {
             "Name": "Haltestellenkategorie",
             "VT": 5,
             "DefVal": "X",
-            "Comment": "Haltestellenkategorie (ÖV-Güteklasse)"},
+            "Comment": "Haltestellenkategorie (OEV-Gueteklasse)"},
         "HKAT_FHH": {
             "ID": "HKAT_FHH",
             "Name": "Haltestellenkategorie in FHH",
             "VT": 5,
             "DefVal": "X",
-            "Comment": "Haltestellenkategorie für Haltestellentyp 1 (ÖV-Güteklasse)"},
+            "Comment": "Haltestellenkategorie für Haltestellentyp 1 (OEV-Gueteklasse)"},
         "HKATT1": {
             "ID": "HKATT1",
             "Name": "Haltestellenkategorie HstTyp 1",
             "VT": 5,
             "DefVal": "X",
-            "Comment": "Haltestellenkategorie für Haltestellentyp 1 (ÖV-Güteklasse)"},
+            "Comment": "Haltestellenkategorie für Haltestellentyp 1 (OEV-Gueteklasse)"},
         "HKATT2": {
             "ID": "HKATT2",
             "Name": "Haltestellenkategorie HstTyp 2",
             "VT": 5,
             "DefVal": "X",
-            "Comment": "Haltestellenkategorie für Haltestellentyp 2 (ÖV-Güteklasse)"},
+            "Comment": "Haltestellenkategorie für Haltestellentyp 2 (OEV-Gueteklasse)"},
         "HKATT3": {
             "ID": "HKATT3",
             "Name": "Haltestellenkategorie HstTyp 3",
             "VT": 5,
             "DefVal": "X",
-            "Comment": "Haltestellenkategorie für Haltestellentyp 3 (ÖV-Güteklasse)"}
+            "Comment": "Haltestellenkategorie für Haltestellentyp 3 (OEV-Gueteklasse)"}
             },
     "StopAreas": {
         "CC_SNAMUTS": {
