@@ -78,29 +78,29 @@ def StopCategories(_Visum):
         StopCounts.columns = ["StopNo", "DepNo"]
         _Stops = _Stops.merge(StopCounts, on="StopNo", how="left")
         _Stops["DepNo"] = _Stops["DepNo"].fillna(0).astype(int)
-        _Stops["Hour"] = _Stops["DepNo"] / (int(toHour1) - int(fromHour1) + int(toHour2) - int(fromHour2))
-        _Stops["Hour"] = _Stops["Hour"].round(0) #round departures
+        _Stops["DepHour"] = _Stops["DepNo"] / (int(toHour1) - int(fromHour1) + int(toHour2) - int(fromHour2))
+        _Stops["DepHour"] = _Stops["DepHour"].round(0) #round departures
         
         # Stop categories from StopType and departures  in PTV Visum
         conditions = [
-            (_Stops["Hour"] >= 24) & (_Stops[i[0]] < 4),
-            (_Stops["Hour"] >= 24) & (_Stops[i[0]] == 4),
-            (_Stops["Hour"] >= 24) & (_Stops[i[0]] < 10),
-            (_Stops["Hour"] >= 12) & (_Stops[i[0]] < 4),
-            (_Stops["Hour"] >= 12) & (_Stops[i[0]] == 4),
-            (_Stops["Hour"] >= 12) & (_Stops[i[0]] < 10),
-            (_Stops["Hour"] >= 6) & (_Stops[i[0]] < 4),
-            (_Stops["Hour"] >= 6) & (_Stops[i[0]] == 4),
-            (_Stops["Hour"] >= 6) & (_Stops[i[0]] < 10),
-            (_Stops["Hour"] >= 4) & (_Stops[i[0]] < 4),
-            (_Stops["Hour"] >= 4) & (_Stops[i[0]] == 4),
-            (_Stops["Hour"] >= 4) & (_Stops[i[0]] < 10),
-            (_Stops["Hour"] >= 2) & (_Stops[i[0]] < 4),
-            (_Stops["Hour"] >= 2) & (_Stops[i[0]] == 4),
-            (_Stops["Hour"] >= 2) & (_Stops[i[0]] < 10),
-            (_Stops["Hour"] >= 1) & (_Stops[i[0]] < 4),
-            (_Stops["Hour"] >= 1) & (_Stops[i[0]] == 4),
-            (_Stops["Hour"] >= 1) & (_Stops[i[0]] < 10)
+            (_Stops["DepHour"] >= 24) & (_Stops[i[0]] < 4),
+            (_Stops["DepHour"] >= 24) & (_Stops[i[0]] == 4),
+            (_Stops["DepHour"] >= 24) & (_Stops[i[0]] < 10),
+            (_Stops["DepHour"] >= 12) & (_Stops[i[0]] < 4),
+            (_Stops["DepHour"] >= 12) & (_Stops[i[0]] == 4),
+            (_Stops["DepHour"] >= 12) & (_Stops[i[0]] < 10),
+            (_Stops["DepHour"] >= 6) & (_Stops[i[0]] < 4),
+            (_Stops["DepHour"] >= 6) & (_Stops[i[0]] == 4),
+            (_Stops["DepHour"] >= 6) & (_Stops[i[0]] < 10),
+            (_Stops["DepHour"] >= 4) & (_Stops[i[0]] < 4),
+            (_Stops["DepHour"] >= 4) & (_Stops[i[0]] == 4),
+            (_Stops["DepHour"] >= 4) & (_Stops[i[0]] < 10),
+            (_Stops["DepHour"] >= 2) & (_Stops[i[0]] < 4),
+            (_Stops["DepHour"] >= 2) & (_Stops[i[0]] == 4),
+            (_Stops["DepHour"] >= 2) & (_Stops[i[0]] < 10),
+            (_Stops["DepHour"] >= 1) & (_Stops[i[0]] < 4),
+            (_Stops["DepHour"] >= 1) & (_Stops[i[0]] == 4),
+            (_Stops["DepHour"] >= 1) & (_Stops[i[0]] < 10)
             ]
     
         choices = [
@@ -175,7 +175,7 @@ def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
     
     for category, distances in categories.items():
         stops_cat = _stops[_stops[HKAT] == category]
-        stops_cat = list(zip(stops_cat["StopNo"].astype(int), stops_cat["StopName"], stops_cat["X"], stops_cat["Y"], stops_cat["DepNo"]))
+        stops_cat = list(zip(stops_cat["StopNo"].astype(int), stops_cat["StopName"], stops_cat["X"], stops_cat["Y"], stops_cat["DepHour"].astype(int)))
         
         for StopNo, StopName, x, y, Dep in stops_cat:
             point = ogr.Geometry(ogr.wkbPoint)
@@ -192,7 +192,7 @@ def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
                 feature_def = _Shape.GetLayerDefn()
                 feature = ogr.Feature(feature_def)
                 feature.SetGeometry(buffered_polygon)
-                feature.SetField("Category", f"StopNo: {StopNo} - Cat: {category} - Dep: {Dep} - Scenario: {Scenario}")
+                feature.SetField("Category", f"StopNo: {StopNo} - Cat: {category} - DepHour: {Dep} - Scenario: {Scenario}")
                 feature.SetField("Class", PTClass)
                 feature.SetField("Distance", distance)
                 feature.SetField("StopNo", StopNo)
