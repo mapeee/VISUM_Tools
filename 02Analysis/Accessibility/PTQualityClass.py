@@ -16,6 +16,103 @@ from VisumPy.helpers import SetMulti
 
 pd.set_option('future.no_silent_downcasting', True)
 
+
+def Checks(_Visum):
+    if _Visum.Net.Stops.CountActive == 0:
+        _Visum.Log(12288, "No active stops!")
+        return False
+    if int(fromHour1) > int(toHour1) or int(fromHour2) > int(toHour2):
+        _Visum.Log(12288, "End time must be after start time!")
+        return False
+    if int(toHour1) > int(fromHour2) and int(fromHour2) < int(toHour2):
+        _Visum.Log(12288, "Time intervals are overlapping!")
+        return False
+    return True
+    
+def CreateShape(_Visum):
+    spatial_ref = osr.SpatialReference()
+    spatial_ref.ImportFromEPSG(25832)
+    
+    temp_dir = tempfile.mkdtemp()
+    shapefile_path = os.path.join(temp_dir, "buffered_polygons.shp")
+    _Visum.Log(20480, f"Temporary shapefile path: {shapefile_path}")
+    
+    driver = ogr.GetDriverByName("ESRI Shapefile")
+    if os.path.exists(shapefile_path):
+        driver.DeleteDataSource(shapefile_path)
+    _data_source = driver.CreateDataSource(shapefile_path)
+    _Shape = _data_source.CreateLayer("buffered_polygons", spatial_ref, ogr.wkbPolygon)
+    
+    # Add some attribute fields
+    _Shape.CreateField(ogr.FieldDefn("StopNo", ogr.OFTInteger))
+    _Shape.CreateField(ogr.FieldDefn("StopName", ogr.OFTString))
+    _Shape.CreateField(ogr.FieldDefn("Category", ogr.OFTString))
+    _Shape.CreateField(ogr.FieldDefn("Class", ogr.OFTString))
+    _Shape.CreateField(ogr.FieldDefn("Distance", ogr.OFTInteger))
+    
+    _Visum.Log(20480, "Shape created (temporary)")
+    return shapefile_path, _data_source, _Shape
+
+def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
+    _Visum.Log(20480, "Start creating polygons")
+    
+    categories = {
+        "I": ["300m:A", "400m:A", "600m:B", "1000m:C", "1500m:D"],
+        "II": ["300m:A", "400m:B", "600m:C", "1000m:D", "1500m:E"],
+        "III": ["300m:B", "400m:C", "600m:D", "1000m:E", "1500m:F"],
+        "IV": ["300m:C", "400m:D", "600m:E", "1000m:F", "1500m:G"],
+        "V": ["300m:D", "400m:E", "600m:F", "1000m:G"],
+        "VI": ["300m:E", "400m:F", "600m:G"],
+        "VII": ["300m:F", "400m:G"],
+    }
+    
+    for category, distances in categories.items():
+        stops_cat = _stops[_stops[HKAT] == category]
+        stops_cat = list(zip(stops_cat["StopNo"].astype(int), stops_cat["StopName"], stops_cat["X"], stops_cat["Y"], stops_cat["DepHour"].astype(int)))
+        
+        for StopNo, StopName, x, y, Dep in stops_cat:
+            point = ogr.Geometry(ogr.wkbPoint)
+            point.AddPoint(x, y)
+            point.AssignSpatialReference(_Shape.GetSpatialRef())
+        
+            for distance_class in distances:
+                distance = int(distance_class.split("m:")[0])
+                PTClass = distance_class.split("m:")[1]
+            
+                # buffer
+                buffered_polygon = point.Buffer(distance)
+                
+                feature_def = _Shape.GetLayerDefn()
+                feature = ogr.Feature(feature_def)
+                feature.SetGeometry(buffered_polygon)
+                feature.SetField("Category", f"StopNo: {StopNo} - Cat: {category} - DepHour: {Dep} - Scenario: {Scenario}")
+                feature.SetField("Class", PTClass)
+                feature.SetField("Distance", distance)
+                feature.SetField("StopNo", StopNo)
+                feature.SetField("StopName", f"{StopName} - {distance}m")
+        
+                # Add to layer
+                _Shape.CreateFeature(feature)
+                feature = None  # Free memory
+
+    _data_source.FlushCache()
+    _Visum.Log(20480, "Polygons created and saved")         
+    return _Shape
+    
+def ImportShapePOI(_Visum, _Shape):
+    _Visum.Log(20480, "Importing shape to Visum-POI")
+    if deloldPOI:
+        _Visum.Net.POICategories.ItemByKey(40).POIs.RemoveAll()
+    
+    ShapeImport = _Visum.IO.CreateImportShapeFilePara()
+    ShapeImport.AddAttributeAllocation("StopName", "Name")
+    ShapeImport.AddAttributeAllocation("Class", "Code")
+    ShapeImport.AddAttributeAllocation("Category", "Comment")
+    ShapeImport.ObjectType = 9 # import as POI
+    ShapeImport.SetAttValue("POIKEY", 40) # POI Category 40
+    
+    _Visum.IO.ImportShapefile(_Shape, ShapeImport)
+    
 def StopCategories(_Visum):
     _Visum.Log(20480, "Calculate Stop categories for %s Stop(s)" % _Visum.Net.Stops.CountActive)
     fromTime1, toTime1 = (int(fromHour1) * 60 * 60), (int(toHour1) * 60 * 60)
@@ -123,102 +220,6 @@ def StopCategories(_Visum):
     
     _Visum.Log(20480, "Stop categories calculated")
     return _Stops
-
-def checks(_Visum):
-    if _Visum.Net.Stops.CountActive == 0:
-        _Visum.Log(12288, "No active stops!")
-        return False
-    if int(fromHour1) > int(toHour1) or int(fromHour2) > int(toHour2):
-        _Visum.Log(12288, "End time must be after start time!")
-        return False
-    if int(toHour1) > int(fromHour2) and int(fromHour2) < int(toHour2):
-        _Visum.Log(12288, "Time intervals are overlapping!")
-        return False
-    return True
-
-def CreateShape(_Visum):
-    spatial_ref = osr.SpatialReference()
-    spatial_ref.ImportFromEPSG(25832)
-    
-    temp_dir = tempfile.mkdtemp()
-    shapefile_path = os.path.join(temp_dir, "buffered_polygons.shp")
-    _Visum.Log(20480, f"Temporary shapefile path: {shapefile_path}")
-    
-    driver = ogr.GetDriverByName("ESRI Shapefile")
-    if os.path.exists(shapefile_path):
-        driver.DeleteDataSource(shapefile_path)
-    _data_source = driver.CreateDataSource(shapefile_path)
-    _Shape = _data_source.CreateLayer("buffered_polygons", spatial_ref, ogr.wkbPolygon)
-    
-    # Add some attribute fields
-    _Shape.CreateField(ogr.FieldDefn("StopNo", ogr.OFTInteger))
-    _Shape.CreateField(ogr.FieldDefn("StopName", ogr.OFTString))
-    _Shape.CreateField(ogr.FieldDefn("Category", ogr.OFTString))
-    _Shape.CreateField(ogr.FieldDefn("Class", ogr.OFTString))
-    _Shape.CreateField(ogr.FieldDefn("Distance", ogr.OFTInteger))
-    
-    _Visum.Log(20480, "Shape created (temporary)")
-    return shapefile_path, _data_source, _Shape
-
-def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
-    _Visum.Log(20480, "Start creating polygons")
-    
-    categories = {
-        "I": ["300m:A", "400m:A", "600m:B", "1000m:C", "1500m:D"],
-        "II": ["300m:A", "400m:B", "600m:C", "1000m:D", "1500m:E"],
-        "III": ["300m:B", "400m:C", "600m:D", "1000m:E", "1500m:F"],
-        "IV": ["300m:C", "400m:D", "600m:E", "1000m:F", "1500m:G"],
-        "V": ["300m:D", "400m:E", "600m:F", "1000m:G"],
-        "VI": ["300m:E", "400m:F", "600m:G"],
-        "VII": ["300m:F", "400m:G"],
-    }
-    
-    for category, distances in categories.items():
-        stops_cat = _stops[_stops[HKAT] == category]
-        stops_cat = list(zip(stops_cat["StopNo"].astype(int), stops_cat["StopName"], stops_cat["X"], stops_cat["Y"], stops_cat["DepHour"].astype(int)))
-        
-        for StopNo, StopName, x, y, Dep in stops_cat:
-            point = ogr.Geometry(ogr.wkbPoint)
-            point.AddPoint(x, y)
-            point.AssignSpatialReference(_Shape.GetSpatialRef())
-        
-            for distance_class in distances:
-                distance = int(distance_class.split("m:")[0])
-                PTClass = distance_class.split("m:")[1]
-            
-                # buffer
-                buffered_polygon = point.Buffer(distance)
-                
-                feature_def = _Shape.GetLayerDefn()
-                feature = ogr.Feature(feature_def)
-                feature.SetGeometry(buffered_polygon)
-                feature.SetField("Category", f"StopNo: {StopNo} - Cat: {category} - DepHour: {Dep} - Scenario: {Scenario}")
-                feature.SetField("Class", PTClass)
-                feature.SetField("Distance", distance)
-                feature.SetField("StopNo", StopNo)
-                feature.SetField("StopName", f"{StopName} - {distance}m")
-        
-                # Add to layer
-                _Shape.CreateFeature(feature)
-                feature = None  # Free memory
-
-    _data_source.FlushCache()
-    _Visum.Log(20480, "Polygons created and saved")         
-    return _Shape
-    
-def ImportShapePOI(_Visum, _Shape):
-    _Visum.Log(20480, "Importing shape to Visum-POI")
-    if deloldPOI:
-        _Visum.Net.POICategories.ItemByKey(40).POIs.RemoveAll()
-    
-    ShapeImport = _Visum.IO.CreateImportShapeFilePara()
-    ShapeImport.AddAttributeAllocation("StopName", "Name")
-    ShapeImport.AddAttributeAllocation("Class", "Code")
-    ShapeImport.AddAttributeAllocation("Category", "Comment")
-    ShapeImport.ObjectType = 9 # import as POI
-    ShapeImport.SetAttValue("POIKEY", 40) # POI Category 40
-    
-    _Visum.IO.ImportShapefile(_Shape, ShapeImport)
     
 def _get_stop_type(mainline, mainlines):
     for stop_type in ["StopType1", "StopType2", "StopType3"]:
@@ -251,7 +252,7 @@ def _stopcat_fhh(_Visum):
 ## Calculations ##
 Visum.Log(20480, "Starting...")
 
-if not checks(Visum):
+if not Checks(Visum):
     raise Exception("")
 Stops = StopCategories(Visum)
 ShapePath, DataSource, ShapeDef = CreateShape(Visum)
