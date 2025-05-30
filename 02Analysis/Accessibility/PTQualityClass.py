@@ -28,6 +28,26 @@ def Checks(_Visum):
         _Visum.Log(12288, "Time intervals are overlapping!")
         return False
     return True
+
+def ClipShape(_Visum, _Shape, _ShapePath, _ClipShape):
+    _Visum.Log(20480, "Start clipping buffered shape")
+    
+    spatial_ref = osr.SpatialReference()
+    spatial_ref.ImportFromEPSG(25832)
+    driver = ogr.GetDriverByName("ESRI Shapefile")
+    
+    inLayer = _Shape
+    inClipSource = driver.Open(_ClipShape, 0)
+    inClipLayer = inClipSource.GetLayer()
+    buffered_shape_path = Path(_ShapePath)
+    clipped_shape_path = buffered_shape_path.with_name("buffered_polygons_clip.shp")
+    
+    _data_source = driver.CreateDataSource(clipped_shape_path)
+    _Clipped_Shape = _data_source.CreateLayer("clipped_buffered_polygons", spatial_ref, geom_type=ogr.wkbPolygon)
+    ogr.Layer.Clip(inLayer, inClipLayer, _Clipped_Shape)
+    
+    _Visum.Log(20480, "Buffered shapes clipped")
+    return clipped_shape_path
     
 def CreateShape(_Visum):
     spatial_ref = osr.SpatialReference()
@@ -257,6 +277,8 @@ if not Checks(Visum):
 Stops = StopCategories(Visum)
 ShapePath, DataSource, ShapeDef = CreateShape(Visum)
 ShapePolygons = CreatePolygons(Visum, ShapeDef, Stops, DataSource)
+if clip:
+    ShapePath = ClipShape(Visum, ShapePolygons, ShapePath, clipShape)
 ImportShapePOI(Visum, ShapePath)
 
 Visum.Log(20480, "Open GraphicParameters to display accessibility measures")
