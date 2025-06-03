@@ -164,7 +164,7 @@ def StopCategories(_Visum):
     if LineEnd: VJI.loc[VJI["INDEX"] == 1, "nDep"] *= 2 # Count first index *2 for missing arrivals
     
     # Selecting VehJour in time intervals
-    scaled_intervals = [[start * 60 * 60, end * 60 * 60] for start, end in intervals]
+    scaled_intervals = [[start * 60 * 60, end * 60 * 60] for start, end in intervals] + [[start * 60 * 60 + 86400, end * 60 * 60 + 86400] for start, end in intervals]
     VJI = VJI[VJI["Dep"].apply(lambda x: any(start <= x <= end for start, end in scaled_intervals))]
     VJI = VJI.reset_index(drop=True)
     VJI["StopType"] = VJI["Mainline"].apply(lambda x: _get_stop_type(x, mainlines))
