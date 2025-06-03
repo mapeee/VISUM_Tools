@@ -135,17 +135,26 @@ def ImportShapePOI(_Visum, _Shape):
     
 def StopCategories(_Visum):
     _Visum.Log(20480, "Calculate Stop categories for %s Stop(s)" % _Visum.Net.Stops.CountActive)
-    mainlines = {
-        "StopType1": {'IC': 1, 'ICE': 1, 'ICE(S)': 1, 'Nightjet': 1,
-               'RE': 2, 'RB': 2,
-               'S-Bahn': 3, 'AKN': 3,
-               'U-Bahn': 3,
-               '': 10},
-        "StopType2": {'': 10},
-        "StopType3": {'XpressBus': 5,
-               'Metrobus': 6, 'Nachtbus': 6, 'Bus': 6, 'Schiff': 6,
-               '': 10}
+    mainlinesInput = {
+        "StopType1": {'IC', 'ICE', 'ICE(S)', 'Nightjet', 'RE', 'RB', 'S-Bahn', 'AKN', 'U-Bahn', ''},
+        "StopType2": {''},
+        "StopType3": {'XpressBus', 'Metrobus', 'Nachtbus', 'Bus', 'Schiff', ''}
         }
+    
+    stop_type_values = {
+        "StopType1": 1,
+        "StopType2": 2,
+        "StopType3": 3
+        }
+    
+    mainlines = {}
+    for stop_type, services in mainlinesInput.items():
+        value = stop_type_values.get(stop_type, 10)  # default to 0 if not found
+        mainlines[stop_type] = {
+            service: 10 if service == '' else value
+            for service in services
+        }
+
     mainlines_all = {**mainlines["StopType1"], **mainlines["StopType2"], **mainlines["StopType3"]}
     
     VJI = pd.DataFrame(_Visum.Net.VehicleJourneyItems.GetMultipleAttributes(
@@ -193,24 +202,24 @@ def StopCategories(_Visum):
         
         # Stop categories from StopType and departures  in PTV Visum
         conditions = [
-            (_Stops["DepHour"] >= 24) & (_Stops[i[0]] < 4),
-            (_Stops["DepHour"] >= 24) & (_Stops[i[0]] == 4),
-            (_Stops["DepHour"] >= 24) & (_Stops[i[0]] < 10),
-            (_Stops["DepHour"] >= 12) & (_Stops[i[0]] < 4),
-            (_Stops["DepHour"] >= 12) & (_Stops[i[0]] == 4),
-            (_Stops["DepHour"] >= 12) & (_Stops[i[0]] < 10),
-            (_Stops["DepHour"] >= 6) & (_Stops[i[0]] < 4),
-            (_Stops["DepHour"] >= 6) & (_Stops[i[0]] == 4),
-            (_Stops["DepHour"] >= 6) & (_Stops[i[0]] < 10),
-            (_Stops["DepHour"] >= 4) & (_Stops[i[0]] < 4),
-            (_Stops["DepHour"] >= 4) & (_Stops[i[0]] == 4),
-            (_Stops["DepHour"] >= 4) & (_Stops[i[0]] < 10),
-            (_Stops["DepHour"] >= 2) & (_Stops[i[0]] < 4),
-            (_Stops["DepHour"] >= 2) & (_Stops[i[0]] == 4),
-            (_Stops["DepHour"] >= 2) & (_Stops[i[0]] < 10),
-            (_Stops["DepHour"] >= 1) & (_Stops[i[0]] < 4),
-            (_Stops["DepHour"] >= 1) & (_Stops[i[0]] == 4),
-            (_Stops["DepHour"] >= 1) & (_Stops[i[0]] < 10)
+            (_Stops["DepHour"] >= 24) & (_Stops[i[0]] == 1),
+            (_Stops["DepHour"] >= 24) & (_Stops[i[0]] == 2),
+            (_Stops["DepHour"] >= 24) & (_Stops[i[0]] == 3),
+            (_Stops["DepHour"] >= 12) & (_Stops[i[0]] == 1),
+            (_Stops["DepHour"] >= 12) & (_Stops[i[0]] == 2),
+            (_Stops["DepHour"] >= 12) & (_Stops[i[0]] == 3),
+            (_Stops["DepHour"] >= 6) & (_Stops[i[0]] == 1),
+            (_Stops["DepHour"] >= 6) & (_Stops[i[0]] == 2),
+            (_Stops["DepHour"] >= 6) & (_Stops[i[0]] == 3),
+            (_Stops["DepHour"] >= 4) & (_Stops[i[0]] == 1),
+            (_Stops["DepHour"] >= 4) & (_Stops[i[0]] == 2),
+            (_Stops["DepHour"] >= 4) & (_Stops[i[0]] == 3),
+            (_Stops["DepHour"] >= 2) & (_Stops[i[0]] == 1),
+            (_Stops["DepHour"] >= 2) & (_Stops[i[0]] == 2),
+            (_Stops["DepHour"] >= 2) & (_Stops[i[0]] == 3),
+            (_Stops["DepHour"] >= 1) & (_Stops[i[0]] == 1),
+            (_Stops["DepHour"] >= 1) & (_Stops[i[0]] == 2),
+            (_Stops["DepHour"] >= 1) & (_Stops[i[0]] == 3)
             ]
     
         choices = [
