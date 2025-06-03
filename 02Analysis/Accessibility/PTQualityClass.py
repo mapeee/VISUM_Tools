@@ -21,10 +21,10 @@ def Checks(_Visum):
     if _Visum.Net.Stops.CountActive == 0:
         _Visum.Log(12288, "No active stops!")
         return False
-    if int(fromHour1) > int(toHour1) or int(fromHour2) > int(toHour2):
+    if False in [int(sublist[1]) > int(sublist[0]) for sublist in intervals]:
         _Visum.Log(12288, "End time must be after start time!")
         return False
-    if int(toHour1) > int(fromHour2) and int(fromHour2) < int(toHour2):
+    if not all(intervals[i][1] < intervals[i+1][0] for i in range(len(intervals) - 1)):
         _Visum.Log(12288, "Time intervals are overlapping!")
         return False
     return True
@@ -135,8 +135,6 @@ def ImportShapePOI(_Visum, _Shape):
     
 def StopCategories(_Visum):
     _Visum.Log(20480, "Calculate Stop categories for %s Stop(s)" % _Visum.Net.Stops.CountActive)
-    fromTime1, toTime1 = (int(fromHour1) * 60 * 60), (int(toHour1) * 60 * 60)
-    fromTime2, toTime2 = (int(fromHour2) * 60 * 60), (int(toHour2) * 60 * 60)
     mainlines = {
         "StopType1": {'IC': 1, 'ICE': 1, 'ICE(S)': 1, 'Nightjet': 1,
                'RE': 2, 'RB': 2,
@@ -166,13 +164,8 @@ def StopCategories(_Visum):
     if LineEnd: VJI.loc[VJI["INDEX"] == 1, "nDep"] *= 2 # Count first index *2 for missing arrivals
     
     # Selecting VehJour in time intervals
-    if fromTime2 == toTime2:
-        VJI = VJI[(VJI["Dep"] >= fromTime1) & (VJI["Dep"] <= toTime1)]
-    else:
-        VJI = VJI[
-        ((VJI["Dep"] >= fromTime1) & (VJI["Dep"] <= toTime1)) |
-        ((VJI["Dep"] >= fromTime2) & (VJI["Dep"] <= toTime2))
-        ]
+    scaled_intervals = [[start * 60 * 60, end * 60 * 60] for start, end in intervals]
+    VJI = VJI[VJI["Dep"].apply(lambda x: any(start <= x <= end for start, end in scaled_intervals))]
     VJI = VJI.reset_index(drop=True)
     VJI["StopType"] = VJI["Mainline"].apply(lambda x: _get_stop_type(x, mainlines))
     
@@ -195,7 +188,7 @@ def StopCategories(_Visum):
         StopCounts.columns = ["StopNo", "DepNo"]
         _Stops = _Stops.merge(StopCounts, on="StopNo", how="left")
         _Stops["DepNo"] = _Stops["DepNo"].fillna(0).astype(int)
-        _Stops["DepHour"] = _Stops["DepNo"] / (int(toHour1) - int(fromHour1) + int(toHour2) - int(fromHour2))
+        _Stops["DepHour"] = _Stops["DepNo"] / sum(end - start for start, end in intervals)
         _Stops["DepHour"] = _Stops["DepHour"].round(0) #round departures
         
         # Stop categories from StopType and departures  in PTV Visum
