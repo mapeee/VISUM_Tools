@@ -81,9 +81,9 @@ def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
         "II": ["300m:A", "400m:B", "600m:C", "1000m:D", "1500m:E"],
         "III": ["300m:B", "400m:C", "600m:D", "1000m:E", "1500m:F"],
         "IV": ["300m:C", "400m:D", "600m:E", "1000m:F", "1500m:G"],
-        "V": ["300m:D", "400m:E", "600m:F", "1000m:G"],
-        "VI": ["300m:E", "400m:F", "600m:G"],
-        "VII": ["300m:F", "400m:G"],
+        "V": ["300m:D", "400m:E", "600m:F", "1000m:G", "1500m:I"],
+        "VI": ["300m:E", "400m:F", "600m:G", "1500m:I"],
+        "VII": ["300m:F", "400m:G", "1500m:I"],
     }
     
     for category, distances in categories.items():
