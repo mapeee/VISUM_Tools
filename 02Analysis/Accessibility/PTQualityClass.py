@@ -16,7 +16,6 @@ from VisumPy.helpers import SetMulti
 
 pd.set_option('future.no_silent_downcasting', True)
 
-
 def Checks(_Visum):
     if _Visum.Net.Stops.CountActive == 0:
         _Visum.Log(12288, "No active stops!")
@@ -29,25 +28,37 @@ def Checks(_Visum):
         return False
     return True
 
-def ClipShape(_Visum, _Shape, _ShapePath, _ClipShape):
-    _Visum.Log(20480, "Start clipping buffered shape")
+def ClipIntersectShape(_Visum, _ShapePath, _clip, _intersect, _ClipShape, _InterShape):
+    import geopandas as gpd
+    _ShapeGpd = gpd.read_file(_ShapePath)
     
-    spatial_ref = osr.SpatialReference()
-    spatial_ref.ImportFromEPSG(25832)
-    driver = ogr.GetDriverByName("ESRI Shapefile")
-    
-    inLayer = _Shape
-    inClipSource = driver.Open(_ClipShape, 0)
-    inClipLayer = inClipSource.GetLayer()
-    buffered_shape_path = Path(_ShapePath)
-    clipped_shape_path = buffered_shape_path.with_name("buffered_polygons_clip.shp")
-    
-    _data_source = driver.CreateDataSource(clipped_shape_path)
-    _Clipped_Shape = _data_source.CreateLayer("clipped_buffered_polygons", spatial_ref, geom_type=ogr.wkbPolygon)
-    ogr.Layer.Clip(inLayer, inClipLayer, _Clipped_Shape)
-    
-    _Visum.Log(20480, "Buffered shapes clipped")
-    return clipped_shape_path
+    if _clip:
+        _Visum.Log(20480, "Start clipping shapes")
+        _clipShapeGpd = gpd.read_file(_ClipShape)
+        _clipShapeGpd = _clipShapeGpd.to_crs(_ShapeGpd.crs)
+        _shape_path = Path(_ShapePath)
+        cliped_shape_path = _shape_path.with_name("polygons_clip.shp")
+        clipped = gpd.clip(_ShapeGpd, _clipShapeGpd)
+        _Visum.Log(20480, "Shapes clipped")
+        if not _intersect:
+            clipped.to_file(cliped_shape_path)
+            return cliped_shape_path
+
+    if _intersect:
+        _Visum.Log(20480, "Start intersecting shapes")
+        _interShapeGpd = gpd.read_file(_InterShape)
+        if _clip: _ShapeGpd = clipped
+        else:
+            _ShapeGpd = gpd.read_file(_ShapePath)
+            _interShapeGpd = _interShapeGpd.to_crs(_ShapeGpd.crs)
+        _shape_path = Path(_ShapePath)
+        intersected_shape_path = _shape_path.with_name("polygons_intersect.shp")
+        intersection = gpd.overlay(_interShapeGpd, _ShapeGpd, how="intersection") 
+        intersection['NO'] = range(1, len(intersection) + 1)
+        intersection.to_file(intersected_shape_path)
+        
+        _Visum.Log(20480, "Shapes intersected")
+        return intersected_shape_path
     
 def CreateShape(_Visum):
     spatial_ref = osr.SpatialReference()
@@ -117,10 +128,9 @@ def CreatePolygons(_Visum ,_Shape, _stops, _data_source):
 
     _data_source.FlushCache()
     _Visum.Log(20480, "Polygons created and saved")         
-    return _Shape
     
 def ImportShapePOI(_Visum, _Shape):
-    _Visum.Log(20480, "Importing shape to Visum-POI")
+    _Visum.Log(20480, "Importing shapes to Visum-POI")
     if deloldPOI:
         _Visum.Net.POICategories.ItemByKey(40).POIs.RemoveAll()
     
@@ -132,7 +142,7 @@ def ImportShapePOI(_Visum, _Shape):
     ShapeImport.SetAttValue("POIKEY", 40) # POI Category 40
     
     _Visum.IO.ImportShapefile(_Shape, ShapeImport)
-    
+
 def StopCategories(_Visum):
     _Visum.Log(20480, "Calculate Stop categories for %s Stop(s)" % _Visum.Net.Stops.CountActive)
     mainlinesInput = {
@@ -278,9 +288,9 @@ if not Checks(Visum):
     raise Exception("")
 Stops = StopCategories(Visum)
 ShapePath, DataSource, ShapeDef = CreateShape(Visum)
-ShapePolygons = CreatePolygons(Visum, ShapeDef, Stops, DataSource)
-if clip:
-    ShapePath = ClipShape(Visum, ShapePolygons, ShapePath, clipShape)
+CreatePolygons(Visum, ShapeDef, Stops, DataSource)
+if clip or intersect:
+    ShapePath = ClipIntersectShape(Visum, ShapePath, clip, intersect, clipShape, intersectShape)
 ImportShapePOI(Visum, ShapePath)
 
 Visum.Log(20480, "Open GraphicParameters to display accessibility measures")
