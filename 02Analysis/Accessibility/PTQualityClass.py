@@ -34,23 +34,25 @@ def ClipIntersectShape(_Visum, _ShapePath, _clip, _intersect, _ClipShape, _Inter
     
     if _clip:
         _Visum.Log(20480, "Start clipping shapes")
-        _clipShapeGpd = gpd.read_file(_ClipShape)
-        _clipShapeGpd = _clipShapeGpd[['geometry']]
-        _clipShapeGpd = _clipShapeGpd.to_crs(_ShapeGpd.crs)
+        
+        for i in _ClipShape:
+            _clipShapeGpd = gpd.read_file(i)
+            _clipShapeGpd = _clipShapeGpd[['geometry']]
+            _clipShapeGpd = _clipShapeGpd.to_crs(_ShapeGpd.crs)
+            _ShapeGpd = gpd.clip(_ShapeGpd, _clipShapeGpd)
+        
         _shape_path = Path(_ShapePath)
         cliped_shape_path = _shape_path.with_name("polygons_clip.shp")
-        clipped = gpd.clip(_ShapeGpd, _clipShapeGpd)
         _Visum.Log(20480, "Shapes clipped")
         if not _intersect:
-            clipped.to_file(cliped_shape_path)
+            _ShapeGpd.to_file(cliped_shape_path)
             return cliped_shape_path
 
     if _intersect:
         _Visum.Log(20480, "Start intersecting shapes")
         _interShapeGpd = gpd.read_file(_InterShape)
         _interShapeGpd = _interShapeGpd[['geometry']]
-        if _clip: _ShapeGpd = clipped
-        else:
+        if not _clip:
             _ShapeGpd = gpd.read_file(_ShapePath)
             _interShapeGpd = _interShapeGpd.to_crs(_ShapeGpd.crs)
         _shape_path = Path(_ShapePath)
