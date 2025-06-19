@@ -26,6 +26,21 @@ def Checks(_Visum):
     if not all(intervals[i][1] < intervals[i+1][0] for i in range(len(intervals) - 1)):
         _Visum.Log(12288, "Time intervals are overlapping!")
         return False
+    if 40 not in [i.AttValue("NO") for i in _Visum.Net.POICategories.GetAll]:
+        _Visum.Log(12288, "POI-Cat 40 not existing!")
+        return False
+    for uda in ["HKAT", "HKAT_FHH", "HKATT1", "HKATT2", "HKATT3"]:
+        if not _Visum.Net.Stops.AttrExists(uda):
+            _Visum.Log(12288, f"Stop-UDA '{uda}' not exists!")
+            return False
+    if clip:
+        if type(clipShape) != list:
+            _Visum.Log(12288, "The 'clipShape' parameter must be of type list!")
+            return False
+        for shape in clipShape:
+            if not os.path.exists(shape):
+                _Visum.Log(12288, f"ClipShape '{shape}' not exists!")
+                return False
     return True
 
 def ClipIntersectShape(_Visum, _ShapePath, _clip, _intersect, _ClipShape, _InterShape):
@@ -301,6 +316,9 @@ ImportShapePOI(Visum, ShapePath)
 
 Visum.Log(20480, "Open GraphicParameters to display accessibility measures")
 gpa_path = Path.cwd() / "Grafikparameter" / "OEV_Gueteklassen.gpa"
-Visum.Net.GraphicParameters.Open(gpa_path)
+if os.path.exists(gpa_path):
+    Visum.Net.GraphicParameters.Open(gpa_path)
+else:
+    Visum.Log(16384, f"GraphicParameters File: '{gpa_path}'  not eixsting!")
 
 Visum.Log(20480, "Finished!")
