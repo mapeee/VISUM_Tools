@@ -10,54 +10,42 @@ import pandas as pd
 from VisumPy.helpers import SetMulti
 
 
-def addConnections(_selCon, _oldCon, _tWalk):
+def addConnections(_selCon, _tWalk):
     _meter, _seconds = [], []
     _nPrT = 0
+    Visum.Net.Connectors.SetPassive()
     for index, row in _selCon.iterrows():
         if Visum.Net.Connectors.ExistsByKey(row["STOPAREA"], row["ZONE"]):
             Visum.Log(16384, f"PrT-Connection from Zone {int(row['ZONE'])} to Node {int(row['STOPAREA'])} just existis!")
             _nPrT += 1
             continue
         _con = Visum.Net.AddConnector(row["ZONE"], row["STOPAREA"])
+        _con.Active = True
         _meter.extend([row["avg_meter"] / 1000] * 2)
         _seconds.extend([_round30(row["avg_meter"] / (_tWalk / 3.6))] * 2)
     
     # Edit Attributes
-    SetMulti(Visum.Net.Connectors, "TSYSSET", ["OEVFUSS"]*Visum.Net.Connectors.CountActive, True)
+    SetMulti(Visum.Net.Connectors, "TSYSSET", ["OEVFUSS"] * Visum.Net.Connectors.CountActive, True)
     SetMulti(Visum.Net.Connectors, "LENGTH", _meter, True)
     SetMulti(Visum.Net.Connectors, "T0_TSYS(OEVFUSS)", _seconds, True)
+    Visum.Net.Connectors.SetActive()
     
-    # Check for ZONES without new PT-Connections
-    _misingZones = int(_oldCon["ZONENO"].nunique() - _selCon["ZONE"].nunique())
-    if _misingZones > 0:
-        Visum.Log(16384, f"New PT-Connections for {_misingZones} Zone(s) missing!")
-        for index, row in _oldCon[~_oldCon["ZONENO"].isin(_selCon["ZONE"])].iterrows():
-            if Visum.Net.Connectors.ExistsByKey(row["NODENO"], row["ZONENO"]):
-                _con = Visum.Net.Connectors.DestItemByKey(row["NODENO"], row["ZONENO"])
-            else:
-                _con = Visum.Net.AddConnector(row["ZONENO"], row["NODENO"])      
-            _con.SetAttValue("TSYSSET", row["TSYSSET"])
-            _con.SetAttValue("LENGTH", row["LENGTH"])
-            _con.SetAttValue("T0_TSYS(OEVFUSS)", row["T0_TSYS(OEVFUSS)"])
-
     Visum.Log(20480, f"{len(_selCon)-_nPrT} new PT-Connectors added")
     return
 
-def delConnections(_ZoneFilter = None):
-    if not _ZoneFilter:
-        return
-    Visum.Filters.InitAll()
-    conFilter = Visum.Filters.ConnectorFilter()
-    conFilter.AddCondition("OP_NONE", False, "ZONENO", 7,_ZoneFilter[0])
-    conFilter.AddCondition("OP_AND", False, "ZONENO", 5, _ZoneFilter[1])
-    conFilter.AddCondition("OP_AND", False, "TSYSSET", 14, "OEVFUSS")
-    _n_cons = int(Visum.Net.Connectors.CountActive / 2)
-    _oldCons = pd.DataFrame(Visum.Net.Connectors.GetMultipleAttributes(["ZONENO", "NODENO", "TSYSSET", "LENGTH", "T0_TSYS(OEVFUSS)"], True))
-    _oldCons.columns = ["ZONENO", "NODENO", "TSYSSET", "LENGTH", "T0_TSYS(OEVFUSS)"]
-    Visum.Net.Connectors.RemoveAll()
-    
+def delConnections(_selCon):
+    Cons = Visum.Net.Connectors.GetAll
+    _n_cons = 0
+    for con in Cons[::2]: # every second for reverse direction
+        if not con.AttValue("ZONENO") in selCon["ZONE"].values:
+            continue
+        if con.AttValue("TSYSSET") != "OEVFUSS":
+            continue
+        Visum.Net.RemoveConnector(con)
+        _n_cons+=2
+
     Visum.Log(20480, f"{_n_cons} existing PT-Connectors deleted")
-    return _oldCons
+    return _n_cons
 
 def poi2Center(_attrCon):
     _x, _y = [], []
@@ -127,22 +115,24 @@ def StopAreas2Connect(_attrCon):
     Visum.Log(20480, "StopAreas to be connected have been identified")
     return _attrCon
 
-def weights2Connections(_UDTName, _pot_fact, _ZoneFilter = None):
+def weights2Connections(_UDTName, _pot_fact, _maxDist = 1500):
+    _zones = pd.DataFrame(Visum.Net.Zones.GetMultipleAttributes(["NO"], True))
+    _zones.columns = ["NO"]
+    
     udt = Visum.Net.TableDefinitions.ItemByKey(_UDTName)
     df_udt = pd.DataFrame(udt.TableEntries.GetMultipleAttributes(
         ["NO", "CODE", "STOPAREA", "METER", "POTENTIAL", "ZONE", "X", "Y"]))
     df_udt.columns = ["NO", "CODE", "STOPAREA", "METER", "POTENTIAL", "ZONE", "X", "Y"]
-    df_udt["CODE"] = df_udt["CODE"].astype("string")
-    if _ZoneFilter:
-        df_udt = df_udt[df_udt["ZONE"].between(_ZoneFilter[0], _ZoneFilter[1])]
-        
+    df_udt = df_udt[df_udt["ZONE"].isin(_zones["NO"])]
+    
     # weights
     df_udt["pot_con"] = df_udt["POTENTIAL"] * df_udt["CODE"].map(_pot_fact)
     df_udt["pot_zone"] = df_udt.groupby("ZONE")["pot_con"].transform("sum")
-    df_udt["pot_con"] = ((1 - df_udt["METER"] / df_udt["METER"].max())**3) * df_udt["pot_con"]
+    df_udt["pot_con"] = ((1 - df_udt["METER"] / _maxDist)**3) * df_udt["pot_con"]
     df_udt["pot_meter"] = df_udt["METER"] * df_udt["pot_con"]
     df_udt["pot_x"] = df_udt["X"] * df_udt["pot_con"]
     df_udt["pot_y"] = df_udt["Y"] * df_udt["pot_con"]
+    
     df_udt = df_udt.groupby(["ZONE", "STOPAREA"], as_index=False).agg({
         "pot_con": "sum", "pot_zone": "first", "pot_meter": "sum", "pot_x": "sum", "pot_y": "sum"})
     df_udt['pot_max'] = df_udt.groupby('ZONE')['pot_con'].transform('max')
@@ -150,7 +140,7 @@ def weights2Connections(_UDTName, _pot_fact, _ZoneFilter = None):
         
     # StopAreas    
     df_stoparea = pd.DataFrame(Visum.Net.StopAreas.GetMultipleAttributes(
-        ["NO", "STOPNO", "TYPENO", r"MIN:STOPPOINTS\DISTINCT:SERVINGVEHJOURNEYS\LINENAME"]))
+        ["NO", "STOPNO", "TYPENO", r"MIN:STOPPOINTS\DISTINCT:SERVINGVEHJOURNEYS\LINENAME"], False))
     df_stoparea.columns = ["NO", "STOPNO", "TYPENO", "LINES"]
     df_stoparea = df_stoparea[~((df_stoparea['LINES'] == "") & (df_stoparea['TYPENO'] != 8))] # no stops without lines and TypNo != 8
     df_stoparea['LINES'] = df_stoparea['LINES'].str.split('|')
@@ -173,13 +163,12 @@ def _pot2Lines(data, _lines2stoparea):
 def _round30(n):
     return round(n / 30) * 30
 
-Visum.Filters.InitAll()
 if calpoi2udt:
     poi2udt(POICat, UDTName)
-attrCon = weights2Connections(UDTName, pot_fact, ZoneFilter)
+attrCon = weights2Connections(UDTName, pot_fact)
 selCon = StopAreas2Connect(attrCon)
-oldCon = delConnections(ZoneFilter)
-addConnections(selCon, oldCon, tWalk)
+delConnections(selCon)
+addConnections(selCon, tWalk)
 if calpoi2Center:
     poi2Center(attrCon)
 Visum.Log(20480, "Finished")
