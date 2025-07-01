@@ -10,11 +10,13 @@ import pandas as pd
 from VisumPy.helpers import SetMulti
 
 
-def addConnections(_selCon,_tWalk):
+def addConnections(_selCon, _oldCon, _tWalk):
     _meter, _seconds = [], []
+    _nPrT = 0
     for index, row in _selCon.iterrows():
         if Visum.Net.Connectors.ExistsByKey(row["STOPAREA"], row["ZONE"]):
-            Visum.Log(16384, f"Connection from Zone {int(row['ZONE'])} to Node {int(row['STOPAREA'])} just existis!")
+            Visum.Log(16384, f"PrT-Connection from Zone {int(row['ZONE'])} to Node {int(row['STOPAREA'])} just existis!")
+            _nPrT += 1
             continue
         _con = Visum.Net.AddConnector(row["ZONE"], row["STOPAREA"])
         _meter.extend([row["avg_meter"] / 1000] * 2)
@@ -25,7 +27,20 @@ def addConnections(_selCon,_tWalk):
     SetMulti(Visum.Net.Connectors, "LENGTH", _meter, True)
     SetMulti(Visum.Net.Connectors, "T0_TSYS(OEVFUSS)", _seconds, True)
     
-    Visum.Log(20480, f"{len(_selCon)} new PT-Connectors added")
+    # Check for ZONES without new PT-Connections
+    _misingZones = int(_oldCon["ZONENO"].nunique() - _selCon["ZONE"].nunique())
+    if _misingZones > 0:
+        Visum.Log(16384, f"New PT-Connections for {_misingZones} Zone(s) missing!")
+        for index, row in _oldCon[~_oldCon["ZONENO"].isin(_selCon["ZONE"])].iterrows():
+            if Visum.Net.Connectors.ExistsByKey(row["NODENO"], row["ZONENO"]):
+                _con = Visum.Net.Connectors.DestItemByKey(row["NODENO"], row["ZONENO"])
+            else:
+                _con = Visum.Net.AddConnector(row["ZONENO"], row["NODENO"])      
+            _con.SetAttValue("TSYSSET", row["TSYSSET"])
+            _con.SetAttValue("LENGTH", row["LENGTH"])
+            _con.SetAttValue("T0_TSYS(OEVFUSS)", row["T0_TSYS(OEVFUSS)"])
+
+    Visum.Log(20480, f"{len(_selCon)-_nPrT} new PT-Connectors added")
     return
 
 def delConnections(_ZoneFilter = None):
@@ -37,10 +52,12 @@ def delConnections(_ZoneFilter = None):
     conFilter.AddCondition("OP_AND", False, "ZONENO", 5, _ZoneFilter[1])
     conFilter.AddCondition("OP_AND", False, "TSYSSET", 14, "OEVFUSS")
     _n_cons = int(Visum.Net.Connectors.CountActive / 2)
+    _oldCons = pd.DataFrame(Visum.Net.Connectors.GetMultipleAttributes(["ZONENO", "NODENO", "TSYSSET", "LENGTH", "T0_TSYS(OEVFUSS)"], True))
+    _oldCons.columns = ["ZONENO", "NODENO", "TSYSSET", "LENGTH", "T0_TSYS(OEVFUSS)"]
     Visum.Net.Connectors.RemoveAll()
     
     Visum.Log(20480, f"{_n_cons} existing PT-Connectors deleted")
-    return
+    return _oldCons
 
 def poi2Center(_attrCon):
     _x, _y = [], []
@@ -161,7 +178,8 @@ if calpoi2udt:
     poi2udt(POICat, UDTName)
 attrCon = weights2Connections(UDTName, pot_fact, ZoneFilter)
 selCon = StopAreas2Connect(attrCon)
-delConnections(ZoneFilter)
-addConnections(selCon, tWalk)
-if calCenter:
+oldCon = delConnections(ZoneFilter)
+addConnections(selCon, oldCon, tWalk)
+if calpoi2Center:
     poi2Center(attrCon)
+Visum.Log(20480, "Finished")
