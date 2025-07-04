@@ -139,8 +139,11 @@ def weights2Connections(_UDTName, _pot_fact, _maxDist = 1500):
         
     # StopAreas    
     df_stoparea = pd.DataFrame(Visum.Net.StopAreas.GetMultipleAttributes(
-        ["NO", "STOPNO", "TYPENO", r"MIN:STOPPOINTS\DISTINCT:SERVINGVEHJOURNEYS\LINENAME"], False))
-    df_stoparea.columns = ["NO", "STOPNO", "TYPENO", "LINES"]
+        ["NO", "STOPNO", "TYPENO", r"MIN:STOPPOINTS\DISTINCT:SERVINGVEHJOURNEYS\LINENAME",
+         r"STOP\DISTINCT:STOPAREAS\DISTINCT:STOPPOINTS\DISTINCT:SERVINGVEHJOURNEYS\LINENAME"], False))
+    df_stoparea.columns = ["NO", "STOPNO", "TYPENO", "LINES", "LINES_STOP"]
+    df_stoparea.loc[df_stoparea['TYPENO'] == 8, 'LINES'] = df_stoparea['LINES_STOP']
+    df_stoparea.drop('LINES_STOP', axis = 1, inplace = True)
     df_stoparea = df_stoparea[~((df_stoparea['LINES'] == "") & (df_stoparea['TYPENO'] != 8))] # no stops without lines and TypNo != 8
     df_stoparea['LINES'] = df_stoparea['LINES'].str.split('|')
     
