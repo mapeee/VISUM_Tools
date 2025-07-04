@@ -30,7 +30,7 @@ def addConnections(_selCon, _tWalk):
     SetMulti(Visum.Net.Connectors, "T0_TSYS(OEVFUSS)", _seconds, True)
     Visum.Net.Connectors.SetActive()
     
-    Visum.Log(20480, f"{len(_selCon)-_nPrT} new PT-Connectors added")
+    Visum.Log(20480, f"{(len(_selCon)-_nPrT) * 2} new PT-Connectors added")
     return
 
 def delConnections(_selCon):
@@ -127,14 +127,13 @@ def weights2Connections(_UDTName, _pot_fact, _maxDist = 1500):
     
     # weights
     df_udt["pot_con"] = df_udt["POTENTIAL"] * df_udt["CODE"].map(_pot_fact)
-    df_udt["pot_zone"] = df_udt.groupby("ZONE")["pot_con"].transform("sum")
     df_udt["pot_con"] = ((1 - df_udt["METER"] / _maxDist)**3) * df_udt["pot_con"]
     df_udt["pot_meter"] = df_udt["METER"] * df_udt["pot_con"]
     df_udt["pot_x"] = df_udt["X"] * df_udt["pot_con"]
     df_udt["pot_y"] = df_udt["Y"] * df_udt["pot_con"]
     
     df_udt = df_udt.groupby(["ZONE", "STOPAREA"], as_index=False).agg({
-        "pot_con": "sum", "pot_zone": "first", "pot_meter": "sum", "pot_x": "sum", "pot_y": "sum"})
+        "pot_con": "sum", "pot_meter": "sum", "pot_x": "sum", "pot_y": "sum"})
     df_udt['pot_max'] = df_udt.groupby('ZONE')['pot_con'].transform('max')
     df_udt["avg_meter"] = df_udt["pot_meter"] / df_udt["pot_con"]
         
