@@ -51,6 +51,8 @@ def delConnections(_selCon):
             continue
         if con.AttValue("TSYSSET") != "OEVFUSS":
             continue
+        if con.AttValue("TYPENO") == 5:
+            continue
         Visum.Net.RemoveConnector(con)
         _n_cons+=2
 
