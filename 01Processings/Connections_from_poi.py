@@ -29,16 +29,13 @@ def addConnections(_selCon, _tWalk, _shares = False):
         else:
             _seconds.extend([_round30(row["avg_meter"] / (_tWalk / 3.6))] * 2)
             _weights.extend([1] * 2)
-    
+
     # Edit Attributes
     SetMulti(Visum.Net.Connectors, "TSYSSET", ["OEVFUSS"] * Visum.Net.Connectors.CountActive, True)
     SetMulti(Visum.Net.Connectors, "LENGTH", _meter, True)
     SetMulti(Visum.Net.Connectors, "T0_TSYS(OEVFUSS)", _seconds, True)
     SetMulti(Visum.Net.Connectors, "WEIGHT(PUT)", _weights, True)
     Visum.Net.Connectors.SetActive()
-    
-    if _shares: SetMulti(Visum.Net.Zones, "SHAREPUT", [1] * Visum.Net.Zones.CountActive, True)
-    else: SetMulti(Visum.Net.Zones, "SHAREPUT", [0] * Visum.Net.Zones.CountActive, True)
     
     Visum.Log(20480, f"{(len(_selCon)-_nPrT) * 2} new PT-Connectors added")
     return
@@ -51,10 +48,10 @@ def delConnections(_selCon):
             continue
         if con.AttValue("TSYSSET") != "OEVFUSS":
             continue
-        if con.AttValue("TYPENO") == 5:
+        if con.AttValue("TYPENO") in [4, 5]:
             continue
         Visum.Net.RemoveConnector(con)
-        _n_cons+=2
+        _n_cons += 2
 
     Visum.Log(20480, f"{_n_cons} existing PT-Connectors deleted")
     return _n_cons
@@ -62,10 +59,10 @@ def delConnections(_selCon):
 def poi2Center(_attrCon):
     _x, _y = [], []
     df_zone = _attrCon.groupby(["ZONE"], as_index=False).agg({
-        "pot_con": "sum", "pot_x": "sum", "pot_y": "sum"})
-    df_zone["avg_x"] = df_zone["pot_x"] / df_zone["pot_con"]
-    df_zone["avg_y"] = df_zone["pot_y"] / df_zone["pot_con"]
-    
+        "pot_sum": "sum", "pot_x": "sum", "pot_y": "sum"})
+    df_zone["avg_x"] = df_zone["pot_x"] / df_zone["pot_sum"]
+    df_zone["avg_y"] = df_zone["pot_y"] / df_zone["pot_sum"]
+    _n_centers = 0
     for i in Visum.Net.Zones.GetMultipleAttributes(["NO", "XCOORD", "YCOORD"], False):
         if len(df_zone[df_zone["ZONE"]==i[0]]) == 0:
             _x.append(i[1])
@@ -77,11 +74,12 @@ def poi2Center(_attrCon):
             continue
         _x.append(df_zone[df_zone["ZONE"]==i[0]]["avg_x"].iloc[0])
         _y.append(df_zone[df_zone["ZONE"]==i[0]]["avg_y"].iloc[0])
+        _n_centers += 1
         
     SetMulti(Visum.Net.Zones, "XCOORD", _x, False)
     SetMulti(Visum.Net.Zones, "YCOORD", _y, False)    
     
-    Visum.Log(20480, f"Centers of {len(df_zone)} Zones shifted")
+    Visum.Log(20480, f"Centers of {_n_centers} Zones shifted")
     return
 
 def poi2udt(_POICat, _UDTName):
@@ -94,11 +92,10 @@ def poi2udt(_POICat, _UDTName):
     
     # udt GIS meter
     udt = Visum.Net.TableDefinitions.ItemByKey(_UDTName)
-    df_udt = pd.DataFrame(udt.TableEntries.GetMultipleAttributes(["NO_POTENTIAL"]))
-    df_udt.columns = ["NO"]
+    df_udt = pd.DataFrame(udt.TableEntries.GetMultipleAttributes(["NO_POTENTIAL"]), columns = ["NO"])
     
     # merge
-    df_merged = pd.merge(df_udt, df_poi, on="NO", how="left")
+    df_merged = pd.merge(df_udt, df_poi, on = "NO", how = "left")
     for i in ["NAME", "CODE", "POTENTIAL", "ZONE", "X", "Y"]:
         my_list = df_merged[i].tolist()
         SetMulti(udt.TableEntries, i, my_list, True)
@@ -106,30 +103,64 @@ def poi2udt(_POICat, _UDTName):
     Visum.Log(20480, "Attributes merged")
     return
 
-def StopAreas2Connect(_attrCon, _shares = False):
+def share2zone(_selCon, _shares):
+    if not _shares:
+        SetMulti(Visum.Net.Zones, "SHAREPUT", [0] * Visum.Net.Zones.CountActive, True)
+        return
     
+    _share = []
+    df_zone = _selCon.groupby(["ZONE"], as_index=False).agg({
+        "cluster_n": "first"})
+    
+    for i in Visum.Net.Zones.GetMultipleAttributes(["NO", "SHAREPUT"], False):
+        if len(df_zone[df_zone["ZONE"]==i[0]]) == 0:
+            _share.append(i[1])
+            continue
+        if df_zone[df_zone["ZONE"]==i[0]]["cluster_n"].iloc[0] == 1:
+            _share.append(0)
+        else: _share.append(1)
+        
+    SetMulti(Visum.Net.Zones, "SHAREPUT", _share, False)  
+    
+    Visum.Log(20480, f"Using SHAREPUT for {int(sum(_share))} Zones")
+    return
+
+def StopAreas2Connect(_attrCon, _shares = False, _minPot1 = 0.15, _pot8 = 1.2, _minVJ = 0.2, minPot2 = 0.3):
     # at least 15% of max potential
-    _attrCon = _attrCon[(_attrCon['pot_con'] / _attrCon['pot_max']) >= 0.15]
+    _attrCon = _attrCon[(_attrCon['pot_con'] / _attrCon['pot_max']) >= _minPot1]
     
     # at Least 120% potential of neutral StopArea (TYPE 8)
     max8 = _attrCon[_attrCon["TYPENO"]==8]
     max8 = max8.rename(columns={'pot_con': 'pot_8'})
     _attrCon = pd.merge(_attrCon, max8[['pot_8', 'ZONE', 'STOPNO', 'cluster']], on = ['ZONE', 'STOPNO', 'cluster'], how = "left")
-    _attrCon['pot_8'] = _attrCon['pot_8'].fillna(1)
-    _attrCon = _attrCon[((_attrCon['pot_con'] / _attrCon['pot_8']) >= 1.2) | (_attrCon['TYPENO'] == 8)]
+    mask = (
+    ((_attrCon['pot_8'].notna() & _attrCon['pot_8'] != 0) & ((_attrCon['pot_con'] / _attrCon['pot_8']) >= _pot8))
+    |
+    (_attrCon['TYPENO'] == 8)
+    |
+    (_attrCon['pot_8'].isna())
+    )
+    _attrCon = _attrCon[mask]
     
-    # at least 20% of max vehicle journeys
     if _shares:
         _attrCon['nVJmax'] = _attrCon.groupby(['ZONE', "cluster"])['nVJ'].transform('max')
-        _attrCon = _attrCon[(_attrCon['nVJ'] / _attrCon['nVJmax']) >= 0.2]
+        # at least 20% of max vehicle journeys
+        _attrCon = _attrCon[((_attrCon['nVJ'] / _attrCon['nVJmax']) >= _minVJ) | (_attrCon['TYPENO'] == 8)]
+        _attrCon["cluster_n"] = _attrCon.groupby('ZONE')['cluster'].transform('nunique')
+        mask = (
+        ((_attrCon['cluster_n']== 1) & ((_attrCon['pot_con'] / _attrCon['pot_max']) >= minPot2))
+        |
+        (_attrCon['cluster_n'] > 1)
+        )
+        _attrCon = _attrCon[mask]
         _attrCon['pot_con_sum'] = _attrCon.groupby(['ZONE', "cluster"])['pot_con'].transform('sum')
         _attrCon["weights"] = (_attrCon["cluster_pot_sum"] / _attrCon["cluster_pot_uniqueSum"]) * (_attrCon["pot_con"] / _attrCon["pot_con_sum"])
         _attrCon["avg_meter_sum"] = _attrCon["avg_meter"] * _attrCon["weights"]
-        _attrCon = _attrCon.groupby(["ZONE", "STOPAREA"], as_index=False).agg({'weights': 'sum', 'avg_meter_sum': 'sum'})
+        _attrCon = _attrCon.groupby(["ZONE", "STOPAREA"], as_index=False).agg({'weights': 'sum', 'avg_meter_sum': 'sum', 'cluster_n': 'first'})
         _attrCon["avg_meter"] = _attrCon['avg_meter_sum'] / _attrCon['weights']
     
-    # avoid multiple cons to same lines
     if not _shares:
+        # avoid multiple cons to same lines
         _linesPot = _attrCon.explode('LINES')
         _linesPot = _linesPot.groupby(['ZONE', 'LINES'], as_index = False)['pot_con'].max()
         _attrCon["pot_lines"] = _attrCon.apply(_pot2Lines, _lines2stoparea = _linesPot, axis=1)
@@ -138,9 +169,8 @@ def StopAreas2Connect(_attrCon, _shares = False):
     Visum.Log(20480, "StopAreas to be connected have been identified")
     return _attrCon
 
-def weights2Connections(_UDTName, _pot_fact, _shares = False, _maxDist = 1500):
-    _zones = pd.DataFrame(Visum.Net.Zones.GetMultipleAttributes(["NO"], True))
-    _zones.columns = ["NO"]
+def weights2Connections(_UDTName, _pot_fact, _shares = False, _maxDist = 1500, _minCluster = 0.2):
+    _zones = pd.DataFrame(Visum.Net.Zones.GetMultipleAttributes(["NO"], True), columns = ["NO"])
     Visum.Log(20480, f"Creating new PT-Connectors for {len(_zones)} Zones")
     
     udt = Visum.Net.TableDefinitions.ItemByKey(_UDTName)
@@ -153,22 +183,29 @@ def weights2Connections(_UDTName, _pot_fact, _shares = False, _maxDist = 1500):
     df_udt["pot_sum"] = df_udt["POTENTIAL"] * df_udt["CODE"].map(_pot_fact)
     df_udt["pot_con"] = ((1 - df_udt["METER"] / _maxDist)**3) * df_udt["pot_sum"]
     df_udt["pot_meter"] = df_udt["METER"] * df_udt["pot_con"]
-    df_udt["pot_x"] = df_udt["X"] * df_udt["pot_con"]
-    df_udt["pot_y"] = df_udt["Y"] * df_udt["pot_con"]
-    aggr = {'pot_con': 'sum', 'pot_meter': 'sum', 'pot_x': 'sum', 'pot_y': 'sum'}
+    df_udt["pot_x"] = df_udt["X"] * df_udt["pot_sum"]
+    df_udt["pot_y"] = df_udt["Y"] * df_udt["pot_sum"]
+    aggr = {'pot_sum': 'sum', 'pot_con': 'sum', 'pot_meter': 'sum', 'pot_x': 'sum', 'pot_y': 'sum'}
     df_udt["cluster"] = 1
     
     if _shares:
         df_udt = df_udt.groupby('ZONE', group_keys = False).apply(lambda z: _clusterXY(z, z.name),include_groups = False)
         df_udt["cluster_pot_sum"] = df_udt.groupby(['ZONE', "cluster"])['pot_sum'].transform('sum')
         df_udt["cluster_pot_max"] = df_udt.groupby('ZONE')['cluster_pot_sum'].transform('max')
-        df_udt = df_udt[(df_udt["cluster_pot_max"] != 0) & (df_udt["cluster_pot_sum"] / df_udt["cluster_pot_max"] >= 0.1) & (df_udt["cluster"] != -1)]
-        df_udt["cluster_n"] = df_udt.groupby('ZONE')['cluster'].transform('nunique')
-        # df_udt["cluster_pot_uniqueSum"] = df_udt["cluster_pot_sum"].unique().sum()
-        df_udt["cluster_pot_uniqueSum"] = df_udt.groupby("ZONE")["cluster_pot_sum"].transform(lambda x: x.unique().sum())
-        aggr.update({'cluster_pot_sum': 'first', 'cluster_pot_max': 'first', "cluster_pot_uniqueSum": "first", 'cluster_n': 'first'})
+        df_udt = df_udt[df_udt["cluster_pot_sum"] != 0] # no cluster without pot
+        df_udt = df_udt[df_udt["cluster"] != -1] # no outlier
+        df_udt = df_udt[df_udt["cluster_pot_sum"] / df_udt["cluster_pot_max"] >= _minCluster] # no cluster with less than 20% of max cluster pot in zone
+        first_vals = (
+            df_udt
+            .drop_duplicates(subset=["ZONE", "cluster"])
+            .groupby("ZONE")["cluster_pot_sum"]
+            .sum()
+            .rename("cluster_pot_uniqueSum")
+            )
+        df_udt = df_udt.merge(first_vals, on = "ZONE")
+        aggr.update({'cluster_pot_sum': 'first', "cluster_pot_uniqueSum": "first"})
         
-    df_udt = df_udt.groupby(["ZONE", "STOPAREA", "cluster"], as_index=False).agg(aggr)
+    df_udt = df_udt.groupby(["ZONE", "STOPAREA", "cluster"], as_index = False).agg(aggr)
     df_udt['pot_max'] = df_udt.groupby(['ZONE', "cluster"])['pot_con'].transform('max')
     df_udt["avg_meter"] = df_udt["pot_meter"] / df_udt["pot_con"]
         
@@ -215,5 +252,6 @@ attrCon = weights2Connections(UDTName, pot_fact, shares)
 selCon = StopAreas2Connect(attrCon, shares)
 delConnections(selCon)
 addConnections(selCon, tWalk, shares)
+share2zone(selCon, shares)
 poi2Center(attrCon)
 Visum.Log(20480, "Finished")
