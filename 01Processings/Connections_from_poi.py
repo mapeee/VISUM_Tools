@@ -104,7 +104,7 @@ def poi2udt(_Visum, _POICat, _UDTName):
     _Visum.Log(20480, "Attributes merged")
     return
 
-def share2zone(_Visum, _selCon, _shares):
+def share2zone(_Visum, _selCon, _shares, _potZone = 2000):
     if not _shares:
         SetMulti(_Visum.Net.Zones, "SHAREPUT", [0] * _Visum.Net.Zones.CountActive, True)
         return
@@ -112,13 +112,17 @@ def share2zone(_Visum, _selCon, _shares):
     _share = []
     df_zone = _selCon.groupby("ZONE", as_index=False).agg(
         cluster_n = ("cluster_n", "first"),
-        n = ("cluster_n", "size"))
+        n = ("cluster_n", "size"),
+        pot_sum_zone = ("pot_sum_zone", "first"))
     
     for i in _Visum.Net.Zones.GetMultipleAttributes(["NO", "SHAREPUT"], False):
         if len(df_zone[df_zone["ZONE"]==i[0]]) == 0:
             _share.append(i[1])
             continue
         if df_zone[df_zone["ZONE"]==i[0]]["n"].iloc[0] == 1:
+            _share.append(0)
+            continue
+        if df_zone[df_zone["ZONE"]==i[0]]["pot_sum_zone"].iloc[0] < _potZone:
             _share.append(0)
             continue
         if df_zone[df_zone["ZONE"]==i[0]]["cluster_n"].iloc[0] == 1:
@@ -164,10 +168,17 @@ def StopAreas2Connect(_Visum, _attrCon, _shares = False, _minPot1 = 0.15, _pot8 
         _attrCon["weights"] = (_attrCon["cluster_pot_sum"] / _attrCon["cluster_pot_uniqueSum"]) * (_attrCon["pot_con"] / _attrCon["pot_con_sum"])
 
         _attrCon["weights_sum"] = _attrCon.groupby(["ZONE", "STOPAREA"])["weights"].transform("sum")
-        _attrCon = _attrCon[_attrCon["weights_sum"] > minWeight]
+        _attrCon["nZONE"] = _attrCon.groupby(["ZONE"])["ZONE"].transform("count")
+        
+        _attrCon = _attrCon[
+    (_attrCon["nZONE"] <= 12) & (_attrCon["weights_sum"] > minWeight) |
+    (_attrCon["nZONE"] > 12) & (_attrCon["weights_sum"] > (minWeight * 0.7))] # reduce minWeight if there are to many connections
+        
+        _attrCon["weights_sum"] = _attrCon.groupby(["ZONE"])["weights"].transform("sum")
+        _attrCon["weights"] = _attrCon["weights"] * (1 / _attrCon["weights_sum"])
 
         _attrCon["avg_meter_sum"] = _attrCon["avg_meter"] * _attrCon["weights"]
-        _attrCon = _attrCon.groupby(["ZONE", "STOPAREA"], as_index=False).agg({"weights": "sum", "avg_meter_sum": "sum", "cluster_n": "first"})
+        _attrCon = _attrCon.groupby(["ZONE", "STOPAREA"], as_index=False).agg({"weights": "sum", "avg_meter_sum": "sum", "cluster_n": "first", "pot_sum_zone": "first"})
         _attrCon["avg_meter"] = _attrCon["avg_meter_sum"] / _attrCon["weights"]
     
     if not _shares:
@@ -192,11 +203,12 @@ def weights2Connections(_Visum, _UDTName, _pot_fact, _shares = False, _maxDist =
     
     # weights and cluster
     df_udt["pot_sum"] = df_udt["POTENTIAL"] * df_udt["CODE"].map(_pot_fact)
+    df_udt["pot_sum_zone"] = df_udt.groupby("ZONE")["pot_sum"].transform("sum")
     df_udt["pot_con"] = ((1 - df_udt["METER"] / _maxDist)**3) * df_udt["pot_sum"]
     df_udt["pot_meter"] = df_udt["METER"] * df_udt["pot_con"]
     df_udt["pot_x"] = df_udt["X"] * df_udt["pot_sum"]
     df_udt["pot_y"] = df_udt["Y"] * df_udt["pot_sum"]
-    aggr = {"pot_sum": "sum", "pot_con": "sum", "pot_meter": "sum", "pot_x": "sum", "pot_y": "sum"}
+    aggr = {"pot_sum": "sum", "pot_con": "sum", "pot_meter": "sum", "pot_x": "sum", "pot_y": "sum", "pot_sum_zone": "first"}
     df_udt["cluster"] = 1
     
     if _shares:
