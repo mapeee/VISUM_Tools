@@ -89,9 +89,9 @@ class MyDialog(wx.Dialog):
         vbox.Add(sbSizer_filter, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
         vbox.AddSpacer(10)
         vbox.Add(sbSizer_exportimport, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
-        vbox.AddSpacer(20)
+        vbox.AddSpacer(10)
         vbox.Add(sbSizer_systemroute, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
-        vbox.AddSpacer(20)
+        vbox.AddSpacer(10)
         vbox.Add(sbSizer_end, proportion = 1, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
         vbox.AddSpacer(10)
 
