@@ -67,8 +67,8 @@ class MyDialog(wx.Dialog):
         self.OnExit(None)
 
 def CheckNetwork():
-    if 0 in [Visum.Net.Nodes.Count,Visum.Net.Zones.Count]:
-        addIn.ReportMessage(_("Current Visum Version hast nothing to set to 0! Create Network elements first!"))
+    if 0 in [Visum.Net.Nodes.Count,Visum.Net.Links.Count]:
+        addIn.ReportMessage(_("Current Visum Version has nothing to set to 0! Create Network elements first!"))
         if not addIn.IsInDebugMode:
             Terminated.set()
         return False
