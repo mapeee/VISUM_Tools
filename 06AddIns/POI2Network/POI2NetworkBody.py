@@ -19,6 +19,7 @@ def Run(param):
     OP.SetAttValue("OPERATIONTYPE",65)
     CODE = \
 f'import re\n\
+elements = [val for _, val in Visum.Net.{param["NetworkType"]}s.GetMultiAttValues("NO")]\n\
 for poi in Visum.Net.POICategories.ItemByKey({param["POICat"]}).POIs.GetAllActive:\n\
     if {param["Replace"]}:\n\
         for element in poi.POITo{param["NetworkType"]}Items.GetAll:\n\
@@ -26,6 +27,7 @@ for poi in Visum.Net.POICategories.ItemByKey({param["POICat"]}).POIs.GetAllActiv
     for i in re.split(r",|;",str(poi.AttValue("{param["POIAttr"]}"))):\n\
         try: i = int(float(i))\n\
         except:continue\n\
+        if i not in elements: continue\n\
         if i == 0: continue\n\
         for element in poi.POITo{param["NetworkType"]}Items.GetAll:\n\
             if i == element.AttValue("{param["NetworkType"]}NO"):\n\
