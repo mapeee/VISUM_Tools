@@ -102,6 +102,9 @@ def CreateShape(_Visum):
     _Shape.CreateField(ogr.FieldDefn("Class", ogr.OFTString))
     _Shape.CreateField(ogr.FieldDefn("Distance", ogr.OFTInteger))
     
+    _Shape.SyncToDisk()
+    _data_source.FlushCache()
+    
     _Visum.Log(20480, "Shape created (temporary)")
     return shapefile_path, _data_source, _Shape
 
