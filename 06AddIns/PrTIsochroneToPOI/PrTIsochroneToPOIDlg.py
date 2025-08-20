@@ -12,7 +12,7 @@ class MyDialog(wx.Dialog):
         self.__InitUI()
 
     def __InitUI(self):
-        self.textctrl_Range = wx.TextCtrl(self, -1, "...", size=(150, -1))
+        self.textctrl_Range = wx.TextCtrl(self, -1, "", style = wx.TE_RICH2, size = (200, -1))
         
         self.combo_POICat = wx.ComboBox(self, -1, "...")
         self.combo_Mode = wx.ComboBox(self, -1, "...")
@@ -31,9 +31,10 @@ class MyDialog(wx.Dialog):
 
         self.__do_layout()
         self.__set_properties()
+        self.__set_infotext()
         self.__do_comboChoice()
         
-        defaultParam = {"POICat" : "...", "Imp" : "...", "Mode" : "...", "Range" : "..."}
+        defaultParam = {"POICat" : "...", "Imp" : "...", "Mode" : "...", "Range" : ""}
         param = addInParam.Check(False, defaultParam)   
         
     def __do_comboChoice(self):
@@ -49,11 +50,22 @@ class MyDialog(wx.Dialog):
         self.combo_Imp.Append([_("Distance"), _("Time")])
         self.combo_Imp.SetValue(_("Distance"))
         
-        self.textctrl_Range.SetValue(_("Ranges in meter (sep ',')"))
+    def __set_infotext(self):
+        if self.textctrl_Range.GetValue() == "":
+            self._set_ExprInfoText()
+            self.textctrl_Range.Bind(wx.EVT_SET_FOCUS, self.OnExprText_EVT_SET_FOCUS)
+            self.textctrl_Range.Bind(wx.EVT_KILL_FOCUS, self.OnExprText_EVT_KILL_FOCUS)
+        else:
+            self.textctrl_Range_inInfoMode = False
         
     def __set_properties(self):
         _version = "1.0"
         self.SetTitle(_("PrT-IsoChrones To POI %s") %_version)
+        
+        self.textctrl_Range.SetDefaultStyle( wx.TextAttr("black", font = wx.Font(10, wx.MODERN, wx.NORMAL, wx.NORMAL, faceName = "Courier New")))
+        self.textctrl_Range_inInfoMode = False
+        
+        self.button_ok.SetFocus()
         
     def __do_layout(self):  
         sb_pref = wx.StaticBox(self, -1, _("Preferences"))
@@ -69,12 +81,14 @@ class MyDialog(wx.Dialog):
         sb_end.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.BOLD))
         sbSizer_end = wx.StaticBoxSizer(sb_end, wx.VERTICAL)
         sbSizer_end.SetMinSize((200, 50))
-        sbSizer_end.AddSpacer(10)
-        sbSizer_end.Add(self.button_ok, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
-        sbSizer_end.Add(self.button_init, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
-        sbSizer_end.AddSpacer(10)
-        sbSizer_end.Add(self.button_help, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
-        sbSizer_end.Add(self.button_exit, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
+        
+        grid_end = wx.FlexGridSizer(rows=0, cols=2, hgap=10, vgap=10)
+        grid_end.Add(self.button_ok, 0, flag = wx.ALIGN_CENTER)
+        grid_end.Add(self.button_init, 1, flag = wx.ALIGN_CENTER)
+        grid_end.Add(self.button_help, 0, flag = wx.ALIGN_CENTER)
+        grid_end.Add(self.button_exit, 1, flag = wx.ALIGN_CENTER)
+        grid_end.AddGrowableCol(1, 1)
+        sbSizer_end.Add(grid_end, 1, wx.ALL | wx.ALIGN_CENTER, 10)
     
         vbox = wx.BoxSizer(wx.VERTICAL)
         vbox.Add(sbSizer_pref, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
@@ -85,30 +99,48 @@ class MyDialog(wx.Dialog):
         self.SetSizerAndFit(vbox)
         self.Layout()
         self.Centre()
-    
-    def OnComboImpChoice(self,event):
-        _imp =  {_("Distance"): "distance", _("Time") : "time"}[self.combo_Imp.GetValue()]
-        if _imp == "distance":
-            self.textctrl_Range.SetValue(_("Ranges in meter (sep ',')"))
+        
+    def _set_ExprInfoText(self):
+        self.textctrl_Range.SetDefaultStyle(wx.TextAttr("grey", font = wx.Font(8, wx.MODERN, wx.ITALIC, wx.NORMAL, faceName = "Courier New")))
+        _imp =  {_("Distance"): "distance", _("Time") : "time", "..." : "..."}[self.combo_Imp.GetValue()]
+        if _imp in ["distance", "..."]:
+            self.textctrl_Range.WriteText(_("Ranges in meter (sep ',')"))
         else:
-            self.textctrl_Range.SetValue(_("Ranges in minutes (sep ',')"))
+            self.textctrl_Range.WriteText(_("Ranges in minutes (sep ',')"))
+        self.textctrl_Range_inInfoMode = True
+    
+    def OnComboImpChoice(self, event):
+        self.textctrl_Range.SetValue("")
+        self._set_ExprInfoText()
         return
     
-    def OnExit(self,event):
+    def OnExit(self, event):
         if not addIn.IsInDebugMode:
             Terminated.set()
         self.Destroy()
         
-    def OnHelp(self,event):
+    def OnExprText_EVT_SET_FOCUS(self, event):
+        if self.textctrl_Range_inInfoMode:
+            self.textctrl_Range.SetValue("")
+        event.Skip()
+
+    def OnExprText_EVT_KILL_FOCUS(self, event):
+        if self.textctrl_Range.GetValue() == "":
+            self._set_ExprInfoText()
+        else:
+            self.textctrl_Range_inInfoMode = False
+        event.Skip()
+        
+    def OnHelp(self, event):
         try:
             os.startfile(addIn.DirectoryPath + _("HelpPrTIsochroneToPOI.htm"))
         except:
             addIn.HandleException()  
             
-    def OnInit(self,event):
+    def OnInit(self, event):
         self.__do_comboChoice()
         
-    def OnOK(self,event):
+    def OnOK(self, event):
         param, paramOK = self.setParameter()
         if not _TestLocations():
             return
