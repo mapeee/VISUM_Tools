@@ -95,6 +95,8 @@ class MyDialog(wx.Dialog):
         vbox.Add(sbSizer_end, proportion = 1, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
         vbox.AddSpacer(10)
 
+        self.button_import.Enable(False)
+
         self.SetSizerAndFit(vbox)
         self.Layout()
         self.Centre()
@@ -135,12 +137,20 @@ class MyDialog(wx.Dialog):
             else: Stops = [["0", "0"]]
             self.PTExport_State, self.PTExport, self.Nodes = PTLEE.PTExport(Visum, addIn.DirectoryPath, Stops)
             if self.PTExport_State == True:
+                self.button_export.Enable(False)
+                self.button_import.Enable(True)
+                self.button_export_import.Enable(False)
+                self.button_finish.Enable(False)
                 Visum.Log(20480,_("Export finished"))
         elif ProcName == "Import":
             if hasattr(self, "PTExport_State"):
                 proc = PTLEE.PTImport(Visum, self.Nodes, self.PTExport)
             else:
                 proc = PTLEE.PTImport(Visum)
+            self.button_export.Enable(True)
+            self.button_import.Enable(False)
+            self.button_export_import.Enable(True)
+            self.button_finish.Enable(True)
             Visum.Log(20480,_("Import finished"))
         elif ProcName == "Export_Import":
             if hasattr(self, "stop_data"): Stops = self.stop_data
