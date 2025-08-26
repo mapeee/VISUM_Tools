@@ -7,7 +7,7 @@ _ = AddIn.gettext
 
 class MyDialog(wx.Dialog):
     def __init__(self, parent, title):
-        super(MyDialog, self).__init__(parent, id=-1, title=title, size=(400, 300), style=wx.CAPTION | wx.STAY_ON_TOP)
+        super(MyDialog, self).__init__(parent, id=-1, title=title, size=(400, 300), style=wx.RESIZE_BORDER | wx.FRAME_SHAPED | wx.STAY_ON_TOP)
 
         self.__InitUI()
 
