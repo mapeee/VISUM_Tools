@@ -21,7 +21,7 @@ def Run(param):
         _range = [sec * 60 for sec in _range]
 
     # ==== ORS request ====
-    client = ors.Client(key = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImQ5OTgwMjY4YjVkZDRlODJiZTFjMTQ5ZGZjOTFkMjAzIiwiaCI6Im11cm11cjY0In0=")
+    client = ors.Client(key = Key)
     payload = {
       "locations" : _locations,
       "range" : _range,
