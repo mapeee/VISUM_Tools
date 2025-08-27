@@ -7,6 +7,45 @@ import PTLineEdit_Execute as PTLEE
 from VisumPy.AddIn import AddIn, AddInState, AddInParameter
 _ = AddIn.gettext
 
+
+class InfoFrame(wx.Frame):
+    def __init__(self, title):
+        super(InfoFrame, self).__init__(None, id=-1, title=title, style=wx.CAPTION | wx.STAY_ON_TOP, size=(190, 190))
+        self.Centre()
+        
+        img = wx.Image(addIn.DirectoryPath +'logo.png',wx.BITMAP_TYPE_ANY)
+        img = img.Scale(55,30,wx.IMAGE_QUALITY_BOX_AVERAGE)
+        img = img.ConvertToBitmap()
+        png = wx.StaticBitmap(self, -1, img, (0, 0))
+        
+        self.button = wx.Button(self, -1, _("OK"))
+        self.Bind(wx.EVT_BUTTON, self.__OnOK, self.button)
+        self.SetBackgroundColour(wx.Colour(wx.NullColour))
+        
+        self.label = wx.StaticText(self,label= _("hvv GmbH"))
+        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(png,0,wx.LEFT,5)
+        sizer.AddSpacer(10)
+        sizer.Add(self.label,0,wx.LEFT,10)
+        sizer.AddSpacer(2)
+        sizer.Add(wx.StaticText(self,label= _("Marcus Peter")),0,wx.LEFT,10)
+        sizer.Add(wx.StaticText(self,label= _("14.03.2025")),0,wx.LEFT,10)
+        sizer.AddSpacer(2)
+        sizer.Add(wx.StaticText(self,label= _("Version 1.0: Initial")),0,wx.LEFT,10)
+        sizer.AddSpacer(10)
+        sizer.Add(self.button,0,wx.ALIGN_CENTER,5)
+        sizer.AddSpacer(5)
+        self.SetSizer(sizer)
+        
+        font = wx.Font(8, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.BOLD)
+        self.label.SetFont(font)
+
+        self.Show()
+
+    def __OnOK(self,event):
+        self.Close(True)
+
 class MyDialog(wx.Dialog):
     def __init__(self, parent, title):
         super(MyDialog, self).__init__(parent, id=-1, title=title, size=(400, 300), style=wx.CAPTION | wx.STAY_ON_TOP)
@@ -34,8 +73,10 @@ class MyDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_finish)
         
         self.button_help = wx.Button(self, -1, _('Help'))
+        self.button_info = wx.Button(self, -1, _('Info'))
         self.button_exit = wx.Button(self, wx.ID_CANCEL, _('Close'))
         self.Bind(wx.EVT_BUTTON, self.OnHelp, self.button_help)
+        self.Bind(wx.EVT_BUTTON, self.OnInfo, self.button_info)
         self.Bind(wx.EVT_BUTTON, self.OnExit, self.button_exit)
 
         image = wx.Image(addIn.DirectoryPath +"gear.png", wx.BITMAP_TYPE_PNG)
@@ -83,6 +124,7 @@ class MyDialog(wx.Dialog):
         sbSizer_end.SetMinSize((200, 50))
         sbSizer_end.AddSpacer(10)
         sbSizer_end.Add(self.button_help, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
+        sbSizer_end.Add(self.button_info, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
         sbSizer_end.Add(self.button_exit, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
         
         vbox = wx.BoxSizer(wx.VERTICAL)
@@ -173,7 +215,11 @@ class MyDialog(wx.Dialog):
         try:
             os.startfile(addIn.DirectoryPath + _("HelpPTLineEdit.htm"))
         except:
-            addIn.HandleException()  
+            addIn.HandleException()
+            
+    def OnInfo(self, event):
+        title = _("Info")
+        frame = InfoFrame(title=title)
         
     def setParameter(self):
         param = dict()
@@ -266,7 +312,7 @@ else:
     try:
         wx.InitAllImageHandlers()
         if CheckNetwork():
-            dialog_1 = MyDialog(None, "")
+            dialog_1 = MyDialog(None, _("PT-Line Editor"))
             app.SetTopWindow(dialog_1)
             dialog_1.ShowModal()
             if addIn.IsInDebugMode:
