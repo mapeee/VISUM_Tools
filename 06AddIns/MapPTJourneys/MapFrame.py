@@ -27,8 +27,8 @@ class PlotFrame(wx.Frame):
         self,
         parent,
         boxes: List[dict],
-        ylim: Tuple[float, float] = (0, 20),
         xlim: Tuple[float, float] = (0, 24),
+        ylim: Tuple[float, float] = (0, 20),
         title: str = _("Map PT Journeys"),
         throttle_ms: int = 30,  # ~30 FPS throttle for smooth zoom/pan
     ):
@@ -47,9 +47,9 @@ class PlotFrame(wx.Frame):
         self.ax.set_xlim(*xlim)
         self.ax.set_ylim(*ylim)
 
-        self.ax.set_xticks(np.arange(0, xlim[1] + 1, 2))
+        self.ax.set_xticks(np.arange(xlim[0], xlim[1] + 1, 2))
         self.ax.set_xlabel(_("Hour"))
-        self.ax.set_yticks(np.arange(0, ylim[1] + 1, 2))
+        self.ax.set_yticks(np.arange(0, max(ylim[1], 10) + 1, 2))
         self.ax.set_ylabel(_("Count"))
 
         # Canvas + toolbar

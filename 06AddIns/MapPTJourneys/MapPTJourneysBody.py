@@ -10,8 +10,8 @@ from MapFrame import PlotFrame
     
 
 def Run():    
-    boxes, ymax = CreateDict()
-    frame = PlotFrame(None, boxes, ylim = (0, ymax + 2))
+    boxes, xmin, xmax, ymax = CreateDict()
+    frame = PlotFrame(None, boxes, xlim = (xmin, xmax), ylim = (0, ymax + 2))
     frame.Show()
     
     Visum.Log(20480, _("Map PT Journeys"))
@@ -32,9 +32,11 @@ def CreateDict():
     VJTable = _setColors(VJTable)
 
     _boxes = VJTable.to_dict(orient = "records")
+    _xmin = int(VJTable["DEP"].min() / 60 / 60)
+    _xmax = int(VJTable["ARR"].max() / 60 / 60) + 1
     _ymax = VJTable["RowCount"].max()
     
-    return _boxes, _ymax
+    return _boxes, _xmin, _xmax, _ymax
 
 def _getRowCount(_VJTable):
     lst = [[0, 0]]
