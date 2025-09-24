@@ -141,6 +141,9 @@ class MyDialog(wx.Dialog):
         movings = int(event.GetEventObject().GetName())
         for VJ in Visum.Net.Marking.GetAll:
             if self.toggle_vals.GetValue() is False:
+                if VJ.AttValue("DEP") + (60 * movings) < 0:
+                    addIn.ReportMessage(_("Start before 0!"))
+                    return
                 VJ.SetAttValue("DEP", VJ.AttValue("DEP") + (60 * movings))
             elif self.toggle_stops.GetValue() is True:
                 if VJ.AttValue("FROMTPROFITEMINDEX") + movings < 1:
