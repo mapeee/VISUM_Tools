@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 import sys
 import os
+import pandas as pd
 import wx
+from VisumPy.helpers import SetMulti
 from VisumPy.AddIn import AddIn, AddInState, AddInParameter
 _ = AddIn.gettext
 
@@ -138,33 +140,54 @@ class MyDialog(wx.Dialog):
     def OnMove(self, event):
         if not _checkMarking():
             return
-        movings = int(event.GetEventObject().GetName())
+        Visum.Net.VehicleJourneys.SetPassive()
+        df_Active = pd.DataFrame(Visum.Net.VehicleJourneys.GetMultipleAttributes(["NO", "ISINSELECTION"]), columns = ["NO", "ISINSELECTION"])
         for VJ in Visum.Net.Marking.GetAll:
-            if self.toggle_vals.GetValue() is False:
-                if VJ.AttValue("DEP") + (60 * movings) < 0:
-                    addIn.ReportMessage(_("Start before 0!"))
-                    return
-                VJ.SetAttValue("DEP", VJ.AttValue("DEP") + (60 * movings))
-            elif self.toggle_stops.GetValue() is True:
-                if VJ.AttValue("FROMTPROFITEMINDEX") + movings < 1:
-                    addIn.ReportMessage(_("Start before Index 1!"))
-                    return
-                if VJ.AttValue("FROMTPROFITEMINDEX") + movings >= VJ.AttValue("TOTPROFITEMINDEX"):
-                    addIn.ReportMessage(_("Start after finish!"))
-                    return
-                VJ.SetAttValue("FROMTPROFITEMINDEX", VJ.AttValue("FROMTPROFITEMINDEX") + movings)
-            else:
-                if VJ.AttValue("TOTPROFITEMINDEX") + movings <= VJ.AttValue("FROMTPROFITEMINDEX"):
-                    addIn.ReportMessage(_("Finish before start!"))
-                    return
-                if VJ.AttValue("TOTPROFITEMINDEX") + movings > VJ.AttValue(r"TIMEPROFILE\ENDTIMEPROFILEITEM\INDEX"):
-                    addIn.ReportMessage(_("Finish after last stop!"))
-                    return
-                VJ.SetAttValue("TOTPROFITEMINDEX", VJ.AttValue("TOTPROFITEMINDEX") + movings)
+            NO_VJ = VJ.AttValue("NO")
+            df_Active.loc[df_Active["NO"] == NO_VJ, "ISINSELECTION"] = 1
+        activeVJ = df_Active["ISINSELECTION"].tolist()
+        SetMulti(Visum.Net.VehicleJourneys, "ISINSELECTION", activeVJ)
+            
+        if self.toggle_vals.GetValue() is False: # minutes
+            attr = "DEP"
+        elif self.toggle_stops.GetValue() is True: # stops from
+            attr = "FROMTPROFITEMINDEX"
+        else: # stops to
+            attr = "TOTPROFITEMINDEX"
+        movings = int(event.GetEventObject().GetName())
+        if self.toggle_vals.GetValue() is False: # minutes
+            movings = movings*60
         
+        df_VJ = pd.DataFrame(Visum.Net.VehicleJourneys.GetMultipleAttributes(["DEP", "FROMTPROFITEMINDEX", "TOTPROFITEMINDEX",r"TIMEPROFILE\ENDTIMEPROFILEITEM\INDEX"], True), 
+                             columns = ["DEP", "FROMTPROFITEMINDEX", "TOTPROFITEMINDEX", "ENDINDEX"])
+
+        if self.toggle_vals.GetValue() is False: # minutes
+            if (df_VJ[attr] + movings < 0).any():
+                addIn.ReportMessage(_("Start before 0!"))
+                return
+        elif self.toggle_stops.GetValue() is True:
+            if (df_VJ[attr] + movings < 1).any():
+                addIn.ReportMessage(_("Start before Index 1!"))
+                return
+            if (df_VJ["FROMTPROFITEMINDEX"] + movings >= df_VJ["TOTPROFITEMINDEX"]).any():
+                addIn.ReportMessage(_("Start after finish!"))
+                return
+        else:
+            if (df_VJ["TOTPROFITEMINDEX"] + movings <= df_VJ["FROMTPROFITEMINDEX"]).any():
+                addIn.ReportMessage(_("Finish before start!"))
+                return
+            if (df_VJ["TOTPROFITEMINDEX"] + movings > df_VJ["ENDINDEX"]).any():
+                addIn.ReportMessage(_("Finish after last stop!"))
+                return
+
+        df_VJ[attr] = df_VJ[attr] + movings
+        moverValues = df_VJ[attr].tolist()
+        
+        SetMulti(Visum.Net.VehicleJourneys, attr, moverValues, True)
+        Visum.Net.VehicleJourneys.SetActive()
         addInParam.SaveParameter(None)
 
-  
+
 def CheckNetwork():
     if 0 in [Visum.Net.Nodes.Count,Visum.Net.Links.Count]:
         addIn.ReportMessage(_("Current Visum Version has no VehicleJourneys!"))
@@ -177,7 +200,7 @@ def _checkMarking():
     if Visum.Net.Marking.ObjectType != 20:
         addIn.ReportMessage(_("No VehicleJourneys marked!"))
         return False
-    if Visum.Net.Marking.Count > 20:
+    if Visum.Net.Marking.Count > 200:
         addIn.ReportMessage(_("To many VehicleJourneys marked!"))
         return False
     if Visum.Net.Marking.Count == 0:
