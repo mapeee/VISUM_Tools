@@ -48,8 +48,8 @@ class MyDialog(wx.Dialog):
         self.__InitUI()
 
     def __InitUI(self):   
-        self.toggle_vals = wx.ToggleButton(self, -1, _("Minutes"), name = "values")
-        self.toggle_stops = wx.ToggleButton(self, -1, _(" "), name = "stops")
+        self.toggle_vals = wx.ToggleButton(self, -1, _("Time"), name = "values")
+        self.toggle_stops = wx.ToggleButton(self, -1, _(" "), name = "route")
         self.toggle_vals.Bind(wx.EVT_TOGGLEBUTTON, self._on_toggle)
         self.toggle_stops.Bind(wx.EVT_TOGGLEBUTTON, self._on_toggle)        
         self.button_1 = wx.Button(self, -1, _("+1"), name = "1")
@@ -105,21 +105,21 @@ class MyDialog(wx.Dialog):
         
     def _on_toggle(self, event):
         button = event.GetEventObject()
-        if button.GetName() == "stops":
-            self.toggle_vals.SetLabel(_("Stops"))
+        if button.GetName() == "route":
+            self.toggle_vals.SetLabel(_("Route"))
             self.toggle_vals.SetValue(True)
         if button.GetValue():
-            if button.GetName() == "stops":
+            if button.GetName() == "route":
                 button.SetLabel(_("Stops From"))
             else:
-                button.SetLabel(_("Stops"))
+                button.SetLabel(_("Route"))
                 self.toggle_stops.SetLabel(_("Stops From"))
                 self.toggle_stops.SetValue(True)
         else:
-            if button.GetName() == "stops":
+            if button.GetName() == "route":
                 button.SetLabel(_("Stops To"))
             else:
-                button.SetLabel(_("Minutes"))
+                button.SetLabel(_("Time"))
                 self.toggle_stops.SetLabel(_(" "))
                 self.toggle_stops.SetValue(False)
         
