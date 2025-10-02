@@ -155,7 +155,7 @@ class MyDialog(wx.Dialog):
         self.Destroy()
         
     def OnProc(self,event):
-        proc = None
+        proc = True
         param, paramOK = self.setParameter()
         ProcName = event.GetEventObject().GetName()
         if ProcName == "InitFilter":
@@ -206,7 +206,7 @@ class MyDialog(wx.Dialog):
             if not addIn.IsInDebugMode:
                 Terminated.set()
         
-        if proc == False:
+        if not proc:
             addIn.ReportMessage(_("Some error occurred"))
         else:
             addIn.ReportMessage(_("Ok"), 2)
