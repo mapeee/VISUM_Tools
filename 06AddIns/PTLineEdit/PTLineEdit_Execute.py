@@ -17,8 +17,8 @@ def InitFilter(Visum):
 
 def PTExport(Visum, directory, Stops):
     if Visum.Net.LineRoutes.CountActive > 300:
-        Visum.Log(12288,_(f"To many LineRoutes: {Visum.Net.LineRoutes.CountActive}"))
-        return False
+        Visum.Log(12288,_("To many LineRoutes: {name}").format(name = Visum.Net.LineRoutes.CountActive))
+        return False, None, None
     
     vehjourneys = Visum.Net.VehicleJourneys.Count
     servingstops = sum(i[1] for i in Visum.Net.StopPoints.GetMultiAttValues("Count:ServingVehJourneys", False))
@@ -142,22 +142,22 @@ def PTImport(Visum, changed_nodes = [0], PTcounts = False):
     InsertedLinks = Visum.Filters.LinkFilter()
     InsertedLinks.AddCondition("OP_NONE", False, "TYPENO", "ContainedIn", "1")
     if Visum.Net.Links.CountActive > 0:
-        Visum.Log(16384, _(f"> {Visum.Net.Links.CountActive} new links of type 1 added"))
+        Visum.Log(16384, _("{name} new links of type 1 added").format(name = Visum.Net.Links.CountActive))
     else:
         Visum.Filters.LinkFilter().Init()
     
     if PTcounts:
         journeys = PTcounts[0] - Visum.Net.VehicleJourneys.Count
         if journeys != 0:
-            Visum.Log(12288, _(f"missing VehicleJourneys: {journeys}"))
+            Visum.Log(12288, _("missing VehicleJourneys: {name}").format(name = journeys))
             return False
         servingstops = int(PTcounts[1] - sum(i[1] for i in Visum.Net.StopPoints.GetMultiAttValues("Count:ServingVehJourneys", False)))
         if servingstops != 0:
-            Visum.Log(12288, _(f"missing servings at stops: {servingstops}"))
+            Visum.Log(12288, _("missing servings at stops: {name}").format(name = servingstops))
             return False
         chainedVehSec = PTcounts[2] - Visum.Net.ChainedUpVehicleJourneySections.Count
         if chainedVehSec != 0:
-            Visum.Log(12288, _(f"missing Chained VehicleJourneySections: {chainedVehSec}"))
+            Visum.Log(12288, _("missing Chained VehicleJourneySections: {name}").format(name = chainedVehSec))
             return False
 
 def SRtimeBus(Visum, mode):

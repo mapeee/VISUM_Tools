@@ -184,6 +184,8 @@ class MyDialog(wx.Dialog):
                 self.button_export_import.Enable(False)
                 self.button_finish.Enable(False)
                 Visum.Log(20480,_("Export finished"))
+            else:
+                proc = False
         elif ProcName == "Import":
             if hasattr(self, "PTExport_State"):
                 proc = PTLEE.PTImport(Visum, self.Nodes, self.PTExport)
