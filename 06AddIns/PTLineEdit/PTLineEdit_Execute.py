@@ -3,6 +3,7 @@
 Created on Wed Mar 12 15:58:59 2025
 """
 import os
+import pandas as pd
 from pathlib import Path
 import sqlite3
 from VisumPy.AddIn import AddIn
@@ -22,14 +23,16 @@ def PTExport(Visum, directory, Stops):
     
     vehjourneys = Visum.Net.VehicleJourneys.Count
     servingstops = sum(i[1] for i in Visum.Net.StopPoints.GetMultiAttValues("Count:ServingVehJourneys", False))
-    chainedVehSec = Visum.Net.ChainedUpVehicleJourneySections.Count
+    TableFields = ["VEHJOURNEYNO", "VEHJOURNEYSECTIONNO", "CHAINEDUPVEHJOURNEYNO", "CHAINEDUPVEHJOURNEYSECTIONNO", "CALENDARDAY", "ISFORCEDCHAIN"]
+    chainedVSTable = pd.DataFrame(Visum.Net.ChainedUpVehicleJourneySections.GetMultipleAttributes(TableFields, False),
+                                      columns = TableFields)
     Nodes = [int(i[1]) for i in Visum.Net.Nodes.GetMultiAttValues("No", True)]
     if len(Nodes) == 0: Nodes = [0]
     else: PTFilter(Visum)
     
     desktop_path = _desktop()
     sqlite_path = os.path.join(desktop_path, "PTdata.sqlite3")
-    Visum.IO.SaveSQLiteDatabase(sqlite_path, os.path.join(directory, "Access_export.net"), True, False, True)    
+    Visum.IO.SaveSQLiteDatabase(sqlite_path, os.path.join(directory, "Access_export.net"), True, False, True)
     
     Visum.Net.LineRoutes.RemoveAll()
     Visum.Net.Connectors.RemoveAll()
@@ -51,7 +54,7 @@ def PTExport(Visum, directory, Stops):
             conn.commit()
         conn.close()
         
-    return True, [vehjourneys, servingstops, chainedVehSec], Nodes
+    return True, [vehjourneys, servingstops], [Nodes, chainedVSTable]
 
 def PTFilter(Visum):
     Visum.Filters.InitAll()
@@ -86,7 +89,7 @@ def PTFilter(Visum):
     Lines.UseFilterForVehJourneySections = True
     Lines.UseFilterForVehJourneyItems = True
 
-def PTImport(Visum, changed_nodes = [0], PTcounts = False):   
+def PTImport(Visum, nodes_chainedVS = [[0], []], PTcounts = False):   
     desktop_path = _desktop()
     sqlite_path = os.path.join(desktop_path, "PTdata.sqlite3")
     
@@ -117,7 +120,7 @@ def PTImport(Visum, changed_nodes = [0], PTcounts = False):
     Visum.Filters.ConnectorFilter().Init()
     
     ##Attributes for new Stop locations
-    for i in changed_nodes:
+    for i in nodes_chainedVS[0]:
         if i == 0: break
         Node = Visum.Net.Nodes.ItemByKey(i)
         
@@ -155,10 +158,11 @@ def PTImport(Visum, changed_nodes = [0], PTcounts = False):
         if servingstops != 0:
             Visum.Log(12288, _("missing servings at stops: {name}").format(name = servingstops))
             return False
-        chainedVehSec = PTcounts[2] - Visum.Net.ChainedUpVehicleJourneySections.Count
-        if chainedVehSec != 0:
-            Visum.Log(12288, _("missing Chained VehicleJourneySections: {name}").format(name = chainedVehSec))
-            return False
+        if len(nodes_chainedVS[1]) - Visum.Net.ChainedUpVehicleJourneySections.Count > 0:
+            if not _AddchainedVS(Visum, nodes_chainedVS[1]):
+                Visum.Log(12288, _("Error when adding chained VehicleJourneySections"))
+                return False
+    return True
 
 def SRtimeBus(Visum, mode):
     Visum.Filters.InitAll()
@@ -171,6 +175,21 @@ def SRtimeBus(Visum, mode):
         tBus = [i[0] / i[1]*60*60 for i in Visum.Net.Links.GetMultipleAttributes(["LENGTHPOLY", r"LINKTYPE\VDEF_PUTSYS(BUS)"], True)]
     SetMulti(Visum.Net.Links, r"T_PUTSYS(BUS)", tBus, True)
     Visum.Filters.InitAll()
+
+def _AddchainedVS(Visum, _chainedVSTable):
+    TableFields = ["VEHJOURNEYNO", "VEHJOURNEYSECTIONNO", "CHAINEDUPVEHJOURNEYNO", "CHAINEDUPVEHJOURNEYSECTIONNO", "CALENDARDAY", "ISFORCEDCHAIN"]
+    chainedVSTableImport = pd.DataFrame(Visum.Net.ChainedUpVehicleJourneySections.GetMultipleAttributes(TableFields, False),
+                                      columns = TableFields)
+    missingVSTable = _chainedVSTable.merge(chainedVSTableImport, on = TableFields, how = "left",
+                                        indicator = True).query('_merge == "left_only"').drop("_merge", axis=1)
+    for index, row in missingVSTable.iterrows():
+        VSfrom = Visum.Net.VehicleJourneySections.ItemByKey(row["VEHJOURNEYNO"], row["VEHJOURNEYSECTIONNO"])
+        VSto = Visum.Net.VehicleJourneySections.ItemByKey(row["CHAINEDUPVEHJOURNEYNO"], row["CHAINEDUPVEHJOURNEYSECTIONNO"])
+        VSfrom.SetChainedUpSection(VSto, row["CALENDARDAY"], row["ISFORCEDCHAIN"], True)
+    if len(_chainedVSTable) - Visum.Net.ChainedUpVehicleJourneySections.Count != 0:
+        return False
+    Visum.Log(16384, _("{name} chained VehicleJourneySections re-added").format(name = len(missingVSTable)))
+    return True
 
 def _desktop():
     home = Path.home()

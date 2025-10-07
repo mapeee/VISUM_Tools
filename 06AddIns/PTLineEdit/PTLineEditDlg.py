@@ -177,7 +177,7 @@ class MyDialog(wx.Dialog):
         elif ProcName == "Export":
             if hasattr(self, "stop_data"): Stops = self.stop_data
             else: Stops = [["0", "0"]]
-            self.PTExport_State, self.PTExport, self.Nodes = PTLEE.PTExport(Visum, addIn.DirectoryPath, Stops)
+            self.PTExport_State, self.PTExport, self.Nodes_ChaindedVS = PTLEE.PTExport(Visum, addIn.DirectoryPath, Stops)
             if self.PTExport_State == True:
                 self.button_export.Enable(False)
                 self.button_import.Enable(True)
@@ -188,7 +188,7 @@ class MyDialog(wx.Dialog):
                 proc = False
         elif ProcName == "Import":
             if hasattr(self, "PTExport_State"):
-                proc = PTLEE.PTImport(Visum, self.Nodes, self.PTExport)
+                proc = PTLEE.PTImport(Visum, self.Nodes_ChaindedVS, self.PTExport)
             else:
                 proc = PTLEE.PTImport(Visum)
             self.button_export.Enable(True)
@@ -199,8 +199,8 @@ class MyDialog(wx.Dialog):
         elif ProcName == "Export_Import":
             if hasattr(self, "stop_data"): Stops = self.stop_data
             else: Stops = [["0", "0"]]
-            self.PTExport_State, self.PTExport, self.Nodes = PTLEE.PTExport(Visum, addIn.DirectoryPath, Stops)
-            proc = PTLEE.PTImport(Visum, self.Nodes, self.PTExport)
+            self.PTExport_State, self.PTExport, self.Nodes_ChaindedVS = PTLEE.PTExport(Visum, addIn.DirectoryPath, Stops)
+            proc = PTLEE.PTImport(Visum, self.Nodes_ChaindedVS, self.PTExport)
             Visum.Log(20480,_("Export / Import finished"))
         else:
             param["Proc"] = ProcName
