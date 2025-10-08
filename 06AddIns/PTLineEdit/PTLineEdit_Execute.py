@@ -38,22 +38,20 @@ def PTExport(Visum, directory, Stops):
     Visum.Net.Connectors.RemoveAll()
     Visum.Net.StopAreas.RemoveAll()
     Visum.Net.StopPoints.RemoveAll()
-
-    ## Sqlite3
+       
+    if Stops[0][0] == "0":
+        return True, [vehjourneys, servingstops], [Nodes, chainedVSTable]
     conn = sqlite3.connect(sqlite_path)
-    cursor = conn.cursor()
-             
-    if Stops[0][0] != "0":
-        for i in Stops:
-            if i[0] == "0": continue
-            cursor.execute('''
-                            UPDATE LINEROUTEITEM
-                            SET NODENO = ?, STOPPOINTNO = ?
-                            WHERE STOPPOINTNO = ?
-                            ''', (int(i[1]), int(i[1]), int(i[0])))              
-            conn.commit()
-        conn.close()
-        
+    cursor = conn.cursor()    
+    for i in Stops:
+        if i[0] == "0": continue
+        cursor.execute('''
+                        UPDATE LINEROUTEITEM
+                        SET NODENO = ?, STOPPOINTNO = ?
+                        WHERE STOPPOINTNO = ?
+                        ''', (int(i[1]), int(i[1]), int(i[0])))              
+        conn.commit()
+    conn.close()
     return True, [vehjourneys, servingstops], [Nodes, chainedVSTable]
 
 def PTFilter(Visum):
@@ -119,28 +117,7 @@ def PTImport(Visum, nodes_chainedVS = [[0], []], PTcounts = False):
     Visum.Filters.StopGroupFilter().Init()
     Visum.Filters.ConnectorFilter().Init()
     
-    ##Attributes for new Stop locations
-    for i in nodes_chainedVS[0]:
-        if i == 0: break
-        Node = Visum.Net.Nodes.ItemByKey(i)
-        
-        Node.SetAttValue("Name", Node.AttValue(r"MIN:STOPPOINTS\Name"))
-        Area = Visum.Net.StopAreas.ItemByKey(i)
-        Area.SetAttValue("XCOORD", Area.AttValue(r"MIN:STOPPOINTS\XCOORD"))
-        Area.SetAttValue("YCOORD", Area.AttValue(r"MIN:STOPPOINTS\YCOORD"))
-        for Turn in Node.ViaNodeTurns.GetAll:
-            if Turn.AttValue("ANGLE") == 360:
-                Turn.SetAttValue("TSYSSET", "")
-        try: Stop = Visum.Net.Stops.ItemByKey(i)
-        except: continue
-        if int(Stop.AttValue("NumStopAreas")) == 1:
-            Stop.SetAttValue("XCOORD", Stop.AttValue(r"MIN:STOPAREAS\XCOORD"))
-            Stop.SetAttValue("YCOORD", Stop.AttValue(r"MIN:STOPAREAS\YCOORD"))
-
-    Visum.Filters.LineGroupFilter().LineRouteFilter().RemoveCondition(2)        # Remove Aktive:StopPoint > 0
-
-    ##tests for missing elements
-    PTFilter(Visum)
+    '''Tests for additional links of type 1'''
     InsertedLinks = Visum.Filters.LinkFilter().Init() 
     InsertedLinks = Visum.Filters.LinkFilter()
     InsertedLinks.AddCondition("OP_NONE", False, "TYPENO", "ContainedIn", "1")
@@ -148,20 +125,41 @@ def PTImport(Visum, nodes_chainedVS = [[0], []], PTcounts = False):
         Visum.Log(16384, _("{name} new links of type 1 added").format(name = Visum.Net.Links.CountActive))
     else:
         Visum.Filters.LinkFilter().Init()
-    
-    if PTcounts:
-        journeys = PTcounts[0] - Visum.Net.VehicleJourneys.Count
-        if journeys != 0:
-            Visum.Log(12288, _("missing VehicleJourneys: {name}").format(name = journeys))
+
+    '''Additional eddings?'''
+    if not PTcounts:
+        PTFilter(Visum)
+        return True
+
+    '''Attributes for new Stop locations'''
+    for i in nodes_chainedVS[0]:
+        if i == 0: break
+        Node = Visum.Net.Nodes.ItemByKey(i)
+        Node.SetAttValue("Name", Node.AttValue(r"MIN:STOPPOINTS\Name"))
+        Area = Visum.Net.StopAreas.ItemByKey(i)
+        Area.SetAttValue("XCOORD", Area.AttValue(r"MIN:STOPPOINTS\XCOORD"))
+        Area.SetAttValue("YCOORD", Area.AttValue(r"MIN:STOPPOINTS\YCOORD"))
+        for Turn in Node.ViaNodeTurns.GetAll:
+            if Turn.AttValue("ANGLE") == 360:
+                Turn.SetAttValue("TSYSSET", "")
+        Stop = Visum.Net.Stops.ItemByKey(Area.AttValue("STOPNO"))
+        Stop.SetAttValue("XCOORD", Stop.AttValue(r"AVG:STOPAREAS\XCOORD"))
+        Stop.SetAttValue("YCOORD", Stop.AttValue(r"AVG:STOPAREAS\YCOORD"))
+
+    '''tests for missing elements'''
+    PTFilter(Visum)
+    journeys = PTcounts[0] - Visum.Net.VehicleJourneys.Count
+    if journeys != 0:
+        Visum.Log(12288, _("missing VehicleJourneys: {name}").format(name = journeys))
+        return False
+    servingstops = int(PTcounts[1] - sum(i[1] for i in Visum.Net.StopPoints.GetMultiAttValues("Count:ServingVehJourneys", False)))
+    if servingstops != 0:
+        Visum.Log(12288, _("missing servings at stops: {name}").format(name = servingstops))
+        return False
+    if len(nodes_chainedVS[1]) - Visum.Net.ChainedUpVehicleJourneySections.Count > 0:
+        if not _AddchainedVS(Visum, nodes_chainedVS[1]):
+            Visum.Log(12288, _("Error when adding chained VehicleJourneySections"))
             return False
-        servingstops = int(PTcounts[1] - sum(i[1] for i in Visum.Net.StopPoints.GetMultiAttValues("Count:ServingVehJourneys", False)))
-        if servingstops != 0:
-            Visum.Log(12288, _("missing servings at stops: {name}").format(name = servingstops))
-            return False
-        if len(nodes_chainedVS[1]) - Visum.Net.ChainedUpVehicleJourneySections.Count > 0:
-            if not _AddchainedVS(Visum, nodes_chainedVS[1]):
-                Visum.Log(12288, _("Error when adding chained VehicleJourneySections"))
-                return False
     return True
 
 def SRtimeBus(Visum, mode):
@@ -183,11 +181,12 @@ def _AddchainedVS(Visum, _chainedVSTable):
     missingVSTable = _chainedVSTable.merge(chainedVSTableImport, on = TableFields, how = "left",
                                         indicator = True).query('_merge == "left_only"').drop("_merge", axis=1)
     for index, row in missingVSTable.iterrows():
-        VSfrom = Visum.Net.VehicleJourneySections.ItemByKey(row["VEHJOURNEYNO"], row["VEHJOURNEYSECTIONNO"])
-        VSto = Visum.Net.VehicleJourneySections.ItemByKey(row["CHAINEDUPVEHJOURNEYNO"], row["CHAINEDUPVEHJOURNEYSECTIONNO"])
-        VSfrom.SetChainedUpSection(VSto, row["CALENDARDAY"], row["ISFORCEDCHAIN"], True)
-    if len(_chainedVSTable) - Visum.Net.ChainedUpVehicleJourneySections.Count != 0:
-        return False
+        try:
+            VSfrom = Visum.Net.VehicleJourneySections.ItemByKey(row["VEHJOURNEYNO"], row["VEHJOURNEYSECTIONNO"])
+            VSto = Visum.Net.VehicleJourneySections.ItemByKey(row["CHAINEDUPVEHJOURNEYNO"], row["CHAINEDUPVEHJOURNEYSECTIONNO"])
+            VSfrom.SetChainedUpSection(VSto, row["CALENDARDAY"], row["ISFORCEDCHAIN"], True)
+        except:
+            return False
     Visum.Log(16384, _("{name} chained VehicleJourneySections re-added").format(name = len(missingVSTable)))
     return True
 
