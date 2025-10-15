@@ -24,16 +24,16 @@ def CreateDict():
     VJTable["RowCount"] = _getRowCount(VJTable)
     
     # box values
-    VJTable["x0"] = VJTable["DEP"] / 60 / 60
+    VJTable["x0"] = VJTable["DEP"]/60/60
     VJTable["y0"] = VJTable["RowCount"] + 0.03
-    VJTable["w"] = VJTable["DURATION"] / 60 / 60
+    VJTable["w"] = VJTable["DURATION"]/60/60
     VJTable["h"] = 0.94
     VJTable["fill_alpha"] = 0.4
     VJTable = _setColors(VJTable)
 
     _boxes = VJTable.to_dict(orient = "records")
-    _xmin = int(VJTable["DEP"].min() / 60 / 60)
-    _xmax = int(VJTable["ARR"].max() / 60 / 60) + 1
+    _xmin = int(VJTable["DEP"].min()/60/60)
+    _xmax = int(VJTable["ARR"].max()/60/60) + 1
     _ymax = VJTable["RowCount"].max()
     
     return _boxes, _xmin, _xmax, _ymax
