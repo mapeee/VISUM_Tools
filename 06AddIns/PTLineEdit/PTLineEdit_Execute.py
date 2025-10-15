@@ -110,8 +110,8 @@ def PTImport(Visum, nodes_chainedVS = [[0], []], PTcounts = False):
     Nodes = Visum.Filters.NodeFilter()
     Nodes.AddCondition("OP_NONE", False, "AddVal1", "GreaterVal", 0)
     if Visum.Net.Nodes.CountActive > 0:
-        SetMulti(Visum.Net.Nodes, "Name", "", True)
-        SetMulti(Visum.Net.Nodes, "AddVal1", 0, True)
+        SetMulti(Visum.Net.Nodes, "Name", Visum.Net.Nodes.CountActive*[""], True)
+        SetMulti(Visum.Net.Nodes, "AddVal1", Visum.Net.Nodes.CountActive*[0], True)
     
     Visum.Filters.NodeFilter().Init()
     Visum.Filters.StopGroupFilter().Init()

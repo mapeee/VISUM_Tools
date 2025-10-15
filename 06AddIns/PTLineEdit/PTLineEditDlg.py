@@ -33,6 +33,7 @@ class InfoFrame(wx.Frame):
         sizer.Add(wx.StaticText(self,label= _("14.03.2025")),0,wx.LEFT,10)
         sizer.AddSpacer(2)
         sizer.Add(wx.StaticText(self,label= _("Version 1.0: Initial")),0,wx.LEFT,10)
+        sizer.Add(wx.StaticText(self,label= _("Version 1.1: Chained VJSections")),0,wx.LEFT,10)
         sizer.AddSpacer(10)
         sizer.Add(self.button,0,wx.ALIGN_CENTER,5)
         sizer.AddSpacer(5)
