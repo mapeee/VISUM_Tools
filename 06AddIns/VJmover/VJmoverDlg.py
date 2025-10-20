@@ -29,6 +29,7 @@ class InfoFrame(wx.Frame):
         sizer.Add(wx.StaticText(self,label= _("24.09.2025")),0,wx.LEFT,10)
         sizer.AddSpacer(2)
         sizer.Add(wx.StaticText(self,label= _("Version 1.0: Initial")),0,wx.LEFT,10)
+        sizer.Add(wx.StaticText(self,label= _("Version 1.1: Duplicate VJ")),0,wx.LEFT,10)
         sizer.AddSpacer(10)
         sizer.Add(self.button,0,wx.ALIGN_CENTER,5)
         sizer.AddSpacer(5)
@@ -48,6 +49,7 @@ class MyDialog(wx.Dialog):
         self.__InitUI()
 
     def __InitUI(self):   
+        self.button_tt = wx.Button(self, -1, _("Open TimeTable"))
         self.toggle_vals = wx.ToggleButton(self, -1, _("Time"), name = "values")
         self.toggle_stops = wx.ToggleButton(self, -1, _(" "), name = "route")
         self.toggle_vals.Bind(wx.EVT_TOGGLEBUTTON, self._on_toggle)
@@ -58,40 +60,49 @@ class MyDialog(wx.Dialog):
         self.button_1m = wx.Button(self, -1, _("-1"), name = "-1")
         self.button_5m = wx.Button(self, -1, _("-5"), name = "-5")
         self.button_15m = wx.Button(self, -1, _("-15"), name = "-15")
+        self.button_dupli = wx.Button(self, -1, _('Duplicate'))
         self.button_help = wx.Button(self, -1, _('Help'))
         self.button_info = wx.Button(self, -1, _('Info'))
         self.button_exit = wx.Button(self, wx.ID_CANCEL, _('Close'))
 
+        self.Bind(wx.EVT_BUTTON, self.OnTT, self.button_tt)
         self.Bind(wx.EVT_BUTTON, self.OnMove, self.button_1)
         self.Bind(wx.EVT_BUTTON, self.OnMove, self.button_5)
         self.Bind(wx.EVT_BUTTON, self.OnMove, self.button_15)
         self.Bind(wx.EVT_BUTTON, self.OnMove, self.button_1m)
         self.Bind(wx.EVT_BUTTON, self.OnMove, self.button_5m)
         self.Bind(wx.EVT_BUTTON, self.OnMove, self.button_15m)
+        self.Bind(wx.EVT_BUTTON, self.OnDupli, self.button_dupli)
         self.Bind(wx.EVT_BUTTON, self.OnHelp, self.button_help)
         self.Bind(wx.EVT_BUTTON, self.OnInfo, self.button_info)
         self.Bind(wx.EVT_BUTTON, self.OnExit, self.button_exit)
-        self.__do_layout()    
+        
+        self.tt = False
+        self.__do_layout()
         
     def __do_layout(self):
         self.button_1m.SetForegroundColour(wx.Colour(255, 0, 0))
         self.button_5m.SetForegroundColour(wx.Colour(255, 0, 0))
         self.button_15m.SetForegroundColour(wx.Colour(255, 0, 0))
+        self.button_dupli.SetForegroundColour(wx.Colour(0, 100, 0))
         sb_exe = wx.StaticBox(self, -1)
         sb_exe.SetFont(wx.Font(10, wx.DEFAULT, wx.NORMAL, wx.BOLD))
         sbSizer_exe = wx.StaticBoxSizer(sb_exe, wx.VERTICAL)
         sbSizer_exe.SetMinSize((200, 100))
         gbSizer = wx.GridBagSizer(hgap=5, vgap=5)
-        gbSizer.Add(self.button_1, (0, 0), wx.DefaultSpan, wx.ALL, 5)
-        gbSizer.Add(self.button_5, (1, 0), wx.DefaultSpan, wx.ALL, 5)
-        gbSizer.Add(self.button_15, (2, 0), wx.DefaultSpan, wx.ALL, 5)
-        gbSizer.Add(self.button_1m, (0, 1), wx.DefaultSpan, wx.ALL, 5)
-        gbSizer.Add(self.button_5m, (1, 1), wx.DefaultSpan, wx.ALL, 5)
-        gbSizer.Add(self.button_15m, (2, 1), wx.DefaultSpan, wx.ALL, 5)
-        sbSizer_exe.Add(self.toggle_vals, flag = wx.ALIGN_CENTER | wx.TOP, border = 10)
-        sbSizer_exe.Add(self.toggle_stops, flag = wx.ALIGN_CENTER | wx.TOP, border = 10)
+        gbSizer.Add(self.toggle_vals, (0, 0), wx.DefaultSpan, wx.ALL, 5)
+        gbSizer.Add(self.toggle_stops, (0, 1), wx.DefaultSpan, wx.ALL, 5)
+        gbSizer.Add(self.button_1, (1, 0), wx.DefaultSpan, wx.ALL, 5)
+        gbSizer.Add(self.button_5, (2, 0), wx.DefaultSpan, wx.ALL, 5)
+        gbSizer.Add(self.button_15, (3, 0), wx.DefaultSpan, wx.ALL, 5)
+        gbSizer.Add(self.button_1m, (1, 1), wx.DefaultSpan, wx.ALL, 5)
+        gbSizer.Add(self.button_5m, (2, 1), wx.DefaultSpan, wx.ALL, 5)
+        gbSizer.Add(self.button_15m, (3, 1), wx.DefaultSpan, wx.ALL, 5)
+        sbSizer_exe.Add(self.button_tt, flag = wx.ALIGN_CENTER | wx.TOP, border = 10)
         sbSizer_exe.Add(gbSizer, flag = wx.ALIGN_CENTER | wx.TOP, border = 10)
-        sbSizer_exe.AddSpacer(20)
+        sbSizer_exe.AddSpacer(5)
+        sbSizer_exe.Add(self.button_dupli, flag = wx.ALIGN_CENTER | wx.TOP, border = 10)
+        sbSizer_exe.AddSpacer(15)
         sbSizer_exe.Add(self.button_help, flag = wx.ALIGN_CENTER | wx.TOP, border = 10)
         sbSizer_exe.Add(self.button_info, flag = wx.ALIGN_CENTER | wx.TOP, border = 10)
         sbSizer_exe.Add(self.button_exit, flag = wx.ALIGN_CENTER | wx.TOP, border = 10)
@@ -122,6 +133,37 @@ class MyDialog(wx.Dialog):
                 button.SetLabel(_("Time"))
                 self.toggle_stops.SetLabel(_(" "))
                 self.toggle_stops.SetValue(False)
+
+    def OnDupli(self, event):
+        if not _setVJactive():
+            return
+        if not self.tt:
+            addIn.ReportMessage(_("Re-open TimeTable via button!"))
+            return False
+        df_VJ = pd.DataFrame(Visum.Net.VehicleJourneys.GetMultipleAttributes(["NO", "TIMEPROFILEID", "DEP", "FROMTPROFITEMINDEX",
+                                                                              "TOTPROFITEMINDEX", "OPERATORNO",
+                                                                              r"MIN:VEHJOURNEYSECTIONS\VEHCOMBNO",
+                                                                              r"MIN:VEHJOURNEYSECTIONS\VALIDDAYSNO",
+                                                                              r"MIN:VEHJOURNEYSECTIONS\OPERATINGPERIODNO"], True),
+                             columns = ["NO", "TIMEPROFILEID", "DEP", "FROMTPROFITEMINDEX", r"TOTPROFITEMINDEX", "OPERATORNO",
+                                        "VEHCOMBNO", "VALIDDAYSNO", "OPERATINGPERIODNO"])
+        df_VJ.sort_values(by="DEP", inplace=True)
+        for index, row in df_VJ.iterrows():
+            df_VJNO = pd.DataFrame(Visum.Net.VehicleJourneys.GetMultipleAttributes(["NO"]), columns = ["NO"])
+            VJNO = _getFreeNO(df_VJNO, row["NO"])
+            VJ = Visum.Net.AddVehicleJourney(VJNO, row["TIMEPROFILEID"])
+            VJ.SetAttValue("FROMTPROFITEMINDEX", row["FROMTPROFITEMINDEX"])
+            VJ.SetAttValue("TOTPROFITEMINDEX", row["TOTPROFITEMINDEX"])
+            VJ.SetAttValue("DEP", row["DEP"])
+            VJ.SetAttValue("OPERATORNO", row["OPERATORNO"])
+            for VJS in VJ.VehicleJourneySections.GetAll:
+                VJS.SetAttValue("VEHCOMBNO", row["VEHCOMBNO"])
+                VJS.SetAttValue("VALIDDAYSNO", row["VALIDDAYSNO"])
+                VJS.SetAttValue("OPERATINGPERIODNO", row["OPERATINGPERIODNO"])
+        
+        Visum.Net.VehicleJourneys.SetActive()
+        addInParam.SaveParameter(None)
+        self.tt.SortByDepartureAtCommonStops()
         
     def OnExit(self, _event):
         if not addIn.IsInDebugMode:
@@ -138,15 +180,8 @@ class MyDialog(wx.Dialog):
         InfoFrame(title=title)    
         
     def OnMove(self, event):
-        if not _checkMarking():
+        if not _setVJactive():
             return
-        Visum.Net.VehicleJourneys.SetPassive()
-        df_Active = pd.DataFrame(Visum.Net.VehicleJourneys.GetMultipleAttributes(["NO", "ISINSELECTION"]), columns = ["NO", "ISINSELECTION"])
-        for VJ in Visum.Net.Marking.GetAll:
-            NO_VJ = VJ.AttValue("NO")
-            df_Active.loc[df_Active["NO"] == NO_VJ, "ISINSELECTION"] = 1
-        activeVJ = df_Active["ISINSELECTION"].tolist()
-        SetMulti(Visum.Net.VehicleJourneys, "ISINSELECTION", activeVJ)
             
         if self.toggle_vals.GetValue() is False: # minutes
             attr = "DEP"
@@ -186,7 +221,16 @@ class MyDialog(wx.Dialog):
         SetMulti(Visum.Net.VehicleJourneys, attr, moverValues, True)
         Visum.Net.VehicleJourneys.SetActive()
         addInParam.SaveParameter(None)
-
+        
+    def OnTT(self, event):
+        if Visum.Workbench.IsTabularTimetableRunning():
+            if not self.tt:
+                addIn.ReportMessage(_("Close and re-open TimeTable via Button!"))
+            else:
+                addIn.ReportMessage(_("Tabluar TimeTable just open!"))
+            return False
+        self.tt = Visum.Workbench.CreateTabularTimetable
+        self.tt.Show(True)
 
 def CheckNetwork():
     if 0 in [Visum.Net.Nodes.Count,Visum.Net.Links.Count]:
@@ -206,6 +250,25 @@ def _checkMarking():
     if Visum.Net.Marking.Count == 0:
         addIn.ReportMessage(_("No VehicleJourney marked!"))
         return False
+    return True
+
+def _getFreeNO(df, last):
+    nums = set(df["NO"].astype(int))
+    max_num = max(nums) if nums else last
+    for i in range(int(last) + 1, int(max_num) + 2):
+        if i not in nums:
+            return i
+
+def _setVJactive():
+    if not _checkMarking():
+        return False
+    Visum.Net.VehicleJourneys.SetPassive()
+    df_Active = pd.DataFrame(Visum.Net.VehicleJourneys.GetMultipleAttributes(["NO", "ISINSELECTION"]), columns = ["NO", "ISINSELECTION"])
+    for VJ in Visum.Net.Marking.GetAll:
+        NO_VJ = VJ.AttValue("NO")
+        df_Active.loc[df_Active["NO"] == NO_VJ, "ISINSELECTION"] = 1
+    activeVJ = df_Active["ISINSELECTION"].tolist()
+    SetMulti(Visum.Net.VehicleJourneys, "ISINSELECTION", activeVJ)
     return True
 
 if len(sys.argv) > 1:
