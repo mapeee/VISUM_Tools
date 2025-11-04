@@ -6,22 +6,7 @@ Created on Mon Sep  1 09:47:03 2025
 """
 
 import pandas as pd
-import sys
-from pathlib import Path
-path = Path.home() / 'python32' / 'python_dir.txt'
-path = open(path, mode='r').readlines()
-path = path[0] +"\\"+'VISUM_Tools'+"\\"+'Line_import.txt'
-f = open(path, mode='r').read().splitlines()
-sys.path.insert(0,f[3])
 from VisumPy.helpers import SetMulti
-
-try:
-    Visum
-except:
-    import win32com.client.dynamic
-    Visum = win32com.client.dynamic.Dispatch("Visum.Visum.25")
-    Visum.IO.loadversion(r"C:\Users\peter\hvv.de\B-GR-Bereich B - Planungstool hvv\VisumTest\VisumTest.ver")
-
 
 Teilnetze = ["PI 1-3"]
 Parameter = pd.DataFrame(Visum.Net.TableDefinitions.ItemByKey("Parameter").TableEntries.GetMultipleAttributes(["KENNZAHL", "WERT"]), columns = ["KENNZAHL", "WERT"])
@@ -66,8 +51,9 @@ def calculateAbrechnung(_TN, _Gebiete, _Parameter):
             AbrechnungTable.at[index, "GESAMT_MENGEN"] = g_sum
         else:
             AbrechnungTable.at[index, "GESAMT_MENGEN"] = FZGtable[row["KENNZAHL"]].max()
-            for g in Gebiete:
-                m_cols = LinesTable.loc[:, LinesTable.columns.str.startswith(g) & LinesTable.columns.str.endswith(f"{row['KENNZAHL']}{TA_FZG}")]
+            for g in _Gebiete:
+                pattern = rf"^{g}.*{row['KENNZAHL']}_{TA_FZG}.*$"
+                m_cols = LinesTable.loc[:, LinesTable.columns.str.match(pattern)]
                 col_sums = m_cols.sum(axis=0)
                 AbrechnungTable.at[index, f"{g}_MENGEN"] = col_sums.max()
         
@@ -107,11 +93,10 @@ def _getGebiete(_TN):
     return _Gebiete
 
 def _getLinesTable(_TN):
-    attrList = []
-    for i in Visum.Net.Lines.Attributes.GetAll:
-        if any(x in i.ID for x in ["M1", "M2"]) or i.ID == "TEILNETZGRUPPE":
-            attrList.append(i.ID)
-    
+    attrList = [f"{x.ID}({suffix})" for x in Visum.Net.Lines.Attributes.GetAll 
+                if any(tag in x.ID for tag in ("M1", "M2")) 
+                for suffix in ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")]
+    attrList.append("TEILNETZGRUPPE")
     _LinesTable = pd.DataFrame(Visum.Net.Lines.GetMultipleAttributes(attrList, True), columns = attrList)
     _LinesTable = _LinesTable[_LinesTable["TEILNETZGRUPPE"] == _TN]
     return _LinesTable

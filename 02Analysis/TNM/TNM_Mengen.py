@@ -7,47 +7,43 @@ Created on Fri Aug 29 14:56:48 2025
 import pandas as pd
 from VisumPy.helpers import SetMulti
 
-
-Tage = ["MO", "DI", "MI", "DO", "FR", "SA", "SO"]
+Gebiete = ["TN", "FHH", "PI", "SE"]
+FZG = ["SB", "GB"]
 Saisons = ["S", "F"]
 Teilnetze = ["PI 1-3"]
 
 
-def calculateKMSTD(_TN, _MengenTable, _Tage):
-    LinesTable = _getLinesTable(_TN)
-    _MengenTable["KENNZAHL2"] = _MengenTable["KENNZAHL"].str.split("_", n=1).str[1]
-    
-    AddList = pd.DataFrame(columns=["KENNZAHL", "KENNZAHL2", "KM", "STD"])
-    for index, row in _MengenTable.iterrows():
-        if row["KENNZAHL"][:2] != "P_":
-            value_KM = 0
-            value_STD = 0
-            for t in _Tage:
-                NAME = row["KENNZAHL"]
-                NAME = NAME.replace("_F_", f"_F{t}_")
-                NAME = NAME.replace("_S_", f"_S{t}_")
-                value_KM += LinesTable[f"{NAME}KM"].sum()
-                value_STD += LinesTable[f"{NAME}STD"].sum()
-            AddList.loc[len(AddList)] = [row["KENNZAHL"], row["KENNZAHL2"], value_KM, value_STD]
+def calculateKMSTD(_TN, _MengenTable):
+    LinesTable = _getLinesTable(_TN, _MengenTable)
+    AddList = pd.DataFrame(columns=["KENNZAHL", "KM", "STD"])
+    for row in _MengenTable.TableEntries.GetMultiAttValues("KENNZAHL"):
+        if "TN_" == row[1][:3]:
+            value_KM = LinesTable.filter(like=f"{row[1][3:]}_KM(AP)").sum().sum()
+            value_STD = LinesTable.filter(like=f"{row[1][3:]}_STD(AP)").sum().sum()
         else:
-            value_KM = AddList.loc[AddList["KENNZAHL2"] == row["KENNZAHL2"], "KM"].sum()
-            value_STD = AddList.loc[AddList["KENNZAHL2"] == row["KENNZAHL2"], "STD"].sum()
-            AddList.loc[len(AddList)] = [row["KENNZAHL"], row["KENNZAHL2"], value_KM, value_STD]
+            value_KM = LinesTable[f"{row[1]}_KM(AP)"].sum()
+            value_STD = LinesTable[f"{row[1]}_STD(AP)"].sum()
+        AddList.loc[len(AddList)] = [row[1], value_KM, value_STD]
 
     SetMulti(Visum.Net.TableDefinitions.ItemByKey(f"{_TN} Mengen").TableEntries, "KM", AddList["KM"].tolist(), True)
     SetMulti(Visum.Net.TableDefinitions.ItemByKey(f"{_TN} Mengen").TableEntries, "STD", AddList["STD"].tolist(), True)
 
-def _getLinesTable(_TN):
-    attrList = []
-    for i in Visum.Net.Lines.Attributes.GetAll:
-        if i.IsUserDefined:
-            attrList.append(i.ID)
-    
+def _getLinesTable(_TN, _MengenTable):
+    attrList = [f"{x[1]}_{suffix}(AP)" for x in _MengenTable.TableEntries.GetMultiAttValues("KENNZAHL") if "TN_" not in x[1] for suffix in ("KM", "STD")]
+    attrList.append("TEILNETZGRUPPE")
     _LinesTable = pd.DataFrame(Visum.Net.Lines.GetMultipleAttributes(attrList, True), columns = attrList)
     _LinesTable = _LinesTable[_LinesTable["TEILNETZGRUPPE"] == _TN]
     return _LinesTable
 
 
 for TN in Teilnetze:
-    MengenTable = pd.DataFrame(Visum.Net.TableDefinitions.ItemByKey(f"{TN} Mengen").TableEntries.GetMultipleAttributes(["KENNZAHL"]), columns = ["KENNZAHL"])
-    calculateKMSTD(TN, MengenTable, Tage)
+    MengenTable = Visum.Net.TableDefinitions.ItemByKey(f"{TN} Mengen")
+    MengenTable.TableEntries.RemoveAll()
+    attrList = []
+    for g in Gebiete:
+        for s in Saisons:
+            for f in FZG:
+                attrList.append(f"{g}_{s}_{f}")
+    MengenTable.AddMultiTableEntries(range(1, len(attrList) + 1))
+    SetMulti(MengenTable.TableEntries, "KENNZAHL", attrList)
+    calculateKMSTD(TN, MengenTable)

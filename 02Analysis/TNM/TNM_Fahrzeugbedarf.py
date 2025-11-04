@@ -7,27 +7,13 @@ Created on Mon Sep  1 09:47:03 2025
 
 import numpy as np
 import pandas as pd
-import sys
 import time
-from pathlib import Path
-path = Path.home() / 'python32' / 'python_dir.txt'
-path = open(path, mode='r').readlines()
-path = path[0] +"\\"+'VISUM_Tools'+"\\"+'Line_import.txt'
-f = open(path, mode='r').read().splitlines()
-sys.path.insert(0,f[3])
 from VisumPy.helpers import SetMulti
-
-try:
-    Visum
-except:
-    import win32com.client.dynamic
-    Visum = win32com.client.dynamic.Dispatch("Visum.Visum.25")
-    Visum.IO.loadversion(r"C:\Users\peter\hvv.de\B-GR-Bereich B - Planungstool hvv\VisumTest\VisumTest.ver")
 
 
 Teilnetze = ["PI 1-3"]
 Saisons = ["S", "F"]
-Tage = ["MO", "DI", "MI", "DO", "FR", "SA", "SO"]
+Tage = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 
 def Add2Visum(_TN, _AddList, _FZG = False):
     if _TN == False:
@@ -88,28 +74,28 @@ def _build_timeline(_VJTable, _FZG, _s, _t, _line = None, _Gebiete = None):
         rang = f["RANG"]
         if _line:
             col = f"{f['CODE']}new" if f"{f['CODE']}new" in _timeline.columns else f"{f['CODE']}"
-            LineList[f"{_s}{_t}_{f['CODE']}M2"] = _timeline[col].max()
+            LineList[f"{_s}_{f['CODE']}_M2({_t})"] = _timeline[col].max()
     if _line:
         m1_cols = _timeline.filter(like = "M1.2")
         _timeline["FZGM1_sum"] = m1_cols.sum(axis=1)
         for index, f in _FZG.iterrows():
             _timeline[f"{f['CODE']}M1"] = _timeline["FZGM1.1"] / _timeline["FZGM1_sum"] * _timeline[f"{f['CODE']}M1.2"]
             _timeline[f"{f['CODE']}M1"] = _timeline[f"{f['CODE']}M1"].fillna(0)
-            LineList[f"{_s}{_t}_{f['CODE']}M1"] = _timeline[f"{f['CODE']}M1"].max()
+            LineList[f"{_s}_{f['CODE']}_M1({_t})"] = _timeline[f"{f['CODE']}M1"].max()
         for g in _Gebiete:
             for index, f in _FZG.iterrows():
-                Gesamt_STD = lineV.AttValue(f"{_s}{_t}_{f['CODE']}STD")
-                g_STD = lineV.AttValue(f"{g}_{_s}{_t}_{f['CODE']}STD")
+                Gesamt_STD = lineV.AttValue(f"{_s}_{f['CODE']}_STD({_t})")
+                g_STD = lineV.AttValue(f"{g}_{_s}_{f['CODE']}_STD({_t})")
                 if Gesamt_STD == 0:
-                    LineList[f"{g}_{_s}{_t}_{f['CODE']}M1"] = 0
-                    LineList[f"{g}_{_s}{_t}_{f['CODE']}M2"] = 0
+                    LineList[f"{g}_{_s}_{f['CODE']}_M1({_t})"] = 0
+                    LineList[f"{g}_{_s}_{f['CODE']}_M2({_t})"] = 0
                     continue
                 FZGM1 = _timeline[f"{f['CODE']}M1"] .max()
-                FZGM2 = LineList[f"{_s}{_t}_{f['CODE']}M2"][0]
+                FZGM2 = LineList[f"{_s}_{f['CODE']}_M2({_t})"][0]
                 FZGM1 = FZGM1 * (g_STD / Gesamt_STD)
                 FZGM2 = FZGM2 * (g_STD / Gesamt_STD)
-                LineList[f"{g}_{_s}{_t}_{f['CODE']}M1"] = FZGM1
-                LineList[f"{g}_{_s}{_t}_{f['CODE']}M2"] = FZGM2
+                LineList[f"{g}_{_s}_{f['CODE']}_M1({_t})"] = FZGM1
+                LineList[f"{g}_{_s}_{f['CODE']}_M2({_t})"] = FZGM2
         return LineList
     return _timeline
     
@@ -143,16 +129,14 @@ def _getGebiete(_TN):
     return _Gebiete
 
 def _getVJTable(_TN):
-    attrList = [[r"LINEROUTE\LINE\TEILNETZGRUPPE", "LINENAME", "WOCHENTAGNO", "SAISONNO", "DEP", "ARR", r"MIN:VEHJOURNEYSECTIONS\VEHCOMB\CODE", r"MIN:VEHJOURNEYSECTIONS\VEHCOMB\RANG"],
-                ["TEILNETZGRUPPE", "LINE", "TAGNO", "SAISONNO", "DEP", "ARR", "VEH", "VEHRANG"]]
+    attrList = [[r"LINEROUTE\LINE\TEILNETZGRUPPE", "LINENAME", "DEP", "ARR", r"MIN:VEHJOURNEYSECTIONS\VEHCOMB\CODE", r"MIN:VEHJOURNEYSECTIONS\VEHCOMB\RANG",
+                 r"MIN:VEHJOURNEYSECTIONS\S", r"MIN:VEHJOURNEYSECTIONS\F",
+                 r"MIN:VEHJOURNEYSECTIONS\ISVALID(Mo)", r"MIN:VEHJOURNEYSECTIONS\ISVALID(Di)", r"MIN:VEHJOURNEYSECTIONS\ISVALID(Mi)",
+                 r"MIN:VEHJOURNEYSECTIONS\ISVALID(Do)", r"MIN:VEHJOURNEYSECTIONS\ISVALID(Fr)", r"MIN:VEHJOURNEYSECTIONS\ISVALID(Sa)",
+                 r"MIN:VEHJOURNEYSECTIONS\ISVALID(So)"],
+                ["TEILNETZGRUPPE", "LINE", "DEP", "ARR", "VEH", "VEHRANG", "S", "F", "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]]
     _VJTable = pd.DataFrame(Visum.Net.VehicleJourneys.GetMultipleAttributes(attrList[0], True), columns = attrList[1])
     _VJTable["DEP"], _VJTable["ARR"] = _VJTable["DEP"] / 60, _VJTable["ARR"] / 60
-    attrList = ["NO", "MO", "DI", "MI", "DO", "FR", "SA", "SO"]
-    WD = pd.DataFrame(Visum.Net.TableDefinitions.ItemByKey("Wochentage").TableEntries.GetMultipleAttributes(attrList), columns = attrList)
-    WD = WD.rename(columns={"NO": "TAGNO"})
-    S = pd.DataFrame(Visum.Net.TableDefinitions.ItemByKey("Saisons").TableEntries.GetMultipleAttributes(["NO","S", "F"]), columns = ["SAISONNO", "S", "F"])
-    _VJTable = pd.merge(_VJTable, WD, on = "TAGNO", how = "inner")
-    _VJTable = pd.merge(_VJTable, S, on = "SAISONNO", how = "inner")
     _VJTable = _VJTable[_VJTable["TEILNETZGRUPPE"] == _TN]
     return _VJTable
 
