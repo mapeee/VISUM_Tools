@@ -6,8 +6,8 @@ Created on Thu Aug 28 20:29:11 2025
 
 import pandas as pd
 from VisumPy.helpers import SetMulti
-from TNM_Checks import check_TN
-from TNM_UDA import run_UDA
+from utils.TNM_Checks import check_TN
+from utils.TNM_UDA import create_UDA
 
 
 def get_territories():
@@ -26,7 +26,7 @@ check_TN(Visum)
 ############
 
 ###Create UDAs###
-run_UDA(Visum)
+create_UDA(Visum)
 #################
 
 Gebiete = get_territories()
