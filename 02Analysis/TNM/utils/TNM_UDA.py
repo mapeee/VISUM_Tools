@@ -7,7 +7,7 @@ Created on Thu Aug 28 20:14:40 2025
 
 import pandas as pd
 
-def run_UDA(Visum):
+def create_UDA(Visum):
     Gebiete = _get_territories(Visum)
     Saisons = ["S", "F"]
     FZG = _get_vehicleCombinations(Visum)

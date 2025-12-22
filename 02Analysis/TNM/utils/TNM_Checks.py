@@ -32,6 +32,11 @@ def check_lines(Visum):
     df_l.rename(columns={'TN': 'CODE'}, inplace=True)
     _general_checks(Visum, "Linien", df_l)
     
+def check_EFW_tables(Visum):
+    pass
+    #Check auf Kommentare in richtigem Format
+    #Check auf richtige Gruppe (EFW)
+    
 def check_territories(Visum):
     df_t = pd.DataFrame(Visum.Net.Territories.GetMultipleAttributes(["CODE", "TYPENO"], True),
                                columns = ["CODE", "TYPENO"])
