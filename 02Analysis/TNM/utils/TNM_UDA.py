@@ -1,8 +1,10 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 """
-Created on Thu Aug 28 20:14:40 2025
+Erstelle die für die LKA notwendigen BDA
+Linien
 
-@author: peter
+Erstellt: 28.08.2025
+@author: mape
 """
 
 import pandas as pd

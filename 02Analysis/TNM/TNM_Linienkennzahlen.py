@@ -21,9 +21,9 @@ def get_vehicleCombinations():
     vc_unique = df_vj['FZG'].drop_duplicates().tolist()
     return vc_unique
 
-###Checks###
+###Checks######
 check_TN(Visum)
-############
+###############
 
 ###Create UDAs###
 create_UDA(Visum)
