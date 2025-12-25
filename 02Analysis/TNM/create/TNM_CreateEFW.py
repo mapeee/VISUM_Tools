@@ -8,8 +8,8 @@ Erstellt: 25.12.2025
 
 def CreateBDT(Visum, TN):
     BDT = Visum.Net.TableDefinitions.GetMultiAttValues("NAME")
-    if any(f"{TN}_EFW" in item for item in BDT):
-        Visum.Log(12288, f"BDT existiert schon: {TN}_EFW")
+    if any(f"{TN} EFW" in item for item in BDT):
+        Visum.Log(12288, f"BDT existiert schon: {TN} EFW")
         return
     EFW = Visum.Net.AddTableDefinition(f"{TN} EFW")
     EFW.SetAttValue("GROUP","EFW")
