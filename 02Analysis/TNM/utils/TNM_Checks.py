@@ -1,15 +1,18 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 """
-Created on Thu Dec 18 09:33:42 2025
+Prüfe die TNM-Datei auf verschiedene mögliche Fehler
 
-@author: peter
+Erstellt: 18.12.2025
+@author: mape
 """
 
 import pandas as pd
+import re
 
 def check_TN(Visum):
     check_attributes(Visum)
     check_lines(Visum)
+    check_net(Visum)
     check_territories(Visum)
     check_vehicleCombinations(Visum)
     check_vehiclejournyeSections(Visum)
@@ -19,12 +22,17 @@ def check_TN(Visum):
 def check_attributes(Visum):
     if not Visum.Net.Lines.AttrExists("TN"):
         Visum.Log(12288, "Linien: BDA 'TN' fehlt")
-    if not Visum.Net.VehicleJourneySections.AttrExists("SAISON"):
-        Visum.Log(12288, "FahrpanfahrtAbschnitte: BDA 'SAISON' fehlt")
+    if not Visum.Net.AttrExists("TN"):
+        Visum.Log(12288, "Netz: BDA 'TN' fehlt")
+    for BDA in ["SAISON", "S", "F"]:
+        if not Visum.Net.VehicleJourneySections.AttrExists(BDA):
+            Visum.Log(12288, f"FahrpanfahrtAbschnitte: BDA '{BDA}' fehlt")
     if not Visum.Net.VehicleCombinations.AttrExists("RANG"):
         Visum.Log(12288, "FahrzeugKombinationen: BDA 'RANG' fehlt")
 
 def check_lines(Visum):
+    if Visum.Net.Lines.CountActive == 0:
+        Visum.Log(12288, "Keine aktiven Linien vorhanden")
     df_l = pd.DataFrame(Visum.Net.Lines.GetMultipleAttributes(["TN"], False),
                                columns = ["TN"])
     df_l = df_l[df_l['TN'] != 'ohne']
@@ -32,11 +40,11 @@ def check_lines(Visum):
     df_l.rename(columns={'TN': 'CODE'}, inplace=True)
     _general_checks(Visum, "Linien", df_l)
     
-def check_EFW_tables(Visum):
-    pass
-    #Check auf Kommentare in richtigem Format
-    #Check auf richtige Gruppe (EFW)
-    
+def check_net(Visum):
+    TN = Visum.Net.AttValue("TN")
+    if re.search(r'[ÖöÄäÜüß#-]', TN):
+        Visum.Log(12288, "Netz: Es gibt Sonderzeichen (#, ü, ä etc.) in TN")
+   
 def check_territories(Visum):
     df_t = pd.DataFrame(Visum.Net.Territories.GetMultipleAttributes(["CODE", "TYPENO"], True),
                                columns = ["CODE", "TYPENO"])
