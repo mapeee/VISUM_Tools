@@ -7,7 +7,14 @@ Erstellt: 25.12.2025
 @author: mape
 """
 
+from TNM_Checks import check_BDA
+
+
 def NEFilter(Visum):
+    if not check_BDA(Visum, Visum.Net, "Network", "TN"):
+        return False
+    if not check_BDA(Visum, Visum.Net.Lines, "Lines", "TN"):
+        return False
     TN = Visum.Net.AttValue("TN")
     Visum.Filters.InitAll()
     Lines = Visum.Filters.LineGroupFilter()
@@ -28,5 +35,6 @@ def NEFilter(Visum):
         Territories = Visum.Filters.TerritoryFilter()
         Territories.AddCondition("OP_NONE", False, "TYPENO", "ContainedIn", 1)
         Visum.Log(20480, f"Filter gesetzt auf TN: {TN}")
+    return True
 
 NEFilter(Visum)
