@@ -6,11 +6,16 @@ Erstellt: 25.12.2025
 @author: mape
 """
 
-def CreateBDT(Visum, TN):
+
+def CreateBDT(Visum):
+    if not Visum.Net.AttrExists("TN"):
+        Visum.Log(12288, "Network: BDA 'TN' fehlt")
+        return False
+    TN = Visum.Net.AttValue("TN")
     BDT = Visum.Net.TableDefinitions.GetMultiAttValues("NAME")
     if any(f"{TN} EFW" in item for item in BDT):
         Visum.Log(12288, f"BDT existiert schon: {TN} EFW")
-        return
+        return False
     EFW = Visum.Net.AddTableDefinition(f"{TN} EFW")
     EFW.SetAttValue("GROUP","EFW")
     EFW.SetAttValue("COMMENT",f"Entfernungswerk TN {TN}")
@@ -33,6 +38,4 @@ def CreateBDA(Visum, _EFW):
     BDA = _EFW.TableEntries.Attributes.ItemByKey("VORHANDEN")
     BDA.UserDefinedGroup = "EFW"
 
-
-TN = Visum.Net.AttValue("TN")
-CreateBDT(Visum, TN)
+CreateBDT(Visum)
