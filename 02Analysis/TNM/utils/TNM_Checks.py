@@ -10,29 +10,23 @@ import pandas as pd
 import re
 
 def check_TN(Visum):
-    check_attributes(Visum)
     check_lines(Visum)
     check_net(Visum)
     check_territories(Visum)
     check_vehicleCombinations(Visum)
     check_vehiclejournyeSections(Visum)
     check_timeIntervalls(Visum)
-    Visum.Log(20480, "Checks: abgeschlossen")
+    Visum.Log(20480, "Checks: Abgeschlossen")
     
-def check_attributes(Visum):
-    if not Visum.Net.Lines.AttrExists("TN"):
-        Visum.Log(12288, "Linien: BDA 'TN' fehlt")
-    if not Visum.Net.AttrExists("TN"):
-        Visum.Log(12288, "Netz: BDA 'TN' fehlt")
-    for BDA in ["SAISON", "S", "F"]:
-        if not Visum.Net.VehicleJourneySections.AttrExists(BDA):
-            Visum.Log(12288, f"FahrpanfahrtAbschnitte: BDA '{BDA}' fehlt")
-    if not Visum.Net.VehicleCombinations.AttrExists("RANG"):
-        Visum.Log(12288, "FahrzeugKombinationen: BDA 'RANG' fehlt")
+def check_BDA(Visum, Net, Type = None, BDA = None):
+    if not Net.AttrExists(BDA):
+        Visum.Log(12288, f"{Type}: BDA '{BDA}' fehlt")
+        return False
+    return True
 
 def check_lines(Visum):
-    if Visum.Net.Lines.CountActive == 0:
-        Visum.Log(12288, "Keine aktiven Linien vorhanden")
+    if not check_BDA(Visum, Visum.Net.Lines, "Lines", "TN"):
+        return False
     df_l = pd.DataFrame(Visum.Net.Lines.GetMultipleAttributes(["TN"], False),
                                columns = ["TN"])
     df_l = df_l[df_l['TN'] != 'ohne']
@@ -41,6 +35,8 @@ def check_lines(Visum):
     _general_checks(Visum, "Linien", df_l)
     
 def check_net(Visum):
+    if not check_BDA(Visum, Visum.Net, "Network", "TN"):
+        return False
     TN = Visum.Net.AttValue("TN")
     if re.search(r'[ÖöÄäÜüß#-]', TN):
         Visum.Log(12288, "Netz: Es gibt Sonderzeichen (#, ü, ä etc.) in TN")
@@ -59,14 +55,22 @@ def check_timeIntervalls(Visum):
         Visum.Log(12288, f"Die Zeitintervallmenge {TI[0].AttValue('NAME')} enthält keine 7 Wochentage")
         
 def check_vehicleCombinations(Visum):
+    if not check_BDA(Visum, Visum.Net.VehicleCombinations, "FahrzeugKombinationen", "RANG"):
+        return False
     if Visum.Net.VehicleCombinations.Count == 0:
         Visum.Log(12288, "Das Netz hat keine FahrzeugKombinationen")
-        return
+        return False
     df_vc = pd.DataFrame(Visum.Net.VehicleCombinations.GetMultipleAttributes(["CODE"], False),
                                columns = ["CODE"])
     _general_checks(Visum, "FahrzeugKombinationen", df_vc)
     
 def check_vehiclejournyeSections(Visum):
+    if not check_BDA(Visum, Visum.Net.VehicleJourneySections, "FahrpanfahrtAbschnitte", "SAISON"):
+        return False
+    if not check_BDA(Visum, Visum.Net.VehicleJourneySections, "FahrpanfahrtAbschnitte", "S"):
+        return False
+    if not check_BDA(Visum, Visum.Net.VehicleJourneySections, "FahrpanfahrtAbschnitte", "F"):
+        return False
     df_vj = pd.DataFrame(Visum.Net.VehicleJourneySections.GetMultipleAttributes([r"VEHCOMB\CODE", "SAISON"], True),
                                columns = ["FZG", "SAISON"])
     if df_vj['FZG'].isna().any():
@@ -83,3 +87,6 @@ def _general_checks(Visum, element, df_check):
     if df_check['CODE'].duplicated().any():
         for row in df_check[df_check['CODE'].duplicated()].itertuples(index=False):
             Visum.Log(12288, f"{element}: Duplikat(e) in CODES: {row.CODE}")
+
+if __name__ == "__main__":           
+    check_TN(Visum)
