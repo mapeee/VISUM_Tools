@@ -50,9 +50,12 @@ def check_territories(Visum):
 def check_timeIntervalls(Visum):
     if Visum.Net.TimeIntervalSets.Count == 0:
         Visum.Log(12288, "Das Netz enthält keine Zeitintervallmengen")
+        return False
     TI = Visum.Net.TimeIntervalSets.GetAll
     if TI[0].TimeIntervals.Count != 7:
         Visum.Log(12288, f"Die Zeitintervallmenge {TI[0].AttValue('NAME')} enthält keine 7 Wochentage")
+        return False
+    return True
         
 def check_vehicleCombinations(Visum):
     if not check_BDA(Visum, Visum.Net.VehicleCombinations, "FahrzeugKombinationen", "RANG"):
