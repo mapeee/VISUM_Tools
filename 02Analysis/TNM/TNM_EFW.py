@@ -11,7 +11,7 @@ from utils.TNM_Checks import check_BDA
 
 
 def main(Visum):
-    if not _checks(Visum, TN):
+    if not _checks(Visum):
         return False
     TN = Visum.Net.AttValue("TN")
     # EFW Table
@@ -29,15 +29,16 @@ def main(Visum):
     SetMulti(Visum.Net.LineRouteItems, "EFW_METER", EFW_result["METER"].tolist(), True)
     Visum.Log(20480, f"EFW auf LinienRouten-Verläufe übertragen: {TN}_EFW")
 
-def _checks(Visum, TN):
+def _checks(Visum):
+    if not check_BDA(Visum, Visum.Net, "Network", "TN"):
+        return False
+    TN = Visum.Net.AttValue("TN")
     BDT = Visum.Net.TableDefinitions.GetMultiAttValues("NAME")
     if not any(f"{TN} EFW" in item for item in BDT):
         Visum.Log(12288, f"BDT existiert nicht: {TN} EFW")
         return False
     if Visum.Net.LineRouteItems.CountActive == 0:
         Visum.Log(12288, "Keine aktiven LinienRouten-Verläufe vorhanden")
-        return False
-    if not check_BDA(Visum, Visum.Net, "Network", "TN"):
         return False
     if not check_BDA(Visum, Visum.Net.LineRouteItems, "LinienRoutenElemente", "EFW_METER"):
         return False
