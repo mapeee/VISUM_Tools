@@ -72,8 +72,6 @@ def ClipIntersectShape(_Visum, _ShapePath, _clip, _intersect, _ClipShape, _Inter
             _interShapeGpd = _interShapeGpd.to_crs(_ShapeGpd.crs)
         _shape_path = Path(_ShapePath)
         intersected_shape_path = _shape_path.with_name("polygons_intersect.shp")
-        _ShapeGpd = _ShapeGpd.dissolve(by='Class', aggfunc='first')     
-        _ShapeGpd = _ShapeGpd.reset_index()
         intersection = gpd.overlay(_interShapeGpd, _ShapeGpd, how="intersection") 
         intersection['NO'] = range(1, len(intersection) + 1)
         intersection.to_file(intersected_shape_path)
