@@ -54,6 +54,4 @@ def _get_vehicleCombinations(Visum):
     df_vj = pd.DataFrame(Visum.Net.VehicleJourneySections.GetMultipleAttributes([r"VEHCOMB\CODE"], True), columns = ["FZG"])
     vc_unique = df_vj['FZG'].drop_duplicates().tolist()
     return vc_unique
-
-
-            
+           
