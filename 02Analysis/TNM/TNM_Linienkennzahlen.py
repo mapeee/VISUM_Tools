@@ -1,19 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Aug 28 20:29:11 2025
-@author: peter
+Ermittle die Fahrplankilometer und Fahrplanstunden je Gebiet
+Linien
+
+Erstellt: 28.08.2025
+@author: mape
 """
 
 import pandas as pd
 from VisumPy.helpers import SetMulti
-from create.TNM_UDA import create_UDA
+from create.TNM_UDA import create_UDA_LKZ
 from utils.TNM_Checks import check_timeIntervalls, check_BDA
 
 
 def main(Visum):
     if not checks(Visum):
         return  False
-    create_UDA(Visum)
+    create_UDA_LKZ(Visum)
     Gebiete = get_territories()
     Saisons = ["S", "F"]
     Tage = ["AP", "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
