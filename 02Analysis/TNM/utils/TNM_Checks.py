@@ -48,8 +48,11 @@ def check_territories(Visum):
     _general_checks(Visum, "Gebiete", df_t)
     
 def check_timeIntervalls(Visum):
+    if Visum.Net.CalendarPeriod.AttValue("TYPE") != "CALENDARPERIODWEEK":
+        Visum.Log(12288, "Das Netz enthält keinen Wochenkalender")
+        return False
     if Visum.Net.TimeIntervalSets.Count == 0:
-        Visum.Log(12288, "Das Netz enthält keine Zeitintervallmengen")
+        Visum.Log(12288, "Das Netz enthält keine Zeitintervallmenge")
         return False
     TI = Visum.Net.TimeIntervalSets.GetAll
     if TI[0].TimeIntervals.Count != 7:
