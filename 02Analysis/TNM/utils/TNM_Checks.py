@@ -70,15 +70,22 @@ def check_vehicleCombinations(Visum):
                                columns = ["CODE"])
     _general_checks(Visum, "FahrzeugKombinationen", df_vc)
     
-def check_vehiclejournyeSections(Visum):
+def check_vehiclejournyeSections(Visum, Mengen = None):
     if not check_BDA(Visum, Visum.Net.VehicleJourneySections, "FahrpanfahrtAbschnitte", "SAISON"):
         return False
     if not check_BDA(Visum, Visum.Net.VehicleJourneySections, "FahrpanfahrtAbschnitte", "S"):
         return False
     if not check_BDA(Visum, Visum.Net.VehicleJourneySections, "FahrpanfahrtAbschnitte", "F"):
         return False
-    df_vj = pd.DataFrame(Visum.Net.VehicleJourneySections.GetMultipleAttributes([r"VEHCOMB\CODE", "SAISON"], True),
-                               columns = ["FZG", "SAISON"])
+    df_vj = pd.DataFrame(Visum.Net.VehicleJourneySections.GetMultipleAttributes([r"VEHCOMB\CODE", "SAISON", r"VEHJOURNEY\LINEROUTE\LINE\TN"], True),
+                               columns = ["FZG", "SAISON", "TN"])
+    if Mengen:
+        if df_vj["TN"].nunique() > 1:
+            Visum.Log(12288, "FahrpanfahrtAbschnitte aus mehr als einem Teilnetz")
+            return False
+        if "ohne" in df_vj["TN"].unique():
+            Visum.Log(12288, "FahrpanfahrtAbschnitte ohne Teilnetz (TN == ohne)")
+            return False
     if df_vj['FZG'].isna().any():
         Visum.Log(12288, f"FahrpanfahrtAbschnitte ohne Fahrzeug: {df_vj['FZG'].isna().sum()}")
     df_vj = df_vj[['SAISON']].drop_duplicates()
