@@ -37,4 +37,5 @@ def NEFilter(Visum):
         Visum.Log(20480, f"Filter gesetzt auf TN: {TN}")
     return True
 
-NEFilter(Visum)
+if __name__ == "__main__":           
+    NEFilter(Visum)
