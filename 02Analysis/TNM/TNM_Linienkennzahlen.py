@@ -44,15 +44,16 @@ def main(Visum):
         for f in FZG:
             PTDf = PTDs[PTDs["FZG"] == f]
             for t in Tage:
-                Kenzahl = f"{s}_{f}_STD({t})"
-                edict = PTDf.groupby("LINE")[f"{t}STD"].sum().to_dict()
-                SetMulti(Visum.Net.Lines, Kenzahl, [edict.get(line, 0) for _, line in Visum.Net.Lines.GetMultiAttValues("NAME",True)], True)
+                KennzahlSTD, KennzahlKM = f"{s}_{f}_STD({t})", f"{s}_{f}_KM({t})"
+                edictSTD, edictKM = PTDf.groupby("LINE")[f"{t}STD"].sum().to_dict(), PTDf.groupby("LINE")[f"{t}KM"].sum().to_dict()
+                SetMulti(Visum.Net.Lines, KennzahlSTD, [edictSTD.get(line, 0) for _, line in Visum.Net.Lines.GetMultiAttValues("NAME",True)], True)
+                SetMulti(Visum.Net.Lines, KennzahlKM, [edictKM.get(line, 0) for _, line in Visum.Net.Lines.GetMultiAttValues("NAME",True)], True)
                 for g in Gebiete:
                     PTDg = PTDf[PTDf["Gebiet"] == g]
                     for e in Einheiten:
-                        Kenzahl = f"{g}_{s}_{f}_{e}({t})"
+                        Kennzahl = f"{g}_{s}_{f}_{e}({t})"
                         edict = PTDg.groupby("LINE")[f"{t}{e}"].sum().to_dict()
-                        SetMulti(Visum.Net.Lines, Kenzahl, [edict.get(line, 0) for _, line in Visum.Net.Lines.GetMultiAttValues("NAME",True)], True)
+                        SetMulti(Visum.Net.Lines, Kennzahl, [edict.get(line, 0) for _, line in Visum.Net.Lines.GetMultiAttValues("NAME",True)], True)
                         
     Visum.Log(20480, "Linienkennzahlen: berechnet")
     
@@ -60,6 +61,9 @@ def main(Visum):
 def checks(Visum):
     if Visum.Net.VehicleJourneySections.CountActive == 0:
         Visum.Log(12288, "Keine aktiven FahrpanfahrtAbschnitte vorhanden")
+        return False
+    if Visum.Net.Territories.CountActive == 0:
+        Visum.Log(12288, "Keine aktiven Gebiete vorhanden")
         return False
     if not check_BDA(Visum, Visum.Net.VehicleJourneySections, "FahrpanfahrtAbschnitte", "S"):
         return False
