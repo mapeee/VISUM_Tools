@@ -18,7 +18,7 @@ def check_TN(Visum):
     check_timeIntervalls(Visum)
     Visum.Log(20480, "Checks: Abgeschlossen")
     
-def check_BDA(Visum, Net, Type = None, BDA = None):
+def check_BDA(Visum, Net, Type, BDA):
     if not Net.AttrExists(BDA):
         Visum.Log(12288, f"{Type}: BDA '{BDA}' fehlt")
         return False
@@ -38,8 +38,8 @@ def check_net(Visum):
     if not check_BDA(Visum, Visum.Net, "Network", "TN"):
         return False
     TN = Visum.Net.AttValue("TN")
-    if re.search(r'[ÖöÄäÜüß#-]', TN):
-        Visum.Log(12288, "Netz: Es gibt Sonderzeichen (#, ü, ä etc.) in TN")
+    if re.search(r'[ÖöÄäÜüß#\- ]', TN):
+        Visum.Log(12288, "Netz: Es gibt Sonderzeichen (#, ü, ä, -, ' ' etc.) im BDA TN")
    
 def check_territories(Visum):
     df_t = pd.DataFrame(Visum.Net.Territories.GetMultipleAttributes(["CODE", "TYPENO"], True),
@@ -91,10 +91,13 @@ def check_vehiclejournyeSections(Visum, Mengen = None):
     df_vj = df_vj[['SAISON']].drop_duplicates()
     if not df_vj['SAISON'].isin(["S", "F", "S+F"]).all():
         Visum.Log(12288, "BDA 'SAISON' enthält ungültige Werte (gültig: 'S', 'F', 'S+F')")
+    return True
 
 def _general_checks(Visum, element, df_check):
-    if df_check['CODE'].str.contains(r'[ÖöÄäÜüß#-]', regex=True, na=False).any():
-        Visum.Log(12288, f"{element}: Es gibt Sonderzeichen (#, ü, ä etc.) in CODES")
+    if df_check['CODE'].str.contains(r'[ÖöÄäÜüß#\- ]', regex=True, na=False).any():
+        messages = {"Linien": "BDA TN"}
+        attr = messages.get(element, "CODES")
+        Visum.Log(12288, f"{element}: Es gibt Sonderzeichen (#, ü, ä, -, ' ' etc.) im {attr}")
     if (df_check["CODE"].isna() | (df_check["CODE"].str.strip() == '')).any():
         Visum.Log(12288, f"{element}: Es gibt Leerwerte in CODES")
     if df_check['CODE'].duplicated().any():
