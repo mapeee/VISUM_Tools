@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 """
-Kopiere die Entfernungen aus dem EFW in die LinienRouten-Verläufe des aktiven TN
+Übertrage die Entfernungen aus dem EFW in die Linienrouten-Verläufe des aktiven TN
 
 Erstellt: 25.12.2025
 @author: mape
+Version: 0.9
 """
 import pandas as pd
 from VisumPy.helpers import SetMulti
-from utils.TNM_Checks import check_BDA
+from utils.TNM_Checks import check_bda
 
 
 def main(Visum):
+    '''Übertrage Entfernungen (Meter) aus EFW auf die Linien des betroffenen TN
+    - Beginne mit Checks (BDA und BDT vorhanden, LinienRouten aktiv?)
+    - Übertrage Entfernungen auf aktive LinienRouten-Verläufe
+    '''
     if not _checks(Visum):
         return False
     TN = Visum.Net.AttValue("TN")
@@ -28,9 +33,16 @@ def main(Visum):
     # Copy into PTV Visum
     SetMulti(Visum.Net.LineRouteItems, "EFW_METER", EFW_result["METER"].tolist(), True)
     Visum.Log(20480, f"EFW auf LinienRouten-Verläufe übertragen: {TN}_EFW")
+    return True
 
 def _checks(Visum):
-    if not check_BDA(Visum, Visum.Net, "Network", "TN"):
+    '''Führe vor der Übertragung der Entfernungen verschiedene Prüfroutinen durch:
+        - Netzattribut BDA 'TN' vorhanden?
+        - LinienRouten-Verläufe BDA 'EFW_METER' vorhanden?
+        - BDT mit Entfernungswerten vorhanden?
+        - Aktive LinienRouten-Verläufe vorhanden?
+    '''
+    if not check_bda(Visum, Visum.Net, "Network", "TN"):
         return False
     TN = Visum.Net.AttValue("TN")
     BDT = Visum.Net.TableDefinitions.GetMultiAttValues("NAME")
@@ -40,8 +52,10 @@ def _checks(Visum):
     if Visum.Net.LineRouteItems.CountActive == 0:
         Visum.Log(12288, "Keine aktiven LinienRouten-Verläufe vorhanden")
         return False
-    if not check_BDA(Visum, Visum.Net.LineRouteItems, "LinienRoutenElemente", "EFW_METER"):
+    if not check_bda(Visum, Visum.Net.LineRouteItems, "LinienRouten-Verläufe", "EFW_METER"):
         return False
     return True
 
-main(Visum)
+
+if __name__ == "__main__":           
+    main(Visum)
