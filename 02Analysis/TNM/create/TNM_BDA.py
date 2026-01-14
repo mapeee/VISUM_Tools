@@ -13,7 +13,6 @@ Version: 0.8
 import pandas as pd
 
 
-
 def bda_fahrzeugkombinationen(Visum, TN, Gebiete, Einheiten):
     '''Erstelle auf Ebene der Fahrzeugkombinationen die Abrechnungs-BDA
     Erstelle die BDA in einer bestimmten Reihenfolge, da Formel-BDA das Vorhandensein
