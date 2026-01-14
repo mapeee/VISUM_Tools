@@ -40,9 +40,9 @@ def check_bda(Visum, Net, Type, BDA):
     Visum : Visum Instanz
     Net : Visum Element
         z.B. Visum.Net.Lines
-    Type : Typ des Visum-Elements
-        z.B. 'Linien'.
-    BDA : Name des BDA
+    Type : string
+        Typ des Visum-Elements (z.B. 'Linien').
+    BDA : string
         Name des BDA, dessen Existens geprüft werden soll.
 
     Returns
