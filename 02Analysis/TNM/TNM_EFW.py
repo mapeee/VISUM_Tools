@@ -6,6 +6,7 @@ Erstellt: 25.12.2025
 @author: mape
 Version: 0.9
 """
+import numpy as np
 import pandas as pd
 from VisumPy.helpers import SetMulti
 from utils.TNM_Checks import check_bda
@@ -25,8 +26,10 @@ def main(Visum):
                                columns = ["LINIE", "VONHAPNAME", "NACHHPNAME", "METER"])
     EFW = EFW.drop_duplicates(subset=["LINIE", "VONHAPNAME", "NACHHPNAME"])
     # LineRouteItems
-    LineRouteItems = pd.DataFrame(Visum.Net.LineRouteItems.GetMultipleAttributes(["LINENAME", r"STOPPOINT\NAME", r"NEXTROUTEPOINT\STOPPOINT\NAME"], True),
-                               columns = ["LINIE", "VONHAPNAME", "NACHHPNAME"])
+    LineRouteItems = pd.DataFrame(Visum.Net.LineRouteItems.GetMultipleAttributes(["LINENAME", r"STOPPOINT\NAME",
+                                                                                  r"NEXTROUTEPOINT\STOPPOINT\NAME", "ISROUTEPOINT"], True),
+                               columns = ["LINIE", "VONHAPNAME", "NACHHPNAME", "ISROUTEPOINT"])
+    LineRouteItems.loc[LineRouteItems["ISROUTEPOINT"] == 0, "VONHAPNAME"] = np.nan
     # Merge
     EFW_result = LineRouteItems.merge(EFW, on=["LINIE", "VONHAPNAME", "NACHHPNAME"],how="left")
     EFW_result["METER"] = EFW_result["METER"].fillna(0).astype(int)
