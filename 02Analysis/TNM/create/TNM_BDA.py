@@ -75,6 +75,7 @@ def bda_linien(Visum, stdkm=None):
     '''
     Gebiete, Saisons, FZG = _werte(Visum)
     check_bdg(Visum, Gebiete)
+    check_bdg (Visum, [["FZG", False]]) # Check for BDG "TNM_FZG"
     if stdkm:
         Einheiten_txt = "STD und KM"
         Einheiten = [["KM", "Fahrplankilometer", "", False], ["STD", "Fahrplanstunden", "", False]]
