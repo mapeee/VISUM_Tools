@@ -29,7 +29,7 @@ def main(Visum):
     LineRouteItems = pd.DataFrame(Visum.Net.LineRouteItems.GetMultipleAttributes(["LINENAME", r"STOPPOINT\NAME",
                                                                                   r"NEXTROUTEPOINT\STOPPOINT\NAME", "ISROUTEPOINT"], True),
                                columns = ["LINIE", "VONHAPNAME", "NACHHPNAME", "ISROUTEPOINT"])
-    LineRouteItems.loc[LineRouteItems["ISROUTEPOINT"] == 0, "VONHAPNAME"] = np.nan
+    LineRouteItems.loc[LineRouteItems["ISROUTEPOINT"] == 0, "VONHAPNAME"] = np.nan #  Übertrage EFW nur auf Routenpunkte
     # Merge
     EFW_result = LineRouteItems.merge(EFW, on=["LINIE", "VONHAPNAME", "NACHHPNAME"],how="left")
     EFW_result["METER"] = EFW_result["METER"].fillna(0).astype(int)
