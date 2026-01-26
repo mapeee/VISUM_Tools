@@ -19,11 +19,7 @@ from create.TNM_BDA import bda_linien, erstelle_bda_fahrzeugkombinationen, check
 from utils.TNM_Checks import check_zeitintervalle, check_bda, check_fahrplanfahrtabschnitte
 
 
-# Parameter
-AbAnOverlap = False
-
-
-def main(Visum, _AbAnOverlap):
+def main(Visum):
     '''Berechne Fahrzeugkombinationen auf Ebene der Teilnetze und Linien
     - Führe vorab unterschiedliche Checks durch
     - generiere TNM-Rechenattribute auf Linienebene
@@ -33,7 +29,10 @@ def main(Visum, _AbAnOverlap):
         return  False
     if not bda_linien(Visum):
         return False
+    # Parameter
+    AnAbOverlap = Visum.Net.AttValue("ANABOVERLAP")
     TN = Visum.Net.AttValue("TN")
+    
     check_bdg(Visum, [[TN, False]])
     erstelle_bda_fahrzeugkombinationen(Visum, f"{TN}_FZG_METN", f"TNM_{TN}", [1, 0], f"{TN} Fahrzeugbedarf gem. METN")
     Gebiete = _gebiete(Visum)
@@ -43,14 +42,14 @@ def main(Visum, _AbAnOverlap):
     
     df_Fahrplanfahrten = _fahrplanfahrten(Visum, TN)
     
-    FZG_Linien(Visum, df_Fahrplanfahrten, Saisons, Tage, FZG, Gebiete, _AbAnOverlap)
-    FZG_TN(Visum, df_Fahrplanfahrten, Saisons, Tage, FZG, TN, _AbAnOverlap)
+    FZG_Linien(Visum, df_Fahrplanfahrten, Saisons, Tage, FZG, Gebiete, AnAbOverlap)
+    FZG_TN(Visum, df_Fahrplanfahrten, Saisons, Tage, FZG, TN, AnAbOverlap)
     
     Visum.Log(20480, "Fahrzeugbedarfe: berechnet")
     return True
 
 
-def FZG_Linien(Visum, _FPLTabelle, _Saisons, _Tage, _FZG, _Gebiete, _AbAnOverlap):
+def FZG_Linien(Visum, _FPLTabelle, _Saisons, _Tage, _FZG, _Gebiete, _AnAbOverlap):
     '''
     Parameters
     ----------
@@ -65,7 +64,7 @@ def FZG_Linien(Visum, _FPLTabelle, _Saisons, _Tage, _FZG, _Gebiete, _AbAnOverlap
         Alle Fahrzeugkombinationen im aktiven TN mit Fahrzeug-CODE und RANG
     _Gebiete : Liste
         Liste mit den Gebietes-CODES der Kreise im aktiven TN
-    _AbAnOverlap : bool (True oder False)
+    _AnAbOverlap : bool (True oder False)
         True, wenn identische Akunfts- und Abfahrtszeit als Überlappung gelten
 
     Returns
@@ -80,7 +79,7 @@ def FZG_Linien(Visum, _FPLTabelle, _Saisons, _Tage, _FZG, _Gebiete, _AbAnOverlap
             AddListeVisum = pd.DataFrame()
             # Iteration über alle Linien in TN die an s und t Fahrtenangebot aufweisen
             for linie in np.sort(_FPLTabelle["LINE"].unique()):
-                FZG_linie = _berechne_FZG_Linien(_FPLTabelle, linie, _FZG, s, t, _AbAnOverlap)
+                FZG_linie = _berechne_FZG_Linien(_FPLTabelle, linie, _FZG, s, t, _AnAbOverlap)
                 AddListeVisum = pd.concat([AddListeVisum, FZG_linie], ignore_index=True)
             AddListeVisum.fillna(0, inplace=True)
             AddListeVisum.drop(columns=["LINENAME"], inplace=True)
@@ -93,7 +92,7 @@ def FZG_Linien(Visum, _FPLTabelle, _Saisons, _Tage, _FZG, _Gebiete, _AbAnOverlap
                 SetMulti(Visum.Net.Lines, spalte_AP, df_AP.tolist(), True)
               
                 
-def FZG_TN(Visum, _FPLTabelle, _Saisons, _Tage, _FZG, _TN, _AbAnOverlap):
+def FZG_TN(Visum, _FPLTabelle, _Saisons, _Tage, _FZG, _TN, _AnAbOverlap):
     '''
     Parameters
     ----------
@@ -108,7 +107,7 @@ def FZG_TN(Visum, _FPLTabelle, _Saisons, _Tage, _FZG, _TN, _AbAnOverlap):
         Alle Fahrzeugkombinationen im aktiven TN mit Fahrzeug-CODE und RANG
     _TN : string
         Teilnetz-CODE
-    _AbAnOverlap : bool (True oder False)
+    _AnAbOverlap : bool (True oder False)
         True, wenn identische Akunfts- und Abfahrtszeit als Überlappung gelten
 
     Returns
@@ -122,7 +121,7 @@ def FZG_TN(Visum, _FPLTabelle, _Saisons, _Tage, _FZG, _TN, _AbAnOverlap):
         for t in _Tage:
             if t == "AP": # nicht relevant auf Ebene Teilnetz
                 continue
-            FZG_FK = _berechne_FZG_TN(_FPLTabelle, _FZG, s, t, _AbAnOverlap)
+            FZG_FK = _berechne_FZG_TN(_FPLTabelle, _FZG, s, t, _AnAbOverlap)
             FZG_METN[FZG_FK.columns] = FZG_FK # Füge Spalten mit Namen aus Saison, Tag, Fahrzeugtyp hinzu
     spalte_daten = []
     for _, f in Visum.Net.VehicleCombinations.GetMultiAttValues("CODE"):
@@ -141,7 +140,7 @@ def FZG_TN(Visum, _FPLTabelle, _Saisons, _Tage, _FZG, _TN, _AbAnOverlap):
         SetMulti(Visum.Net.VehicleCombinations, f"{_TN}_FZG_METN", spalte_daten)
 
 
-def _berechne_FZG_Linien(_FPLTabelle, _linie, _FZG, _s, _t, _AbAnOverlap):
+def _berechne_FZG_Linien(_FPLTabelle, _linie, _FZG, _s, _t, _AnAbOverlap):
     '''
     Parameters
     ----------
@@ -155,7 +154,7 @@ def _berechne_FZG_Linien(_FPLTabelle, _linie, _FZG, _s, _t, _AbAnOverlap):
         Saison: 'S' oder 'F'
     _t : string
         kürzel Wochentag inkl. AP
-    _AbAnOverlap : bool (True oder False)
+    _AnAbOverlap : bool (True oder False)
         True, wenn identische Akunfts- und Abfahrtszeit als Überlappung gelten
 
     Returns
@@ -168,7 +167,7 @@ def _berechne_FZG_Linien(_FPLTabelle, _linie, _FZG, _s, _t, _AbAnOverlap):
     LinienListe.loc[len(LinienListe)] = [_linie]
     # Filter Fahrplanfahrten nach Linie, Saison und Tag
     _FPLTabelle = _FPLTabelle[(_FPLTabelle["LINE"] == _linie) & (_FPLTabelle[_s] == 1) & (_FPLTabelle["Tag"] == _t)]
-    timeline = _erstelle_timeline(_FPLTabelle, _AbAnOverlap) # baue Timeline mit Fahrzeugbedarf je Fahrzeugtyp und Tagesminute (1440)
+    timeline = _erstelle_timeline(_FPLTabelle, _AnAbOverlap) # baue Timeline mit Fahrzeugbedarf je Fahrzeugtyp und Tagesminute (1440)
     # Iteration über alle Fahrzeuge (diese liegen nach Rang sortiert vor)
     for f in _FZG["FZG"].unique().tolist():
         if not f in timeline.columns: # Falls Fahrzeug zwar in Teilnetz aber nicht in gefiltern Fahrplandaten vorhanden
@@ -191,7 +190,7 @@ def _berechne_FZG_Linien(_FPLTabelle, _linie, _FZG, _s, _t, _AbAnOverlap):
     return LinienListe
 
 
-def _berechne_FZG_TN(_FPLTabelle, _FZG, _s, _t, _AbAnOverlap):
+def _berechne_FZG_TN(_FPLTabelle, _FZG, _s, _t, _AnAbOverlap):
     '''
     Der Fahrzeugbedarf auf Ebene der Teilnetze ergibt sich wie folgt:
         Aufsteigend (nach Rang von klein zu groß) wird der maximale Fahrzeugbedarf je Tag und Saison ermittelt
@@ -209,7 +208,7 @@ def _berechne_FZG_TN(_FPLTabelle, _FZG, _s, _t, _AbAnOverlap):
         Saison: 'S' oder 'F'
     _t : string
         kürzel Wochentag inkl. AP
-    _AbAnOverlap : bool (True oder False)
+    _AnAbOverlap : bool (True oder False)
         True, wenn identische Akunfts- und Abfahrtszeit als Überlappung gelten
 
     Returns
@@ -219,7 +218,7 @@ def _berechne_FZG_TN(_FPLTabelle, _FZG, _s, _t, _AbAnOverlap):
     '''
     # Filter Fahrplanfahrten nach Saison und Tag
     _FPLTabelle = _FPLTabelle[(_FPLTabelle[_s] == 1) & (_FPLTabelle["Tag"] == _t)]
-    timeline = _erstelle_timeline(_FPLTabelle, _AbAnOverlap)
+    timeline = _erstelle_timeline(_FPLTabelle, _AnAbOverlap)
     timeline["FREI"] = 0 # Spalte mit freien Fahrzeugen je Tagesminute
     Rang0 = 0
     for f, Rang1 in zip(_FZG["FZG"], _FZG["RANG"]):
@@ -250,7 +249,7 @@ def _berechne_FZG_TN(_FPLTabelle, _FZG, _s, _t, _AbAnOverlap):
 
 
 def _checks(Visum):
-    '''Führe unterschiedliche schecks durch:
+    '''Führe unterschiedliche checks durch:
         - BDAs 'S', 'F', 'TN', 'RANG' vorhanden?
         - Zeitintervallmenge und Zeitintervalle korrekt definiert?
         - Nur Fahrten aus einem Teilnetz aktiv?
@@ -259,6 +258,7 @@ def _checks(Visum):
     '''
     return all((
     check_bda(Visum, Visum.Net, "Network", "TN"),
+    check_bda(Visum, Visum.Net, "Network", "ANABOVERLAP"),
     check_bda(Visum, Visum.Net.Lines, "Lines", "TN"),
     check_bda(Visum, Visum.Net.VehicleCombinations, "FahrzeugKombinationen", "RANG"),
     check_zeitintervalle(Visum),
@@ -266,13 +266,13 @@ def _checks(Visum):
     ))
 
 
-def _erstelle_timeline(_FPL_linie, _AbAnOverlap):
+def _erstelle_timeline(_FPL_linie, _AnAbOverlap):
     '''
     Parameters
     ----------
     _FPL_linie : pandas DataFrame
         Beinhaltet alle Fahrplanfahrten mit Fahrzeug (inkl. RANG), Abafahrt, Ankunft, Saison und Verkehrstag der Linie
-    _AbAnOverlap : bool (True oder False)
+    _AnAbOverlap : bool (True oder False)
         True, wenn identische Akunfts- und Abfahrtszeit als Überlappung gelten
 
     Returns
@@ -288,7 +288,7 @@ def _erstelle_timeline(_FPL_linie, _AbAnOverlap):
     # iteration über die drei Spalten aus Fahrplandaten, Wert jeweils aus Zeile
     # erhöhe in Timeline jeweils den Zähler je Fahrzeug um eins, wenn betreffenden Zeitintervall (slice) Fahrten vorhanden
     for dep, arr, fzg in zip(_FPL_linie["DEP"], _FPL_linie["ARR"], _FPL_linie["VEH"]):
-        if _AbAnOverlap:
+        if _AnAbOverlap:
             df_timeline.loc[dep:arr, "ALL"] += 1
             df_timeline.loc[dep:arr, fzg] += 1
         else:
@@ -392,4 +392,4 @@ def _gebiete(Visum):
 
 
 if __name__ == "__main__":           
-    main(Visum, AbAnOverlap)
+    main(Visum)

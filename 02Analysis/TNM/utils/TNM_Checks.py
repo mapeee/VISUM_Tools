@@ -148,9 +148,16 @@ def check_net(Visum):
     '''Führe folgende Checks für Netzattribute durch:
         - notwendige BDA vorhanden?
         - Verwendung der zugelassenen Zeichen in Attribut CODE?
-    '''
-    if not check_bda(Visum, Visum.Net, "Netzattribute", "TN"):
+    ''' 
+    if not all((
+        check_bda(Visum, Visum.Net, "Network", "TN"),
+        check_bda(Visum, Visum.Net, "Network", "ANABOVERLAP"),
+        check_bda(Visum, Visum.Net, "Network", "M_FAHRZEUGBEDARF"),
+        check_bda(Visum, Visum.Net, "Network", "F_WOCHEN"),
+        check_bda(Visum, Visum.Net, "Network", "S_WOCHEN"),
+    )):
         return False
+
     TN = Visum.Net.AttValue("TN")
     if re.search(r'[ÖöÄäÜüß#\- ]', TN):
         Visum.Log(12288, "Netzattribute: Es gibt Sonderzeichen (#, ü, ä, -, ' ' etc.) im BDA TN")

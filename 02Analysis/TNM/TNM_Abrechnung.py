@@ -17,16 +17,15 @@ from create.TNM_BDA import bda_fahrzeugkombinationen, entferne_bda_fahrzeugkombi
 from utils.TNM_Checks import check_zeitintervalle, check_bda, check_fahrplanfahrtabschnitte
 
 
-# Parameter
-SW = 40 # Schulwochen je Jahr
-FW = 12 # Ferienwochen je Jahr
-M = "M1" # Methode Fahrzeugbedarf (M1 oder M2)
-
-
 def main(Visum):
     if not _checks(Visum):
         return  False
+    # Partameter
     TN = Visum.Net.AttValue("TN")
+    SW = Visum.Net.AttValue("S_WOCHEN")
+    FW = Visum.Net.AttValue("F_WOCHEN")
+    M = Visum.Net.AttValue("M_FAHRZEUGBEDARF")
+    
     Gebiete = _gebiete(Visum)
     Einheiten = [["KM", "Fahrplankilometer"], ["STD", "Fahrplanstunden"], ["FZG", "Fahrzeugbedarf"]]
     FZG = _fahrzeugkombinationen(Visum)
@@ -101,8 +100,13 @@ def _checks(Visum):
         - alle notwendigen BDA vorhanden?
         - alle notwendigen Zeitintervallmengen und Zeitintervalle vorhanden?
         - Alle aktiven Fahrplanfahrtabschnitte mit notwendigen Attributen versehen (Fahrzeugkombinationen, Saison etc.)?
-    '''
-    if not check_bda(Visum, Visum.Net, "Network", "TN"):
+    '''    
+    if not all((
+        check_bda(Visum, Visum.Net, "Network", "TN"),
+        check_bda(Visum, Visum.Net, "Network", "M_FAHRZEUGBEDARF"),
+        check_bda(Visum, Visum.Net, "Network", "F_WOCHEN"),
+        check_bda(Visum, Visum.Net, "Network", "S_WOCHEN"),
+    )):
         return False
     TN = Visum.Net.AttValue("TN")
     if not check_bda(Visum, Visum.Net.Lines, "Lines", "TN"):
