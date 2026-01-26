@@ -234,13 +234,15 @@ def _berechne_FZG_TN(_FPLTabelle, _FZG, _s, _t, _AbAnOverlap):
             # Es könne nur Fahrzeuge ersetzen die FREI sind aber auch nicht mehr, als benötigt werden.
             timeline[f"{f}ersatz"] = timeline[["FREI", f]].min(axis=1).where(timeline["FREI"] > 0, 0)
             # Zieht zeilenweise (Tagesminuten) den Fahrzeugersatz von den freien und benötigten Fahrzeugen ab.
-            # Anschließend sind weniger Fahrzeuge FREI und es werden weniger (oder keine) vom Typ f benötigt.
-            timeline[[f, "FREI"]] = timeline[[f, "FREI"]].sub(timeline[f"{f}ersatz"], axis=0)
-        timeline[f"{f}max"] = timeline[f].max() # Maximalbedarf nach Ersatz von Fahrzeug f
+            # Anschließend sind weniger Fahrzeuge FREI und es werden weniger (oder keine) vom Typ f benötigt (fneu).
+            timeline[[f"{f}neu", "FREI"]] = timeline[[f, "FREI"]].sub(timeline[f"{f}ersatz"], axis=0)
+        timeline[f"{f}max"] = timeline[f"{f}neu"].max() # Maximalbedarf nach Ersatz von Fahrzeug f
         # Fur alle tagesminmuten (Zeilen): Freie Fahrzeuge = Maximalbedarf f über Tag im Bedarf zu dieser Minute
-        timeline["FREI"] = timeline["FREI"] + (timeline[f"{f}max"] - timeline[f])
+        timeline["FREI"] = timeline["FREI"] + (timeline[f"{f}max"] - timeline[f"{f}neu"])
         Rang0 = Rang1
     # Als Export werden nur die Spalten mit den Maximalbedarfen je Fahrzeugtyp benötigt
+    if _s == "S" and _t == "Mo": # ermöglichst späteres Einfügen in Excel
+        timeline.to_clipboard(index=False)
     TNListe = timeline.filter(like="max").copy()
     TNListe.drop(TNListe.index[1:], inplace=True) # Lösche alle Zeilen außer der ersten, da Maximalbedarfe über Tag immer identisch
     TNListe.rename(columns=lambda c: c.replace("max", f"_{_s}_({_t})"), inplace=True)
@@ -278,7 +280,8 @@ def _erstelle_timeline(_FPL_linie, _AbAnOverlap):
     df_timeline: pandas DataFrame
         Fahrzeugbedarf je Tagesminute (1440) insgesamt und je Fahrzeugtyp
     '''
-    df_timeline = pd.DataFrame({"time": range(0, 1440)}) # erstelle timeline für 1440 Minuten am Tag (24 Stunden * 60 Minuten)
+    df_timeline = pd.DataFrame({"minute": range(0, 1440)}) # erstelle timeline für 1440 Minuten am Tag (24 Stunden * 60 Minuten)
+    df_timeline["time"] = pd.to_datetime(df_timeline["minute"], unit="m").dt.strftime("%H:%M")
     df_timeline["ALL"] = 0
     FZGunique = _FPL_linie["VEH"].drop_duplicates().tolist() # Unique Fahrzeuge in den Fahrplandaten
     df_timeline[FZGunique] = 0 # lege Spalten mit initialem Fahrzeugbedarf je Fahrzeug mit 0 an
