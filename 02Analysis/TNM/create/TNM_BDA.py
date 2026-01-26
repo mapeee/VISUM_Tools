@@ -61,6 +61,13 @@ def bda_fahrzeugkombinationen(Visum, TN, Gebiete, Einheiten):
     formel = " + ".join(Kosten_AT)
     # Gesamtkosten
     erstelle_bda_fahrzeugkombinationen(Visum, f"{TN}_GESAMTKOSTEN", f"TNM_{TN}", [2, 6], f"{TN} GESAMTKOSTEN", formel)
+    kreise = []
+    for g, gname in Gebiete:
+        for e, ename in Einheiten:
+            kreise.append(f"[{TN}_{g}_{e}_ATKOSTEN]")
+        formel = " + ".join(kreise)
+        # Gesamtkosten je Gebiet (AT)
+        erstelle_bda_fahrzeugkombinationen(Visum, f"{TN}_{g}_GESAMTKOSTEN", f"TNM_{TN}", [2, 6], f"{TN} {gname} GESAMTKOSTEN", formel)
     Visum.Log(20480, "TNM-Rechenattribute für Abrechnung (Fahrzeuge): erzeugt")
     
 
@@ -118,7 +125,7 @@ def entferne_bda_fahrzeugkombinationen(Visum, _TN):
     Entfernt Formel-BDA der Fahrzeugkombinationen in einer Reihenfolge, bei der keine anderen Formel ungültig werden.
     Ungültig werden sie nur, wenn sie auf BDA zurückgreifen, die schon gelöscht wurden.
     '''
-    for bda in ["_GESAMT", "_KOSTEN", "_ATKOSTEN", "_ANTEIL"]:
+    for bda in ["_GESAMTKOSTEN", "_KOSTEN", "_ATKOSTEN", "_ANTEIL"]:
         for i in Visum.Net.VehicleCombinations.Attributes.GetAll:
           if "TNM-Rechenattribut" in i.Comment and bda in i.Name and i.Editable == False:
             Visum.Net.VehicleCombinations.DeleteUserDefinedAttribute(i.ID)
