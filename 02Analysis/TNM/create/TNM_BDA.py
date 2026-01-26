@@ -111,7 +111,18 @@ def check_bdg(Visum, _Gebiete):
             Visum.Net.AddUserDefinedGroup(f"TNM_{g}", f"TNM {gname}")
         if not any(f"TNM_{g}_FZG" in BDG for _, BDG in BDGs):
             Visum.Net.AddUserDefinedGroup(f"TNM_{g}_FZG", f"TNM {gname} (Fahrzeugbedarf)")
-    
+
+
+def entferne_bda_fahrzeugkombinationen(Visum, _TN):
+    '''
+    Entfernt Formel-BDA der Fahrzeugkombinationen in einer Reihenfolge, bei der keine anderen Formel ungültig werden.
+    Ungültig werden sie nur, wenn sie auf BDA zurückgreifen, die schon gelöscht wurden.
+    '''
+    for bda in ["_GESAMT", "_KOSTEN", "_ATKOSTEN", "_ANTEIL"]:
+        for i in Visum.Net.VehicleCombinations.Attributes.GetAll:
+          if "TNM-Rechenattribut" in i.Comment and bda in i.Name and i.Editable == False:
+            Visum.Net.VehicleCombinations.DeleteUserDefinedAttribute(i.ID)
+
 
 def erstelle_bda_fahrzeugkombinationen(Visum, _name, _group, _type, _comment, _formel=None):
     '''
@@ -137,7 +148,7 @@ def erstelle_bda_fahrzeugkombinationen(Visum, _name, _group, _type, _comment, _f
     '''
     if Visum.Net.VehicleCombinations.AttrExists(_name):
         return True
-    if _formel:
+    elif _formel:
         Visum.Net.VehicleCombinations.AddUserDefinedAttribute(_name, _name, _name, _type[0], _type[1], Formula = _formel)
     else:
         Visum.Net.VehicleCombinations.AddUserDefinedAttribute(_name, _name, _name, _type[0], _type[1], False, 0, None, 0)
