@@ -13,7 +13,7 @@ Version: 0.8
 
 import pandas as pd
 from VisumPy.helpers import SetMulti
-from create.TNM_BDA import bda_fahrzeugkombinationen
+from create.TNM_BDA import bda_fahrzeugkombinationen, entferne_bda_fahrzeugkombinationen
 from utils.TNM_Checks import check_zeitintervalle, check_bda, check_fahrplanfahrtabschnitte
 
 
@@ -31,6 +31,7 @@ def main(Visum):
     Einheiten = [["KM", "Fahrplankilometer"], ["STD", "Fahrplanstunden"], ["FZG", "Fahrzeugbedarf"]]
     FZG = _fahrzeugkombinationen(Visum)
     # Erstelle die für die TN-Abrechnung relevanten Formel-BDA
+    entferne_bda_fahrzeugkombinationen(Visum, TN) # lösche erste Formel BDA, um Visum-Fehler zu vermeiden
     bda_fahrzeugkombinationen(Visum, TN, Gebiete, Einheiten)
     
     LinienTabelle = _linien(Visum, Gebiete, Einheiten, FZG, M)
@@ -86,9 +87,9 @@ def FZGKomb(Visum, _TN, _LinienTabelle, _Gebiete, _Einheiten, _FZG, _SW, _FW, _M
                 # Sonst Fahrzeugbedarf: Maximalbedarf an einem Tag in der Schulzeit und in den Ferien.
                 # Dann Maximalbedarf aus Maximalbedarf aus Schulzeit und Ferien
                 else:
-                    spalten_s = [spalte for spalte in _LinienTabelle.columns if "_S_" in spalte and _M in spalte and f in spalte and g in spalte]
+                    spalten_s = [spalte for spalte in _LinienTabelle.columns if "_S_" in spalte and f"_{_M}" in spalte and f"_{f}_" in spalte and f"{g}_" in spalte]
                     max_SW = _LinienTabelle[spalten_s].sum().max()
-                    spalten_f = [spalte for spalte in _LinienTabelle.columns if "_F_" in spalte and _M in spalte and f in spalte and g in spalte]
+                    spalten_f = [spalte for spalte in _LinienTabelle.columns if "_F_" in spalte and f"_{_M}" in spalte and f"_{f}_" in spalte and f"{g}_" in spalte]
                     max_FW = _LinienTabelle[spalten_f].sum().max()
                     wert_g_e_f = max(max_SW, max_FW)
                 daten_g_e.append(wert_g_e_f)
