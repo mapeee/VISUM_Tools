@@ -72,8 +72,8 @@ def check_fahrplanfahrtabschnitte(Visum, TN=None):
         Visum.Log(12288, "Keine aktiven FahrpanfahrtAbschnitte vorhanden")
         return False
     df_fplfahrtabschnitte = pd.DataFrame(Visum.Net.VehicleJourneySections.GetMultipleAttributes(
-                        [r"VEHCOMB\CODE", "SAISON", r"VEHJOURNEY\LINEROUTE\LINE\TN"], True),
-                        columns = ["FZG", "SAISON", "TN"]
+                        [r"VEHCOMB\CODE", r"VEHCOMB\RANG", "SAISON", r"VEHJOURNEY\LINEROUTE\LINE\TN"], True),
+                        columns = ["FZG", "RANG", "SAISON", "TN"]
                         )
     # Nur bei Berechnungen für ein Teilnetz (Fahrzeugbedarf, Abrechnung)
     if TN:
@@ -85,6 +85,10 @@ def check_fahrplanfahrtabschnitte(Visum, TN=None):
             return False
     if df_fplfahrtabschnitte['FZG'].isna().any():
         Visum.Log(12288, f"Aktive FahrpanfahrtAbschnitte ohne Fahrzeug: {df_fplfahrtabschnitte['FZG'].isna().sum()}")
+        return False
+    if df_fplfahrtabschnitte['RANG'].isin([0]).any():
+        Visum.Log(12288, "Aktive FahrpanfahrtAbschnitte enthalt Fahrzeug mit Rang 0")
+        return False
     df_fplfahrtabschnitte = df_fplfahrtabschnitte[['SAISON']].drop_duplicates()
     if not df_fplfahrtabschnitte['SAISON'].isin(["S", "F", "S+F"]).all():
         Visum.Log(12288, "BDA 'SAISON' enthält ungültige Werte (gültig: 'S', 'F', 'S+F')")
