@@ -61,8 +61,8 @@ def bda_fahrzeugkombinationen(Visum, TN, Gebiete, Einheiten):
     formel = " + ".join(Kosten_AT)
     # Gesamtkosten
     erstelle_bda_fahrzeugkombinationen(Visum, f"{TN}_GESAMTKOSTEN", f"TNM_{TN}", [2, 6], f"{TN} GESAMTKOSTEN", formel)
-    kreise = []
     for g, gname in Gebiete:
+        kreise = []
         for e, ename in Einheiten:
             kreise.append(f"[{TN}_{g}_{e}_ATKOSTEN]")
         formel = " + ".join(kreise)
