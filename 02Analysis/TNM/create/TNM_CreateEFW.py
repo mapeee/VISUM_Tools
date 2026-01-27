@@ -15,6 +15,9 @@ def erstelle_bdt(Visum):
         Visum.Log(12288, "Netzattribut: BDA 'TN' fehlt")
         return False
     TN = Visum.Net.AttValue("TN")
+    if TN == "ohne":
+        Visum.Log(12288, "Kein Teilnetz in den Netzattributen aktiv ('ohne')")
+        return False
     BDT = Visum.Net.TableDefinitions.GetMultiAttValues("NAME")
     if any(f"{TN} EFW" in item for item in BDT):
         Visum.Log(12288, f"BDT existiert schon: {TN} EFW")
