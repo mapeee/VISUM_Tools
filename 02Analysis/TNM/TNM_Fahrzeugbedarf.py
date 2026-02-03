@@ -283,11 +283,11 @@ def _erstelle_timeline(_FPL_linie, _AnAbOverlap):
     df_timeline = pd.DataFrame({"minute": range(0, 1440)}) # erstelle timeline für 1440 Minuten am Tag (24 Stunden * 60 Minuten)
     df_timeline["time"] = pd.to_datetime(df_timeline["minute"], unit="m").dt.strftime("%H:%M")
     df_timeline["ALL"] = 0
-    FZGunique = _FPL_linie["VEH"].drop_duplicates().tolist() # Unique Fahrzeuge in den Fahrplandaten
+    FZGunique = _FPL_linie["FZG"].drop_duplicates().tolist() # Unique Fahrzeuge in den Fahrplandaten
     df_timeline[FZGunique] = 0 # lege Spalten mit initialem Fahrzeugbedarf je Fahrzeug mit 0 an
     # iteration über die drei Spalten aus Fahrplandaten, Wert jeweils aus Zeile
     # erhöhe in Timeline jeweils den Zähler je Fahrzeug um eins, wenn betreffenden Zeitintervall (slice) Fahrten vorhanden
-    for dep, arr, fzg in zip(_FPL_linie["DEP"], _FPL_linie["ARR"], _FPL_linie["VEH"]):
+    for dep, arr, fzg in zip(_FPL_linie["DEP"], _FPL_linie["ARR"], _FPL_linie["FZG"]):
         if _AnAbOverlap:
             df_timeline.loc[dep:arr, "ALL"] += 1
             df_timeline.loc[dep:arr, fzg] += 1
@@ -328,7 +328,7 @@ def _fahrplanfahrten(Visum, _TN):
                  r"ISVALID(Mo)", r"ISVALID(Di)", r"ISVALID(Mi)",
                  r"ISVALID(Do)", r"ISVALID(Fr)", r"ISVALID(Sa)",
                  r"ISVALID(So)"],
-                ["LINE", "NAME", "DEP", "ARR", "VEH", "VEHRANG", "S", "F", "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]]
+                ["LINE", "NAME", "DEP", "ARR", "FZG", "FZGRANG", "S", "F", "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]]
     _FPLTabelle = pd.DataFrame(Visum.Net.VehicleJourneySections.GetMultipleAttributes(_attrListe[0], True), columns = _attrListe[1])
     # Wandle Sekundenwerte aus Visum in Minutenwerte um
     _FPLTabelle["DEP"], _FPLTabelle["ARR"] = _FPLTabelle["DEP"] / 60, _FPLTabelle["ARR"] / 60
@@ -358,8 +358,8 @@ def _fahrplanfahrten(Visum, _TN):
         
     _FPLTabelleWoche.drop(columns=["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So", "is_nextday"], inplace=True)
     # Lege die Feldwerte fest um spätere Fehler zu vermeiden (wenn dtype = object)
-    _FPLTabelleWoche[["LINE", "NAME", "VEH", "Tag"]] = _FPLTabelleWoche[["LINE", "NAME", "VEH", "Tag"]].astype("string")
-    _FPLTabelleWoche["VEHRANG"] = _FPLTabelleWoche["VEHRANG"].astype(int)
+    _FPLTabelleWoche[["LINE", "NAME", "FZG", "Tag"]] = _FPLTabelleWoche[["LINE", "NAME", "FZG", "Tag"]].astype("string")
+    _FPLTabelleWoche["FZGRANG"] = _FPLTabelleWoche["FZGRANG"].astype(int)
     return _FPLTabelleWoche
 
 
