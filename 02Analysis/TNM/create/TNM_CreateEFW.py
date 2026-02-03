@@ -46,7 +46,7 @@ def erstelle_bda(Visum, _EFW):
     BDA.UserDefinedGroup = "EFW"
     # BDA VORHANDEN ist WAHR, wenn die Zeile aus dem EFW im Netz verwendet wird.
     _EFW.TableEntries.AddUserDefinedAttribute(ID = "VORHANDEN", ShortName = "Vorhanden", LongName = "Vorhanden", VT = 9, \
-                                              Formula = r"TableLookup(LINIENROUTENELEMENT LV; LV[HALTEPUNKT\NAME]=[VONHPNAME]&LV[NAECHSTROUTEPKT\HALTEPUNKT\NAME]=[NACHHPNAME]&LV[LINNAME]=[LINIE];LV[LINEROUTEID])")
+                                              Formula = r"TableLookup(LINIENROUTENELEMENT LV; LV[HALTEPUNKT\NAME]=[VONHPNAME]&LV[NAECHSTROUTEPKT\HALTEPUNKT\NAME]=[NACHHPNAME];LV[LINEROUTEID])")
     BDA = _EFW.TableEntries.Attributes.ItemByKey("VORHANDEN")
     BDA.UserDefinedGroup = "EFW"
 
