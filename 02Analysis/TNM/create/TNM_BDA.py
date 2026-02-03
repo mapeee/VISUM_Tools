@@ -68,7 +68,7 @@ def bda_fahrzeugkombinationen(Visum, TN, Gebiete, Einheiten):
         formel = " + ".join(kreise)
         # Gesamtkosten je Gebiet (AT)
         erstelle_bda_fahrzeugkombinationen(Visum, f"{TN}_{g}_GESAMTKOSTEN", f"TNM_{TN}", [2, 6], f"{TN} {gname} GESAMTKOSTEN", formel)
-    Visum.Log(20480, "TNM-Rechenattribute für Abrechnung (Fahrzeuge): erzeugt")
+    Visum.Log(20480, "TNM-Rechenattribute der Fahrzeugkombinationen erzeugt: Abrechnung")
     
 
 def bda_linien(Visum, stdkm=None):
@@ -200,7 +200,7 @@ def erstelle_bda_linien(Visum, _name, _group, _type, _comment, _formel=None):
         attr = [f"{_g}_{_s}_{_f}_STD(Mo)", f"{_s}_{_f}_STD(Mo)", f"{_s}_{_f}_{_m}(Mo)"]
         for i in attr:
             if not Visum.Net.Lines.AttrExists(i):
-                Visum.Log(12288, "Formel-BDA {_name} kann nicht erstellt werden: BDA {i} felt")
+                Visum.Log(12288, f"Formel-BDA {_name} kann nicht erstellt werden: BDA {i} fehlt")
                 return False
         attr = [s.replace("Mo", "") for s in attr]
         formel = f"([{attr[0]}] / [{attr[1]}]) * [{attr[2]}]"
