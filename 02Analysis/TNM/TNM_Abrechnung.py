@@ -8,7 +8,7 @@ Ebenen:
 
 Erstellt: 09.01.2026
 @author: mape
-Version: 0.8
+Version: 0.81
 """
 
 import pandas as pd
@@ -35,6 +35,7 @@ def main(Visum):
     
     LinienTabelle = _linien(Visum, Gebiete, Einheiten, FZG, M)
     FZGKomb(Visum, TN, LinienTabelle, Gebiete, Einheiten, FZG, SW, FW, M)
+    _entferne_bda(Visum)
     Visum.Log(20480, f"Abrechnung für {TN}: durchgeführt")
     return True
 
@@ -81,8 +82,10 @@ def FZGKomb(Visum, _TN, _LinienTabelle, _Gebiete, _Einheiten, _FZG, _SW, _FW, _M
                     wert_g_e_f  = 0
                 # Wenn ermittlung FPLKM und FPLSTD, dann Multiplikation mit Jahreswochen je Saison
                 elif e in ["KM", "STD"]:
-                    wert_g_e_f = ((_LinienTabelle[f"{g}_S_{f}_{e}(AP)"] * _SW) +
-                             (_LinienTabelle[f"{g}_F_{f}_{e}(AP)"] * _FW)).sum()
+                    wert_g_e_f = pd.Series(
+                        _LinienTabelle.get(f"{g}_S_{f}_{e}(AP)", 0) * _SW +
+                        _LinienTabelle.get(f"{g}_F_{f}_{e}(AP)", 0) * _FW
+                        ).sum()
                 # Sonst Fahrzeugbedarf: Maximalbedarf an einem Tag in der Schulzeit und in den Ferien.
                 # Dann Maximalbedarf aus Maximalbedarf aus Schulzeit und Ferien
                 else:
@@ -91,6 +94,7 @@ def FZGKomb(Visum, _TN, _LinienTabelle, _Gebiete, _Einheiten, _FZG, _SW, _FW, _M
                     spalten_f = [spalte for spalte in _LinienTabelle.columns if "_F_" in spalte and f"_{_M}" in spalte and f"_{f}_" in spalte and f"{g}_" in spalte]
                     max_FW = _LinienTabelle[spalten_f].sum().max()
                     wert_g_e_f = max(max_SW, max_FW)
+                    wert_g_e_f = 0 if pd.isna(wert_g_e_f) else wert_g_e_f # nan-Werte können auftreten, wenn BDA nicht vorhanden (Abrechnung erneut ausgeführt nachdem BDA gelöscht)
                 daten_g_e.append(wert_g_e_f)
             SetMulti(Visum.Net.VehicleCombinations, f"{_TN}_{g}_{e}", daten_g_e)
 
@@ -118,6 +122,26 @@ def _checks(Visum):
     if not check_fahrplanfahrtabschnitte(Visum, True):
         return False
     return True
+
+
+def _entferne_bda(Visum):
+    '''
+    Entferne alle nicht benötigten BDA nach Erstellung der Abrechnung.
+    '''
+    count = 0
+    for BDA in Visum.Net.Lines.Attributes.GetAll:
+        if BDA.Editable is False and "TNM-Rechenattribut" in BDA.Comment:
+            if sum(s for _, s in Visum.Net.Lines.GetMultiAttValues(f"{BDA.Name}(AP)", False)) == 0:
+                Visum.Net.Lines.DeleteUserDefinedAttribute(BDA.Name)
+                count+=1
+                
+    for BDA in Visum.Net.Lines.Attributes.GetAll:
+        if "TNM-Rechenattribut" in BDA.Comment:
+            if sum(s for _, s in Visum.Net.Lines.GetMultiAttValues(f"{BDA.Name}(AP)", False)) == 0:
+                Visum.Net.Lines.DeleteUserDefinedAttribute(BDA.Name)
+                count+=1
+    if count > 0:
+        Visum.Log(20480, f"Nicht benötigte Linien-BDA gelöscht: {count}")
 
 
 def _fahrzeugkombinationen(Visum):
@@ -158,12 +182,16 @@ def _linien(Visum, _Gebiete, _Einheiten, _FZG, _M):
     attrList = []
     for g, _ in _Gebiete:
         for e, _ in _Einheiten:
+            tage = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] if e == "FZG" else ["AP"]
+            # Wenn Werte von Fahrzeugen (FZG) dann Referenzierung über Methode der Berechnung der Fahrzeugbedarfe
+            e_wert = _M if e == "FZG" else e
             for f in _FZG:
-                tage = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] if e == "FZG" else ["AP"]
-                # Wenn Werte von Fahrzeugen (FZG) dann Referenzierung über Methode der Berechnung der Fahrzeugbedarfe
-                e_wert = _M if e == "FZG" else e
-                for t in tage:
-                    attrList.extend([f"{g}_S_{f}_{e_wert}({t})", f"{g}_F_{f}_{e_wert}({t})",])
+                for s in ["S", "F"]:
+                    # BDA können fehlen, wenn Abrechnung erneut ausgeführt nachdem BDA bereits gelöscht.
+                    if not Visum.Net.Lines.AttrExists(f"{g}_{s}_{f}_{e_wert}"):
+                        continue
+                    for t in tage:
+                        attrList.extend([f"{g}_{s}_{f}_{e_wert}({t})",])
     _df_linien = pd.DataFrame(Visum.Net.Lines.GetMultipleAttributes(attrList, True), columns = attrList)
     return _df_linien
     
