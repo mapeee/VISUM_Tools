@@ -63,7 +63,7 @@ def check_fahrplanfahrtabschnitte(Visum, TN=None):
             - Nur FahrplanfahrtAbschnitte aus einem Teilnetz
             - Keine FahrplanfahrtAbschnitte ohne Teilnetz
         - FahrplanfahrtAbschnitte ohne zugeordneter Fahrzeugkombination?
-        - BDA für Saison (Schule/Ferien) richtig belegt?
+        - BDA für Saison (Normalwoche/Ferien) richtig belegt?
     '''
     for i in ["SAISON", "S", "F"]:
         if not check_bda(Visum, Visum.Net.VehicleJourneySections, "FahrpanfahrtAbschnitte", i):

@@ -215,7 +215,7 @@ def erstelle_bda_linien(Visum, _name, _group, _type, _comment, _formel=None):
 
 def _werte(Visum):
     _Gebiete = _gebiete(Visum)
-    _Saisons = [["S", "Schule"], ["F", "Ferien"]]
+    _Saisons = [["S", "Normalwoche"], ["F", "Ferien"]]
     _FZG = _fahrzeugkombinationen(Visum)
     return _Gebiete, _Saisons, _FZG
 
