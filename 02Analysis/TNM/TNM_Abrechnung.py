@@ -60,7 +60,7 @@ def FZGKomb(Visum, _TN, _LinienTabelle, _Gebiete, _Einheiten, _FZG, _SW, _FW, _M
     _FZG : Liste
         Liste mit unterschiedlichen Fahrzeugkombinationen
     _SW : int
-        Schulwochen je Jahr
+        Normalwochen je Jahr
     _FW : int
         Ferienwochen je Jahr
     _M : string
@@ -86,8 +86,8 @@ def FZGKomb(Visum, _TN, _LinienTabelle, _Gebiete, _Einheiten, _FZG, _SW, _FW, _M
                         _LinienTabelle.get(f"{g}_S_{f}_{e}(AP)", 0) * _SW +
                         _LinienTabelle.get(f"{g}_F_{f}_{e}(AP)", 0) * _FW
                         ).sum()
-                # Sonst Fahrzeugbedarf: Maximalbedarf an einem Tag in der Schulzeit und in den Ferien.
-                # Dann Maximalbedarf aus Maximalbedarf aus Schulzeit und Ferien
+                # Sonst Fahrzeugbedarf: Maximalbedarf an einem Tag in einer Normal- bzw. Ferienwoche.
+                # Dann Maximalbedarf aus Maximalbedarf aus Normalwochen und Ferien
                 else:
                     spalten_s = [spalte for spalte in _LinienTabelle.columns if "_S_" in spalte and f"_{_M}" in spalte and f"_{f}_" in spalte and f"{g}_" in spalte]
                     max_SW = _LinienTabelle[spalten_s].sum().max()
@@ -152,8 +152,7 @@ def _fahrzeugkombinationen(Visum):
     
 
 def _gebiete(Visum):
-    _df_oevgebietedetail = pd.DataFrame(Visum.Net.VehicleJourneyItems.GetMultipleAttributes([r"TIMEPROFILEITEM\LINEROUTEITEM\NODE\MINACTIVE:CONTAININGTERRITORIES\CODE",
-                                                                                  r"TIMEPROFILEITEM\LINEROUTEITEM\NODE\MINACTIVE:CONTAININGTERRITORIES\NAME"], True),
+    _df_oevgebietedetail = pd.DataFrame(Visum.Net.TerritoryPuTDetails.GetMultipleAttributes(["TERRITORYCODE", "TERRITORYNAME"], True),
                             columns = ["CODE", "NAME"])
     gebiete_unique = _df_oevgebietedetail[['CODE', "NAME"]].drop_duplicates().values.tolist()
     return gebiete_unique
