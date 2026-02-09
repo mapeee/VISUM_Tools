@@ -4,7 +4,7 @@
 
 Erstellt: 25.12.2025
 @author: mape
-Version: 0.91
+Version: 0.92
 """
 import numpy as np
 import pandas as pd
@@ -18,6 +18,8 @@ def main(Visum):
     - Übertrage Entfernungen auf aktive LinienRouten-Verläufe gemäß identischen HP-Namen und Linienname
     - Übertrage anschließend Entfernungen auch dann, wenn nur HP-Namen identisch
     '''
+    if not bool(Visum.Net.AttValue("EFW")): # Nutze nur EFW, wenn in Parametern vorgesehen.
+        return True
     if not _checks(Visum):
         return False
     TN = Visum.Net.AttValue("TN")
