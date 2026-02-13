@@ -67,38 +67,37 @@ class MyDialog(wx.Dialog):
         self.button_createEFW = wx.Button(self, -1, _("Create EFW"), name = "createEFW")
         self.button_PerformanceStatement = wx.Button(self, -1, _("Performance statement"), name = "PerformanceStatement")
         self.button_setParameters = wx.Button(self, -1, _("Set Parameters"), name = "setParameters")
+        self.button_openLAR = wx.Button(self, -1, _("Open invoice"), name = "openLAR")
       
         self.button_exportMETN = wx.Button(self, -1, _("Export METN-List"), name = "exportMETN")
-        self.button_openLAR = wx.Button(self, -1, _("Open invoice"), name = "openLAR")
         self.button_delUDALines = wx.Button(self, -1, _("Delete Lines-UDA"), name = "delLinesUDA")
         self.button_delUDASN = wx.Button(self, -1, _("Delete SN-UDA"), name = "delSNUDA")
         
-        self.button_ok = wx.Button(self, -1, _("OK"))
         self.button_help = wx.Button(self, -1, _('Help'))
         self.button_info = wx.Button(self, -1, _('Info'))
         self.button_exit = wx.Button(self, wx.ID_CANCEL, _('Close'))
         
         self.Bind(wx.EVT_COMBOBOX, self._on_comboChoice, self.comboTN)
         
+        self.Bind(wx.EVT_CHECKBOX, self._on_checkbox, self.cbEFW)
+        
         self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_createEFW)
         self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_PerformanceStatement)
         self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_setParameters)
+        self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_openLAR)
         
         self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_exportMETN)
-        self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_openLAR)
         self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_delUDALines)
         self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_delUDASN)
         
-        self.Bind(wx.EVT_BUTTON, self.OnOK, self.button_ok)
         self.Bind(wx.EVT_BUTTON, self.OnHelp, self.button_help)
         self.Bind(wx.EVT_BUTTON, self.OnInfo, self.button_info)
         self.Bind(wx.EVT_BUTTON, self.OnExit, self.button_exit)
 
-
         self.__do_layout()
-        self.__set_properties()
         self.__do_parameters()
         self.__do_comboChoice()
+        self.__set_properties()
         
         defaultParam = {"TN" : False, "SW" : False, "FW" : False, "EFW" : False, "FB" : False,
                         "UEL" : False}
@@ -139,18 +138,23 @@ class MyDialog(wx.Dialog):
         self.labelEFW.SetFont(font)
         self.labelUEL.SetFont(font)
         
-        TN = Visum.Net.AttValue("TN")
+        TN = self.comboTN.GetValue()
         BDT = Visum.Net.TableDefinitions.GetMultiAttValues("NAME")
         if any(f"{TN} EFW" in item for item in BDT):
             self.button_createEFW.Disable()
-        
-        self.button_PerformanceStatement.SetBackgroundColour(wx.Colour(184, 255, 184))
+        else:
+            self.cbEFW.SetValue(False)
+        if not Visum.Net.VehicleCombinations.AttrExists(f"{TN}_GESAMTKOSTEN"):
+            self.button_openLAR.Disable()
+        if not Visum.UserPreferences.DocumentName.endswith(".ver"):
+            self.button_PerformanceStatement.Disable() # nicht im Szenario-Management ausführen. Dort nur über die Szenarien ausführen.
+        else:
+            self.button_PerformanceStatement.SetBackgroundColour(wx.Colour(184, 255, 184))
         
         font = self.button_exportMETN.GetFont()
         font.SetStyle(wx.FONTSTYLE_ITALIC)
         self.button_exportMETN.SetFont(font)
         self.button_exportMETN.SetForegroundColour("grey")
-        pass
         
     def __do_layout(self):      
         sb_para = wx.StaticBox(self, -1, _("Parameters"))
@@ -207,8 +211,7 @@ class MyDialog(wx.Dialog):
         sb_end.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.BOLD))
         sbSizer_end = wx.StaticBoxSizer(sb_end, wx.VERTICAL)
         sbSizer_end.SetMinSize((200, 50))
-        grid_end = wx.FlexGridSizer(rows=2, cols=2, hgap=5, vgap=5)
-        grid_end.Add(self.button_ok, flag = wx.EXPAND)
+        grid_end = wx.FlexGridSizer(rows=1, cols=3, hgap=5, vgap=5)
         grid_end.Add(self.button_exit, flag = wx.EXPAND)
         grid_end.Add(self.button_help, flag = wx.EXPAND)
         grid_end.Add(self.button_info, flag = wx.EXPAND)
@@ -234,12 +237,25 @@ class MyDialog(wx.Dialog):
             self.button_createEFW.Disable()
         else:
             self.button_createEFW.Enable()
-
-    
+            self.cbEFW.SetValue(False)
+        if not Visum.Net.VehicleCombinations.AttrExists(f"{TN}_GESAMTKOSTEN"):
+            self.button_openLAR.Disable()
+        else:
+            self.button_openLAR.Enable()
+            
+    def _on_checkbox(self,event):
+        if not self.cbEFW.GetValue():
+            return
+        TN = self.comboTN.GetValue()
+        BDT = Visum.Net.TableDefinitions.GetMultiAttValues("NAME")
+        if not any(f"{TN} EFW" in item for item in BDT):
+            addIn.ReportMessage(_("EFW of SN %s not available.") %(TN))
+            self.cbEFW.SetValue(False)
+        
     def OnExecute(self,event):
         param, paramOK = self.setParameter()
         if not paramOK:
-            addIn.ReportMessage(_("Error"))
+            addIn.ReportMessage(_("Some error occurred."))
             return
         param["Proc"] = event.GetEventObject().GetName()
         addInParam.SaveParameter(param)
@@ -259,10 +275,6 @@ class MyDialog(wx.Dialog):
     def OnInfo(self, event):
         title = _("Info")
         frame = InfoFrame(title=title)    
-        
-    def OnOK(self,event):
-        addInParam.SaveParameter({"AddVal" : 1})
-        self.OnExit(None)
         
     def OnProc(self,event):
         proc = True
@@ -298,21 +310,20 @@ class MyDialog(wx.Dialog):
             return param, False
 
 def CheckNetwork():
-    error = False
-    if Visum.Net.VehicleJourneyItems.Count == 0:
-        addIn.ReportMessage(_("Current Visum Version has no VehicleJourneyItems. Create PT-Network first."))
-        error = True
-    for i in ["TN", "S_WOCHEN", "F_WOCHEN", "EFW", "ANABOVERLAP", "M_FAHRZEUGBEDARF"]:
-        if not Visum.Net.AttrExists(i):
-            addIn.ReportMessage(_("Network UDA %s not existing.") %(i))
-            error = True
-    if not Visum.Net.Lines.AttrExists("TN"):
-        addIn.ReportMessage(_("Lines UDA 'TN' not existing."))
-        error = True
-    if error:
+    def _error():
         if not addIn.IsInDebugMode:
             Terminated.set()
         return False
+    if Visum.Net.VehicleJourneyItems.Count == 0:
+        addIn.ReportMessage(_("Current Visum Version has no VehicleJourneyItems. Create PT-Network first."))
+        return _error()
+    for i in ["TN", "S_WOCHEN", "F_WOCHEN", "EFW", "ANABOVERLAP", "M_FAHRZEUGBEDARF"]:
+        if not Visum.Net.AttrExists(i):
+            addIn.ReportMessage(_("Network UDA '%s' not existing.") %(i))
+            return _error()
+    if not Visum.Net.Lines.AttrExists("TN"):
+        addIn.ReportMessage(_("Lines UDA 'TN' not existing."))
+        return _error()
     return True
 
 if len(sys.argv) > 1:
