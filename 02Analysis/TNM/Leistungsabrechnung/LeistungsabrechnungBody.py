@@ -21,8 +21,15 @@ def Run(param):
         addIn.ReportMessage(_("Parameters: set"),2 )
     if param["Proc"] == "PerformanceStatement":
         Visum.Procedures.Execute()
-        on_excel_write(param["TN"])
-        addIn.ReportMessage(_("Service billing: completed"), 2)
+        # Start-Index von LAR im Verfahrensablauf
+        index_LAR = [o.AttValue("COMMENT") for o in Visum.Procedures.Operations.GetAll].index("TNM Leistungsabrechnung")
+        # Schaue, ob in den Verfahren Fehler auftauchen
+        n_errors = int(sum([o.AttValue("ERRORCOUNT") or 0 for o in Visum.Procedures.Operations.GetAll][index_LAR:(index_LAR+18)]))
+        if n_errors > 0: # wenn Fehler, dann kein Excel-Export, sondern Hinweis
+            addIn.ReportMessage(_("%s errors occurred, please check the messages.") %(str(n_errors)))
+        else:
+            on_excel_write(param["TN"])
+            addIn.ReportMessage(_("Service billing: completed"), 2)
     if param["Proc"] == "openLAR":
         on_excel_write(param["TN"])
         addIn.ReportMessage(_("Finished"), 2)
