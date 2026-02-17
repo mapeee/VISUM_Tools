@@ -111,7 +111,7 @@ class MyDialog(wx.Dialog):
         unique_vals = [x for x in unique_vals if x not in ("", "ohne")]
         self.comboTN.Append(unique_vals)
         TN = Visum.Net.AttValue("TN")
-        if TN not in unique_vals: # Nimm voreingestellte Belegung aus BDA TN, wenn nicht in Linien, dann erstes aus Linien
+        if TN not in unique_vals and len(unique_vals) > 0: # Nimm voreingestellte Belegung aus BDA TN, wenn nicht in Linien, dann erstes aus Linien
             TN = unique_vals[0]
         self.comboTN.SetValue(TN)
         
