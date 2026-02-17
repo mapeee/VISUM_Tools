@@ -2,6 +2,8 @@
 import wx
 import sys
 import os
+from pathlib import Path
+import subprocess
 import LeistungsabrechnungExecute as LE
 from VisumPy.AddIn import AddIn, AddInState, AddInParameter
 _ = AddIn.gettext
@@ -186,11 +188,12 @@ class MyDialog(wx.Dialog):
         grid_para.AddSpacer(5)
         grid_para.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 0, (1, 2))
         grid_para.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 0, (1, 2))
-        grid_para.AddSpacer(5)
-        grid_para.AddSpacer(5)
+        grid_para.AddSpacer(15)
+        grid_para.AddSpacer(15)
         grid_para.Add(self.button_PerformanceStatement, 0, flag = wx.EXPAND)
         grid_para.Add(self.button_setParameters, 0, flag = wx.EXPAND)
-        grid_para.Add(self.button_openLAR, 0, flag = wx.EXPAND)
+        grid_para.AddSpacer(15)
+        grid_para.AddSpacer(15)
         sbSizer_para.Add(grid_para, 1, wx.ALL | wx.ALIGN_CENTER, 10)
         
         sb_pref = wx.StaticBox(self, -1, _("Procedures"))
@@ -198,8 +201,8 @@ class MyDialog(wx.Dialog):
         sbSizer_pref = wx.StaticBoxSizer(sb_pref, wx.VERTICAL)
         sbSizer_pref.SetMinSize((200, 50))
         grid_pref = wx.FlexGridSizer(rows=0, cols=2, hgap=5, vgap=5)
+        grid_pref.Add(self.button_openLAR, 0, flag = wx.EXPAND)
         grid_pref.Add(self.button_exportMETN, 0, flag = wx.EXPAND)
-        grid_pref.Add(0, 0)
         grid_pref.AddSpacer(2)
         grid_pref.AddSpacer(2)
         grid_pref.Add(self.button_delUDALines, 0, flag = wx.EXPAND)
@@ -268,7 +271,12 @@ class MyDialog(wx.Dialog):
         
     def OnHelp(self,event):
         try:
-            os.startfile(addIn.DirectoryPath + _("HelpLeistungsabrechnung.htm"))
+            try:
+                file = Path(addIn.DirectoryPath + _("HelpLeistungsabrechnung.htm")).resolve()
+                url = file.as_uri() + "#_Toc221540567"
+                subprocess.run(["cmd", "/c", "start", "", "msedge", url], check=False)
+            except:
+                os.startfile(addIn.DirectoryPath + _("HelpLeistungsabrechnung.htm"))
         except:
             addIn.HandleException() 
             
