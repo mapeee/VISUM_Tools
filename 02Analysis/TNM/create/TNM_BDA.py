@@ -191,6 +191,8 @@ def erstelle_bda_linien(Visum, _name, _group, _type, _comment, _formel=None):
     '''
     if Visum.Net.Lines.AttrExists(_name):
         return True
+    _zi = Visum.Net.TimeIntervalSets.GetMultipleAttributes(["CODE","NO"])
+    _ziNO = int(next((v for k, v in _zi if k == "TNM_Tage"), None)) # Frage Nummer von Zeitintervall 'TNM_Tage' ab.
     # Formel nur für Fahrzeugbedarfe auf Linienebene, da sich der territoriale Anteil aus dem Bedarf je Linie und dem 
     # territorialen Anteil der Stunden ergibt.
     if _formel:
@@ -204,9 +206,9 @@ def erstelle_bda_linien(Visum, _name, _group, _type, _comment, _formel=None):
                 return False
         attr = [s.replace("Mo", "") for s in attr]
         formel = f"([{attr[0]}] / [{attr[1]}]) * [{attr[2]}]"
-        Visum.Net.Lines.AddUserDefinedAttribute(_name, _name, _name, _type[0], _type[1], Formula = formel, SubAttr = 'TISET_1') 
+        Visum.Net.Lines.AddUserDefinedAttribute(_name, _name, _name, _type[0], _type[1], Formula = formel, SubAttr = f'TISET_{_ziNO}') 
     else:
-        Visum.Net.Lines.AddUserDefinedAttribute(_name, _name, _name, _type[0], _type[1], False, 0, None, 0, SubAttr = 'TISET_1')
+        Visum.Net.Lines.AddUserDefinedAttribute(_name, _name, _name, _type[0], _type[1], False, 0, None, 0, SubAttr = f'TISET_{_ziNO}')
     bda = Visum.Net.Lines.Attributes.ItemByKey(_name)
     bda.Comment = f"{_comment} | TNM-Rechenattribut"
     bda.UserDefinedGroup = _group
