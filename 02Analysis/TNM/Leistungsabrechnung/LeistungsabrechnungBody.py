@@ -25,7 +25,8 @@ def Run(param):
             o.SetAttValue("ACTIVE", False)
         # generiere Start- und End-Index von LAR
         index_LAR_start = [o.AttValue("COMMENT") for o in Visum.Procedures.Operations.GetAll].index("TNM Leistungsabrechnung")
-        for o in Visum.Procedures.Operations.GetAll[index_LAR_start:]:
+        index_LAR_end = len(Visum.Procedures.Operations.GetAll) # falls TNM Leistungsabrechnung am Ende steht.
+        for o in Visum.Procedures.Operations.GetAll[index_LAR_start + 1:]:
             if not Visum.Procedures.Operations.GetParent(o):
                 index_LAR_end = int(o.AttValue("NO") - 1)
         # nur Verfahren zur LAR aktivieren
