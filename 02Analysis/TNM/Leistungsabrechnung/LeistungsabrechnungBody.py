@@ -20,11 +20,20 @@ def Run(param):
     if param["Proc"] == "setParameters":
         addIn.ReportMessage(_("Parameters: set"),2 )
     if param["Proc"] == "PerformanceStatement":
+        # alle Verfahren deaktivieren
+        for o in Visum.Procedures.Operations.GetAll:
+            o.SetAttValue("ACTIVE", False)
+        # generiere Start- und End-Index von LAR
+        index_LAR_start = [o.AttValue("COMMENT") for o in Visum.Procedures.Operations.GetAll].index("TNM Leistungsabrechnung")
+        for o in Visum.Procedures.Operations.GetAll[index_LAR_start:]:
+            if not Visum.Procedures.Operations.GetParent(o):
+                index_LAR_end = int(o.AttValue("NO") - 1)
+        # nur Verfahren zur LAR aktivieren
+        for o in Visum.Procedures.Operations.GetAll[index_LAR_start:index_LAR_end]:
+            o.SetAttValue("ACTIVE", True)
         Visum.Procedures.Execute()
-        # Start-Index von LAR im Verfahrensablauf
-        index_LAR = [o.AttValue("COMMENT") for o in Visum.Procedures.Operations.GetAll].index("TNM Leistungsabrechnung")
-        # Schaue, ob in den Verfahren Fehler auftauchen
-        n_errors = int(sum([o.AttValue("ERRORCOUNT") or 0 for o in Visum.Procedures.Operations.GetAll][index_LAR:(index_LAR+18)]))
+        # Schaue, ob in den Verfahren Fehler auftauchen (18 = 19 Verfahrensschritte (start bei Index 0))
+        n_errors = int(sum([o.AttValue("ERRORCOUNT") or 0 for o in Visum.Procedures.Operations.GetAll][index_LAR_start:index_LAR_end]))
         if n_errors > 0: # wenn Fehler, dann kein Excel-Export, sondern Hinweis
             addIn.ReportMessage(_("%s errors occurred, please check the messages.") %(str(n_errors)))
         else:
