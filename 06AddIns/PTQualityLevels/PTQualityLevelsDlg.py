@@ -1,0 +1,442 @@
+#!/usr/bin/env python
+import wx
+import wx.lib.mixins.listctrl as listmix
+import wx.dataview as dv
+import sys
+import os
+import importlib.util
+import pandas as pd
+import re
+from VisumPy.AddIn import AddIn, AddInState, AddInParameter
+_ = AddIn.gettext
+
+class InfoFrame(wx.Frame):
+    def __init__(self, title):
+        super(InfoFrame, self).__init__(None, id=-1, title=title, style=wx.CAPTION | wx.STAY_ON_TOP, size=(190, 190))
+        self.Centre()
+        
+        img = wx.Image(addIn.DirectoryPath +"logo.png",wx.BITMAP_TYPE_ANY)
+        img = img.Scale(55,30,wx.IMAGE_QUALITY_BOX_AVERAGE)
+        img = img.ConvertToBitmap()
+        png = wx.StaticBitmap(self, -1, img, (0, 0))
+        
+        self.button = wx.Button(self, -1, _("OK"))
+        self.Bind(wx.EVT_BUTTON, self.__OnOK, self.button)
+        self.SetBackgroundColour(wx.Colour(wx.NullColour))
+
+        self.label = wx.StaticText(self,label= _("hvv GmbH"))
+        self.label.SetFont(wx.Font(8, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.BOLD))
+        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(png,0,wx.LEFT,5)
+        sizer.AddSpacer(10)
+        sizer.Add(self.label,0,wx.LEFT,10)
+        sizer.AddSpacer(2)
+        sizer.Add(wx.StaticText(self,label= _("Marcus Peter")),0,wx.LEFT,10)
+        sizer.Add(wx.StaticText(self,label= _("19.02.2026")),0,wx.LEFT,10)
+        sizer.AddSpacer(2)
+        sizer.Add(wx.StaticText(self,label= _("Version 0.9: Beta")),0,wx.LEFT,10)
+        sizer.AddSpacer(10)
+        sizer.Add(self.button,0,wx.ALIGN_CENTER,5)
+        sizer.AddSpacer(5)
+        self.SetSizer(sizer)
+
+        self.Show()
+
+    def __OnOK(self,event):
+        self.Close(True)
+
+        
+class List_ti(wx.ListCtrl, listmix.TextEditMixin):
+    '''
+    List Widget zur Eingabe der Zeitintervalle
+    '''
+    def __init__(self, parent):
+        wx.ListCtrl.__init__(self, parent, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
+        listmix.TextEditMixin.__init__(self)
+        self.SetSingleStyle(wx.LC_REPORT, True)
+        self.InsertColumn(0, _("Start"), width=120)
+        self.InsertColumn(1, _("End"), width=120)
+        row = self.InsertItem(self.GetItemCount(), "06:00")
+        self.SetItem(row, 1, "21:00")
+
+
+class MyDialog(wx.Dialog):
+    def __init__(self, parent, title):
+        super(MyDialog, self).__init__(parent, id=-1, title=title, style=wx.CAPTION | wx.STAY_ON_TOP)
+        self.__InitUI()
+
+    def __InitUI(self):
+        '''
+        Erstelle alle notwendingen Elemente
+        '''
+        self.label_lines = wx.StaticText(self, -1, _(""))
+        self.label_stops = wx.StaticText(self, -1, _(""))
+        
+        # time intervals
+        self.label_wd = wx.StaticText(self, -1, _("Weekday"))
+        self.combo_wd = wx.ComboBox(self, -1, "")
+        self.label_ti = wx.StaticText(self, -1, _("Time intervals"))
+        self.list_ti = List_ti(self)
+        self.list_ti.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.OnEditTi)
+        self.button_ti = wx.Button(self, -1, _("Add"))
+        self.button_ti_remove = wx.Button(self, -1, _("Remove"))
+        self.Bind(wx.EVT_BUTTON, self.OnAddTi, self.button_ti)
+        self.Bind(wx.EVT_BUTTON, self.OnRemoveTi, self.button_ti_remove)
+        
+        # mainlines and stop categories
+        self.dvlc_scml = dv.DataViewListCtrl(self, -1, style=wx.BORDER_SUNKEN)
+        
+        # misc
+        self.label_le = wx.StaticText(self, -1, _("End of line double"))
+        self.cb_le = wx.CheckBox(self, -1, "")
+        self.label_bt = wx.StaticText(self, -1, _("Calculation type"))
+        self.combo_bt = wx.ComboBox(self, -1, "")
+        self.label_sc = wx.StaticText(self, -1, _("Scenario"))
+        self.text_sc = wx.TextCtrl(self, -1, value="/")
+        self.label_poi = wx.StaticText(self, -1, _("POI category"))
+        self.combo_poi = wx.ComboBox(self, -1, "")
+        self.label_poidel = wx.StaticText(self, -1, _("Delete existing POI"))
+        self.cb_poidel = wx.CheckBox(self, -1, "")
+        
+        # clip
+        self.label_clip = wx.StaticText(self, -1, _("Use Clip polygons"))
+        self.cb_clip = wx.CheckBox(self, -1, "")
+        self.listbox_clip = wx.ListBox(self)
+        self.button_add_clip = wx.Button(self, -1, _("Add files..."))
+        self.button_remove_clip = wx.Button(self, -1, _("Remove"))
+        self.Bind(wx.EVT_CHECKBOX, self.OnCheckbox, self.cb_clip)
+        self.Bind(wx.EVT_BUTTON, self.OnAddClip, self.button_add_clip)
+        self.Bind(wx.EVT_BUTTON, self.OnRemoveClip, self.button_remove_clip)
+        
+        # end
+        self.button_ok = wx.Button(self, -1, _("OK"))
+        self.button_help = wx.Button(self, -1, _("Help"))
+        self.button_info = wx.Button(self, -1, _("Info"))
+        self.button_exit = wx.Button(self, wx.ID_CANCEL, _("Close"))
+        self.Bind(wx.EVT_BUTTON, self.OnOK, self.button_ok)
+        self.Bind(wx.EVT_BUTTON, self.OnHelp, self.button_help)
+        self.Bind(wx.EVT_BUTTON, self.OnInfo, self.button_info)
+        self.Bind(wx.EVT_BUTTON, self.OnExit, self.button_exit)
+
+        self.__do_layout()
+        self.__do_parameters()
+        self.__do_comboChoice()
+        self.__set_properties()
+        
+        defaultParam = {"ti" : False, "wd" : False, "le" : False, "scml" : False, "clipfiles" : False,
+                        "bt" : False, "sc" : False, "poi" : False, "poidel" : False, "clip" : False}
+        addInParam.Check(False, defaultParam)
+
+    def __do_layout(self):
+        # Time intervals
+        sb_time = wx.StaticBox(self, -1, _("Time reference"))
+        sb_time.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.BOLD))
+        sbSizer_time = wx.StaticBoxSizer(sb_time, wx.VERTICAL)
+        grid_time = wx.GridBagSizer(vgap=7, hgap=2)
+        grid_time.Add(self.label_wd, pos=(0,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_time.Add(self.combo_wd, pos=(0,1), flag = wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        grid_time.Add(self.label_ti, pos=(1,0), span=(1,2), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_time.Add(self.list_ti, pos=(2,0), span=(1,2), flag = wx.EXPAND)
+        grid_time.Add(self.button_ti, pos=(3,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_time.Add(self.button_ti_remove, pos=(3,1), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_time.AddGrowableCol(1, 1)   # right column grows
+        grid_time.AddGrowableRow(2, 1)   # list row grows
+        sbSizer_time.Add(grid_time, 1, wx.ALL | wx.EXPAND, 10)
+        # Stop type
+        sb_st = wx.StaticBox(self, -1, _("Stop type"))
+        sb_st.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.BOLD))
+        sbSizer_st = wx.StaticBoxSizer(sb_st, wx.VERTICAL)
+        grid_st = wx.BoxSizer(wx.VERTICAL)
+        grid_st.Add(self.dvlc_scml, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
+        sbSizer_st.Add(grid_st, 1, wx.ALL | wx.EXPAND, 10)
+        # Parameters
+        sb_para = wx.StaticBox(self, -1, _("Parameters"))
+        sb_para.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.BOLD))
+        sbSizer_para = wx.StaticBoxSizer(sb_para, wx.VERTICAL)
+        grid_para = wx.GridBagSizer(vgap=8, hgap=2)
+        grid_para.Add(self.label_bt, pos=(0,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.combo_bt, pos=(0,1), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.label_le, pos=(1,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.cb_le, pos=(1,1), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.label_sc, pos=(2,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.text_sc, pos=(2,1), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.label_poi, pos=(3,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.combo_poi, pos=(3,1), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.label_poidel, pos=(4,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.cb_poidel, pos=(4,1), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.label_clip, pos=(5,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.cb_clip, pos=(5,1), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.listbox_clip, pos=(6,0), span=(1,2),flag= wx.EXPAND | wx.ALL)
+        grid_para.Add(self.button_add_clip, pos=(7,0), flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM)
+        grid_para.Add(self.button_remove_clip, pos=(7,1), flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM)
+        sbSizer_para.Add(grid_para, 1, wx.ALL | wx.ALIGN_CENTER, 10)
+        # End
+        sb_end = wx.StaticBox(self, -1, _("End"))
+        sb_end.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.BOLD))
+        sbSizer_end = wx.StaticBoxSizer(sb_end, wx.VERTICAL)
+        sbSizer_end.SetMinSize((200, 50))
+        grid_end = wx.FlexGridSizer(rows=2, cols=2, hgap=5, vgap=5)
+        grid_end.Add(self.button_ok, flag = wx.EXPAND)
+        grid_end.Add(self.button_exit, flag = wx.EXPAND)
+        grid_end.Add(self.button_help, flag = wx.EXPAND)
+        grid_end.Add(self.button_info, flag = wx.EXPAND)
+        sbSizer_end.Add(grid_end, 1, wx.ALL | wx.ALIGN_CENTER, 10)
+        
+        # Outer box
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        vbox.AddSpacer(15)
+        vbox.Add(self.label_lines, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 25)
+        vbox.Add(self.label_stops, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 25)
+        vbox.AddSpacer(15)
+        vbox.Add(sbSizer_time, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 20)
+        vbox.AddSpacer(15)
+        vbox.Add(sbSizer_st, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 20)
+        vbox.AddSpacer(15)
+        vbox.Add(sbSizer_para, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 20)
+        vbox.AddSpacer(15)
+        vbox.Add(sbSizer_end, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 20)
+
+        self.SetSizerAndFit(vbox)
+        self.Layout()
+        self.Centre()
+
+    def __do_comboChoice(self):
+        # weekday
+        self.combo_wd.Clear()
+        if Visum.Net.CalendarPeriod.AttValue("TYPE") == "CALENDARPERIODWEEK":
+            self.combo_wd.Append([_("Monday"), _("Tuesday"), _("Wednesday"),
+                                  _("Thursday"), _("Friday"), _("Saturday"), _("Sunday")])
+        else:
+            self.combo_wd.Append([_("daily")])
+            self.combo_wd.Enable(False)
+        self.combo_wd.SetSelection(0)
+        # calculation type
+        self.combo_bt.Clear()
+        self.combo_bt.Append(["HKAT", "HKAT FHH"])
+        self.combo_bt.SetSelection(1)
+        # poi category
+        self.combo_poi.Clear()
+        poi_cat = [i.AttValue("NAME") for i in Visum.Net.POICategories.GetAll]
+        self.combo_poi.Append(poi_cat)
+        idx = next((i for i, v in enumerate(poi_cat)
+            if any(k in v.lower() for k in ("klasse", "sochrone"))), 0) # Standardauswahl von erster Kategorie, die string enthält.
+        self.combo_poi.SetSelection(idx)
+        self.combo_poi.SetMinSize((100, -1))
+        self.combo_poi.SetMaxSize((100, -1))
+
+    def __do_parameters(self):
+        # dvlc stop categories and mainlines
+        self.dvlc_scml.AppendTextColumn(_("Mainline"), width=60)
+        choices = dv.DataViewChoiceRenderer(["1", "2", "3"], mode=dv.DATAVIEW_CELL_EDITABLE)
+        col = dv.DataViewColumn(_("StopType"), choices, 1, width=60)
+        self.dvlc_scml.AppendColumn(col)
+        ml_default = dict(zip(["IC", "ICE", "ICE(S)", "Nightjet", "RE", "RB", "S-Bahn", "AKN", "U-Bahn", "XpressBus", "Metrobus", "Nachtbus", "Bus", "Schiff"], 
+                          ["1", "1", "1", "1", "1", "1", "1", "1", "1", "3", "3", "3", "3", "3"]))
+        mainlines = sorted({row[1] for row in Visum.Net.Lines.GetMultiAttValues("MAINLINENAME", True)})
+        for ml in mainlines:
+            self.dvlc_scml.AppendItem([ml, ml_default.get(ml, "3")])
+        # clip
+        self.cb_clip.SetValue(False)
+        self.button_add_clip.Disable()
+        self.button_remove_clip.Disable()
+        self.listbox_clip.Enable(False)
+        # misc
+        self.cb_le.SetValue(False)
+        self.cb_poidel.SetValue(True)
+        self.label_lines.SetLabel(_("Active lines: %s") %(str(Visum.Net.Lines.CountActive)))
+        self.label_stops.SetLabel(_("Active stops: %s") %(str(Visum.Net.Stops.CountActive)))
+    
+    def __set_properties(self):
+        font = self.label_ti.GetFont()
+        font.MakeBold()
+        font.SetPointSize(8)
+        self.label_ti.SetFont(font)
+        self.list_ti.SetMinSize((-1, 100))
+        self.dvlc_scml.SetMinSize((-1, 180))
+        
+
+    def OnAddClip(self,event):
+        start_dir = os.path.dirname(os.path.abspath(__file__))
+        start_dir = os.path.join(start_dir, "data") # Standardverzeichnis für Clip-Files
+        with wx.FileDialog(self, message="", defaultDir=start_dir,
+                           wildcard="GeoJSON files (*.geojson;*.json)|*.geojson;*.json", # Nur GeoJSON und JSON erlaubte Formate
+                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE) as dlg:
+            if dlg.ShowModal() == wx.ID_OK:
+                paths = dlg.GetPaths() # <-- multiple paths
+                for path in paths:
+                    if path not in self.listbox_clip.GetItems():
+                        self.listbox_clip.Append(path)
+    
+    def OnAddTi(self,event):
+        index = self.list_ti.InsertItem(self.list_ti.GetItemCount(), "00:00")
+        self.list_ti.SetItem(index, 1, "00:00")
+        
+    def OnCheckbox(self,event):
+        if self.cb_clip.GetValue():
+            self.button_add_clip.Enable()
+            self.button_remove_clip.Enable()
+            self.listbox_clip.Enable(True) 
+        else:
+            self.button_add_clip.Disable()
+            self.button_remove_clip.Disable()
+            self.listbox_clip.Enable(False) 
+            
+    def OnEditTi(self, event):
+        '''
+        Texteingabe in Zeitintervalle; Textformat ist vorgegeben
+        '''
+        new_text = event.GetText()
+        pattern = r"^([01]\d|2[0-3]):([0-5]\d)$"
+        if not re.match(pattern, new_text):
+            event.Veto()
+            return
+        event.Skip() # accept change
+        
+    def OnExit(self,event):
+        if not addIn.IsInDebugMode:
+            Terminated.set()
+        self.Destroy()
+        
+    def OnHelp(self,event):
+        try:
+            os.startfile(addIn.DirectoryPath + _("HelpPTQualityLevels.htm"))
+        except:
+            addIn.HandleException() 
+            
+    def OnInfo(self, event):
+        title = _("Info")
+        frame = InfoFrame(title=title)
+        
+    def OnOK(self,event):
+        param, paramOK = self._setParameter()
+        if not paramOK:
+            return
+        addInParam.SaveParameter(param)
+        self.OnExit(None)
+        
+    def OnRemoveClip(self,event):
+        selections = list(self.listbox_clip.GetSelections())
+        selections.reverse()  # remove from bottom to top
+        for index in selections:
+            self.listbox_clip.Delete(index)
+        
+    def OnRemoveTi(self,event):
+        item = self.list_ti.GetFirstSelected()
+        while item != -1:
+            self.list_ti.DeleteItem(item)
+            item = self.list_ti.GetFirstSelected()
+            
+    def _get_scml_data(self):
+        '''
+        Erstelle pandas df mit den Werten aus den Spalten MAINLINE und STOPTYPE
+        '''
+        rows = []
+        for r in range(self.dvlc_scml.GetItemCount()):
+            a = self.dvlc_scml.GetTextValue(r, 0)
+            b = int(self.dvlc_scml.GetTextValue(r, 1))
+            rows.append((a, b))
+        data_scml = pd.DataFrame(rows, columns=["MAINLINE", "STOPTYPE"])
+        return data_scml
+        
+    def _get_ti_data(self):
+        '''
+        Generiere aus Einträgen der Zeitintervalle eine Liste mit Start- und Endzeit (jeweils in Sekunden)
+        1. Erstelle erst Liste mit Zeitintervallen (Start Ende)
+        2. Prüfe auf Überlappungen
+        '''
+        data_ti = []
+        for row in range(self.list_ti.GetItemCount()):
+            h, m = map(int, self.list_ti.GetItemText(row, 0).split(":"))
+            start = h*60*60 + m*60 # hours / minutes to seconds
+            h, m = map(int, self.list_ti.GetItemText(row, 1).split(":"))
+            end = h*60*60 + m*60
+            data_ti.append([start, end])
+        data_ti = sorted(data_ti)
+        prev_end = 0
+        for start, end in data_ti:
+            if end <= start or start < prev_end: # Fehler, wenn Ende vor Beginn oder Beginn vor Ende aus vorherigem Intervall
+                return False
+            prev_end = end
+        return data_ti
+        
+    def _setParameter(self):
+        param = dict()
+        try:
+            param["ti"] = self._get_ti_data()
+            if not param["ti"]:
+                addIn.ReportMessage(_("Overlapping time intervals"))
+                return None, False
+            param["wd"] = self.combo_wd.GetSelection() # get index of selection
+            param["bt"] = self.combo_wd.GetSelection() # get index of selection
+            param["le"] = self.cb_le.GetValue()
+            param["clip"] = self.cb_clip.GetValue()
+            if param["clip"] and not importlib.util.find_spec("geopandas"):
+                addIn.ReportMessage(_("Python module geopandas not installed"))
+                return None, False
+            param["clipfiles"] = self.listbox_clip.GetItems()
+            if param["clip"] and not len(param["clipfiles"]):
+                addIn.ReportMessage(_("No clip file selected"))
+                return None, False
+            param["scml"] = self._get_scml_data()
+            param["sc"] = self.text_sc.GetValue()
+            if not param["sc"]:
+                addIn.ReportMessage(_("Scenario must not be empty"))
+                return None, False
+            param["poi"] = self.combo_poi.GetSelection() # get index of selection
+            param["poidel"] = self.cb_poidel.GetValue()
+            return param, True
+        except:
+            addIn.HandleException(_("PT quality level, value error: "))
+            return param, False
+
+def CheckNetwork():
+    def _error():
+        if not addIn.IsInDebugMode:
+            Terminated.set()
+        return False
+    if not Visum.Net.VehicleJourneys.CountActive:
+        addIn.ReportMessage(_("Current Version has no active VehicleJourneys"))
+        return _error()
+    if not Visum.Net.Stops.CountActive:
+        addIn.ReportMessage(_("Current Version has no active Stops"))
+        return _error()
+    if any(row[1] == "" for row in Visum.Net.Lines.GetMultiAttValues("MAINLINENAME", True)):
+        addIn.ReportMessage(_("At least one active line has no mainline"))
+        return _error()
+    if Visum.Net.CalendarPeriod.AttValue("TYPE") == "CALENDARPERIODYEAR":
+        addIn.ReportMessage(_("Not available for annual calendar"))
+        return _error()
+    if not Visum.Net.POICategories.Count:
+        addIn.ReportMessage(_("Current Version has no POI catgeory"))
+        return _error()
+    return True
+
+if len(sys.argv) > 1:
+    addIn = AddIn()
+else:
+    addIn = AddIn(Visum)
+
+if addIn.IsInDebugMode:
+    app = wx.PySimpleApp(0)
+    Visum = addIn.VISUM
+    addInParam = AddInParameter(addIn, None)
+else:
+    addInParam = AddInParameter(addIn, Parameter)
+
+if addIn.State != AddInState.OK:
+    addIn.ReportMessage(addIn.ErrorObjects[0].ErrorMessage)
+
+else:
+    try:
+        wx.InitAllImageHandlers()
+        if CheckNetwork():
+            dialog_1 = MyDialog(None, _("PT quality levels"))
+            app.SetTopWindow(dialog_1)
+            dialog_1.ShowModal()
+            if addIn.IsInDebugMode:
+                app.MainLoop()
+    except:
+        addIn.HandleException(addIn.TemplateText.MainApplicationError)
+        if not addIn.IsInDebugMode:
+            Terminated.set()
