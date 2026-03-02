@@ -2,6 +2,8 @@
 import wx
 import sys
 import os
+from pathlib import Path
+import subprocess
 from VisumPy.AddIn import AddIn, AddInState, AddInParameter
 _ = AddIn.gettext
 
@@ -121,6 +123,7 @@ class MyDialog(wx.Dialog):
         vbox.Add(sbSizer_para, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
         vbox.AddSpacer(10)
         vbox.Add(sbSizer_end, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
+        vbox.AddSpacer(10)
 
         self.SetSizerAndFit(vbox)
         self.Layout()
@@ -133,7 +136,12 @@ class MyDialog(wx.Dialog):
         
     def OnHelp(self,event):
         try:
-            os.startfile(addIn.DirectoryPath + _("HelpErstelleTNMBasis.htm"))
+            try:
+                file = Path(addIn.DirectoryPath + _("HelpErstelleTNMBasis.htm")).resolve()
+                url = file.as_uri() + "#_Toc222313370"
+                subprocess.run(["cmd", "/c", "start", "", "msedge", url], check=False)
+            except:
+                os.startfile(addIn.DirectoryPath + _("HelpErstelleTNMBasis.htm"))
         except:
             addIn.HandleException() 
             
@@ -184,7 +192,7 @@ else:
     try:
         wx.InitAllImageHandlers()
 
-        dialog_1 = MyDialog(None, _("Create TNM-Elements"))
+        dialog_1 = MyDialog(None, _("Create TNM-Basis"))
         app.SetTopWindow(dialog_1)
         dialog_1.ShowModal()
         if addIn.IsInDebugMode:

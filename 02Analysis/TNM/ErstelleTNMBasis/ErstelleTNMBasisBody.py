@@ -136,6 +136,10 @@ def _import_gebiete(Visum):
         Visum.Log(20480, _("%s Territories: imported") %(str(diff_n)))
 
 def _kalender(Visum):
+    '''
+    Stelle Kalender auf Wochenkalender um
+    Stelle Analyseperiode auf Mo-So
+    '''
     if Visum.Net.CalendarPeriod.AttValue("TYPE") != "CALENDARPERIODWEEK":
         Visum.Net.CalendarPeriod.SetAttValue("TYPE", "CALENDARPERIODWEEK")
         Visum.Log(20480, _("Calendar: changed to weekly calendar"))
