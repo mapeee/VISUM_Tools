@@ -32,7 +32,7 @@ class InfoFrame(wx.Frame):
         sizer.Add(wx.StaticText(self,label= _("Marcus Peter")),0,wx.LEFT,10)
         sizer.Add(wx.StaticText(self,label= _("03.02.2026")),0,wx.LEFT,10)
         sizer.AddSpacer(2)
-        sizer.Add(wx.StaticText(self,label= _("Version 0.9: Beta")),0,wx.LEFT,10)
+        sizer.Add(wx.StaticText(self,label= _("Version 0.91: Beta")),0,wx.LEFT,10)
         sizer.AddSpacer(10)
         sizer.Add(self.button,0,wx.ALIGN_CENTER,5)
         sizer.AddSpacer(5)
@@ -67,11 +67,12 @@ class MyDialog(wx.Dialog):
         self.cbEFW = wx.CheckBox(self, -1, label="")
 
         self.button_createEFW = wx.Button(self, -1, _("Create EFW"), name = "createEFW")
+        self.button_transferEFW = wx.Button(self, -1, _("Transfer EFW"), name = "transferEFW")
         self.button_PerformanceStatement = wx.Button(self, -1, _("Performance statement"), name = "PerformanceStatement")
         self.button_setParameters = wx.Button(self, -1, _("Set Parameters"), name = "setParameters")
         self.button_openLAR = wx.Button(self, -1, _("Open invoice"), name = "openLAR")
-      
-        self.button_exportMETN = wx.Button(self, -1, _("Export METN-List"), name = "exportMETN")
+        self.button_exportMETN = wx.Button(self, -1, _("Open METN-List"), name = "exportMETN")
+        
         self.button_delUDALines = wx.Button(self, -1, _("Delete Lines-UDA"), name = "delLinesUDA")
         self.button_delUDASN = wx.Button(self, -1, _("Delete SN-UDA"), name = "delSNUDA")
         
@@ -84,11 +85,12 @@ class MyDialog(wx.Dialog):
         self.Bind(wx.EVT_CHECKBOX, self._on_checkbox, self.cbEFW)
         
         self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_createEFW)
+        self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_transferEFW)
         self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_PerformanceStatement)
         self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_setParameters)
         self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_openLAR)
+        self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_exportMETN)
         
-        self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_exportMETN)
         self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_delUDALines)
         self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_delUDASN)
         
@@ -146,17 +148,14 @@ class MyDialog(wx.Dialog):
             self.button_createEFW.Disable()
         else:
             self.cbEFW.SetValue(False)
+            self.button_transferEFW.Disable()
         if not Visum.Net.VehicleCombinations.AttrExists(f"{TN}_GESAMTKOSTEN"):
             self.button_openLAR.Disable()
         if not Visum.UserPreferences.DocumentName.endswith(".ver"):
             self.button_PerformanceStatement.Disable() # nicht im Szenario-Management ausführen. Dort nur über die Szenarien ausführen.
         else:
             self.button_PerformanceStatement.SetBackgroundColour(wx.Colour(184, 255, 184))
-        
-        font = self.button_exportMETN.GetFont()
-        font.SetStyle(wx.FONTSTYLE_ITALIC)
-        self.button_exportMETN.SetFont(font)
-        self.button_exportMETN.SetForegroundColour("grey")
+
         
     def __do_layout(self):      
         sb_para = wx.StaticBox(self, -1, _("Parameters"))
@@ -168,6 +167,8 @@ class MyDialog(wx.Dialog):
         grid_para.Add(self.comboTN, 0)
         grid_para.Add((0,0))
         grid_para.Add(self.button_createEFW, 0)
+        grid_para.Add((0,0))
+        grid_para.Add(self.button_transferEFW, 0)
         grid_para.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 8)
         grid_para.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 8)
         grid_para.Add(self.labelSW, 0, flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
@@ -238,8 +239,10 @@ class MyDialog(wx.Dialog):
         BDT = Visum.Net.TableDefinitions.GetMultiAttValues("NAME")
         if any(f"{TN} EFW" in item for item in BDT):
             self.button_createEFW.Disable()
+            self.button_transferEFW.Enable()
         else:
             self.button_createEFW.Enable()
+            self.button_transferEFW.Disable()
             self.cbEFW.SetValue(False)
         if not Visum.Net.VehicleCombinations.AttrExists(f"{TN}_GESAMTKOSTEN"):
             self.button_openLAR.Disable()
