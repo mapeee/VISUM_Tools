@@ -13,6 +13,7 @@ _ = AddIn.gettext
 
 
 def Run(param):
+    Visum.Log(20480,_("Starting..."))
     createUDA(Visum)
     Stops = StopCategories(Visum)
     GeoJSONPath, DataSource, GeoJSONDef = CreateGeoJSON(Visum)
@@ -22,7 +23,7 @@ def Run(param):
     ImportGeoJSONPOI(Visum, GeoJSONPath)
     Visum.Graphic.Redraw()
     
-    Visum.Log(20480,_("PT quality levels calculated"))
+    Visum.Log(20480,_("Finished!"))
     
 def ClipGeoJSON(Visum, _GeoJSONPath):
     '''
@@ -30,6 +31,7 @@ def ClipGeoJSON(Visum, _GeoJSONPath):
     Speicher die ausgeschnittenen Polygone unter neuem Pfad und liefere diesen zurück.
     '''
     clipGeoJSON = param["clipfiles"]
+    Visum.Log(20480, _("Start clipping polygons"))
     import geopandas as gpd
     _GeoJSONGpd = gpd.read_file(_GeoJSONPath)
     for i in clipGeoJSON:
@@ -169,7 +171,7 @@ def StopCategories(Visum):
     VJI["nDEP"] = 1 / VJI["CHAINED"] # Coupled sections reducing the weight of departures
     if lineend: VJI.loc[VJI["INDEX"] == 1, "nDEP"] *= 2 # Count first index *2 for missing arrivals (not = 2 for chained VJ)
     
-    # Selecting VehJour in time intervals; double the intervals for the next morning (also for weekcalendar because also trips after 24:00)
+    # Selecting VehJour in time intervals; double the intervals for the next morning (also for weekcalendar due to trips after 24:00)
     scaled_intervals = [[start, end] for start, end in intervals] + [[start + 86400, end + 86400] for start, end in intervals] # 86400 seconds a day
     VJI = VJI[VJI["DEP"].apply(lambda x: any(start <= x <= end for start, end in scaled_intervals))]
     VJI = VJI.reset_index(drop=True)
@@ -177,33 +179,34 @@ def StopCategories(Visum):
     # Adding StopTypes to VJI
     VJI = VJI.merge(dict_scml[["MAINLINE", "STOPTYPE"]], on="MAINLINE", how="left")
 
-    # open corresponding Stops
+    # get corresponding Stops
     StopsDF = pd.DataFrame(Visum.Net.Stops.GetMultipleAttributes(
         ["NO", "NAME", r"DISTINCTACTIVE:STOPAREAS\DISTINCTACTIVE:STOPPOINTS\DISTINCTACTIVE:SERVINGVEHJOURNEYS\LINEROUTE\LINE\MAINLINENAME",
          "XCOORD", "YCOORD"], True))
     StopsDF.columns = ["STOPNO", "STOPNAME", "MAINLINES", "X", "Y"]
     
-    # all for later difference between HKAT in different stoptype-level
-    for i in [["StopType1", 1, "HKAT1"], ["StopType2", 2, "HKAT2"], ["StopType3", 3, "HKAT3"], ["all", None, "HKAT"]]:
+    # StopType_all for later difference between HKAT in different stoptype-level
+    for i in [["StopType1", 1, "HKAT1"], ["StopType2", 2, "HKAT2"], ["StopType3", 3, "HKAT3"], ["StopType_all", None, "HKAT"]]:
         _Stops = StopsDF.copy()
-        # Get StopType
-        if i[0] == "all":
+        # Get StopType (all or of specific type)
+        if i[0] == "StopType_all":
             df_mainline = dict_scml
         else:
             df_mainline = dict_scml[dict_scml["STOPTYPE"] == i[1]]
         df_mainline = df_mainline.set_index("MAINLINE")["STOPTYPE"].to_dict()
+        # get minimum StopType for each MAINLINE at Stop (calculate PT Quality Level for each StopType and for all)
         _Stops[i[0]] = _Stops['MAINLINES'].apply(lambda x: min(df_mainline.get(e, 10) for e in x.split(',')))
 
-        # count StopDepartures in VHI for each stop
-        if i[0] == "all": StopCounts = VJI.groupby("STOPNO", as_index = False)["nDEP"].sum()
+        # count StopDepartures in VHI for each stop and each StopType
+        if i[0] == "StopType_all": StopCounts = VJI.groupby("STOPNO", as_index = False)["nDEP"].sum()
         else: StopCounts = VJI[VJI["STOPTYPE"] == i[1]].groupby("STOPNO", as_index = False)["nDEP"].sum()
-        StopCounts.columns = ["STOPNO", "DepNo"]
+        StopCounts.columns = ["STOPNO", "nDEP"]
         _Stops = _Stops.merge(StopCounts, on="STOPNO", how="left")
-        _Stops["DepNo"] = _Stops["DepNo"].fillna(0).astype(int)
-        _Stops["DepHour"] = _Stops["DepNo"] / sum(end/60/60 - start/60/60 for start, end in intervals) # only use single interval and not scaled ones (each time interval twice)
-        _Stops["DepHour"] = _Stops["DepHour"].round(0) #round departures
+        _Stops["nDEP"] = _Stops["nDEP"].fillna(0).astype(int)
+        _Stops["DepHour"] = _Stops["nDEP"] / sum(end/60/60 - start/60/60 for start, end in intervals) # only use single interval and not scaled ones (each time interval twice)
+        _Stops["DepHour"] = _Stops["DepHour"].round(0) # round departures
         
-        # Stop categories from StopType and departures  in PTV Visum
+        # Stop categories from StopType and departures in PTV Visum
         conditions = [
             (_Stops["DepHour"] >= 24) & (_Stops[i[0]] == 1),
             (_Stops["DepHour"] >= 24) & (_Stops[i[0]] == 2),
@@ -291,10 +294,10 @@ def _stopcat_fhh(Visum):
     # Convert to integers
     _StopsDF_int = _StopsDF.replace(roman_to_int)
     # Calculate new column
-    # in FHH: HKAT is best from HKAT1 to HKAT3 minus 3 and HKAT over all
+    # in FHH: HKAT is (best from HKAT1 to HKAT3 minus 1) if worse than HKAT over all
     _StopsDF['HKAT_FHH'] = (_StopsDF_int[['HKAT1', 'HKAT2', 'HKAT3']].min(axis=1) - 1).clip(lower=1)
     _StopsDF['HKAT_FHH'] = _StopsDF_int[['HKAT']].join(_StopsDF['HKAT_FHH']).max(axis=1)
-    # # Convert back to Roman
+    # Convert back to Roman
     _StopsDF['HKAT_FHH'] = _StopsDF['HKAT_FHH'].map(int_to_roman)
 
     _stopcat_fhh = _StopsDF['HKAT_FHH'].tolist()
