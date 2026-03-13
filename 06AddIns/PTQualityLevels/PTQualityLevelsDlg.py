@@ -84,8 +84,11 @@ class MyDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnAddTi, self.button_ti)
         self.Bind(wx.EVT_BUTTON, self.OnRemoveTi, self.button_ti_remove)
         
-        # mainlines and stop categories
+        # modes and stop categories
+        self.label_mode = wx.StaticText(self, -1, _("Aggregation level"))
+        self.combo_mode = wx.ComboBox(self, -1, "")
         self.dvlc_scml = dv.DataViewListCtrl(self, -1, style=wx.BORDER_SUNKEN)
+        self.Bind(wx.EVT_COMBOBOX, self.OnModeChanged, self.combo_mode)
         
         # misc
         self.label_le = wx.StaticText(self, -1, _("End of line double"))
@@ -122,10 +125,12 @@ class MyDialog(wx.Dialog):
         self.__do_layout()
         self.__do_parameters()
         self.__do_comboChoice()
+        self.__do_stoptypes()
         self.__set_properties()
         
         defaultParam = {"ti" : False, "wd" : False, "le" : False, "scml" : False, "clipfiles" : False,
-                        "bt" : False, "sc" : False, "poi" : False, "poidel" : False, "clip" : False}
+                        "bt" : False, "sc" : False, "poi" : False, "poidel" : False, "clip" : False,
+                        "mode" : False}
         addInParam.Check(False, defaultParam)
 
     def __do_layout(self):
@@ -133,7 +138,7 @@ class MyDialog(wx.Dialog):
         sb_time = wx.StaticBox(self, -1, _("Time reference"))
         sb_time.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.BOLD))
         sbSizer_time = wx.StaticBoxSizer(sb_time, wx.VERTICAL)
-        grid_time = wx.GridBagSizer(vgap=7, hgap=2)
+        grid_time = wx.GridBagSizer(vgap=7, hgap=10)
         grid_time.Add(self.label_wd, pos=(0,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
         grid_time.Add(self.combo_wd, pos=(0,1), flag = wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
         grid_time.Add(self.label_ti, pos=(1,0), span=(1,2), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
@@ -147,14 +152,18 @@ class MyDialog(wx.Dialog):
         sb_st = wx.StaticBox(self, -1, _("Stop type"))
         sb_st.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.BOLD))
         sbSizer_st = wx.StaticBoxSizer(sb_st, wx.VERTICAL)
-        grid_st = wx.BoxSizer(wx.VERTICAL)
-        grid_st.Add(self.dvlc_scml, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
+        grid_st = wx.GridBagSizer(vgap=7, hgap=10)
+        grid_st.Add(self.label_mode, pos=(0,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_st.Add(self.combo_mode, pos=(0,1), flag = wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        grid_st.Add(self.dvlc_scml, pos=(1,0), span=(1,2), flag= wx.EXPAND | wx.ALL)
+        grid_st.AddGrowableCol(1, 1)   # let the right column take extra width
+        grid_st.AddGrowableRow(1, 1) 
         sbSizer_st.Add(grid_st, 1, wx.ALL | wx.EXPAND, 10)
         # Parameters
         sb_para = wx.StaticBox(self, -1, _("Parameters"))
         sb_para.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.BOLD))
         sbSizer_para = wx.StaticBoxSizer(sb_para, wx.VERTICAL)
-        grid_para = wx.GridBagSizer(vgap=8, hgap=2)
+        grid_para = wx.GridBagSizer(vgap=8, hgap=10)
         grid_para.Add(self.label_bt, pos=(0,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
         grid_para.Add(self.combo_bt, pos=(0,1), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
         grid_para.Add(self.label_le, pos=(1,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
@@ -167,7 +176,7 @@ class MyDialog(wx.Dialog):
         grid_para.Add(self.cb_poidel, pos=(4,1), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
         grid_para.Add(self.label_clip, pos=(5,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
         grid_para.Add(self.cb_clip, pos=(5,1), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-        grid_para.Add(self.listbox_clip, pos=(6,0), span=(1,2),flag= wx.EXPAND | wx.ALL)
+        grid_para.Add(self.listbox_clip, pos=(6,0), span=(1,2), flag= wx.EXPAND | wx.ALL)
         grid_para.Add(self.button_add_clip, pos=(7,0), flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM)
         grid_para.Add(self.button_remove_clip, pos=(7,1), flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM)
         sbSizer_para.Add(grid_para, 1, wx.ALL | wx.ALIGN_CENTER, 10)
@@ -217,25 +226,24 @@ class MyDialog(wx.Dialog):
         self.combo_bt.SetSelection(1)
         # poi category
         self.combo_poi.Clear()
-        poi_cat = [i.AttValue("NAME") for i in Visum.Net.POICategories.GetAll]
-        self.combo_poi.Append(poi_cat)
-        idx = next((i for i, v in enumerate(poi_cat)
-            if any(k in v.lower() for k in ("klasse", "sochrone"))), 0) # Standardauswahl von erster Kategorie, die string enthält.
-        self.combo_poi.SetSelection(idx)
-        self.combo_poi.SetMinSize((100, -1))
-        self.combo_poi.SetMaxSize((100, -1))
+        if not Visum.Net.POICategories.Count:
+            self.combo_poi.Append(["New Category"])
+            self.combo_poi.SetSelection(0)
+            font = self.combo_poi.GetFont()
+            font.SetStyle(wx.FONTSTYLE_ITALIC)
+            self.combo_poi.SetFont(font)
+            self.combo_poi.SetForegroundColour(wx.Colour(150, 150, 150))
+            self.combo_poi.SetInsertionPointEnd()
+        else:
+            poi_cat = [i.AttValue("NAME") for i in Visum.Net.POICategories.GetAll]
+            self.combo_poi.Append(poi_cat)
+            idx = next((i for i, v in enumerate(poi_cat)
+                if any(k in v.lower() for k in ("klasse", "sochrone"))), 0) # Standardauswahl von erster Kategorie, die string enthält.
+            self.combo_poi.SetSelection(idx)
+        self.combo_poi.SetMinSize((120, -1))
+        self.combo_poi.SetMaxSize((120, -1))
 
     def __do_parameters(self):
-        # dvlc stop categories and mainlines
-        self.dvlc_scml.AppendTextColumn(_("Mainline"), width=60)
-        choices = dv.DataViewChoiceRenderer(["1", "2", "3"], mode=dv.DATAVIEW_CELL_EDITABLE)
-        col = dv.DataViewColumn(_("StopType"), choices, 1, width=60)
-        self.dvlc_scml.AppendColumn(col)
-        ml_default = dict(zip(["IC", "ICE", "ICE(S)", "Nightjet", "RE", "RB", "S-Bahn", "AKN", "U-Bahn", "XpressBus", "Metrobus", "Nachtbus", "Bus", "Schiff"], 
-                          ["1", "1", "1", "1", "1", "1", "1", "1", "1", "3", "3", "3", "3", "3"]))
-        mainlines = sorted({row[1] for row in Visum.Net.Lines.GetMultiAttValues("MAINLINENAME", True)})
-        for ml in mainlines:
-            self.dvlc_scml.AppendItem([ml, ml_default.get(ml, "3")])
         # clip
         self.cb_clip.SetValue(False)
         self.button_add_clip.Disable()
@@ -247,6 +255,26 @@ class MyDialog(wx.Dialog):
         self.label_lines.SetLabel(_("Active lines: %s") %(str(Visum.Net.Lines.CountActive)))
         self.label_stops.SetLabel(_("Active stops: %s") %(str(Visum.Net.Stops.CountActive)))
     
+    def __do_stoptypes(self):
+        # calculation type
+        self.combo_mode.Clear()
+        self.combo_mode.Append([_("TSys"), _("Mainlines")])
+        # Select Mainlines as default if not first active Mainline is '' (not all Lines with Mainline)
+        if not sorted({row[1] for row in Visum.Net.Lines.GetMultiAttValues("MAINLINENAME", True)})[0]: # True if at least one active Line has MAINLINENAME ''
+            self.combo_mode.SetSelection(0)
+            mode = _("TSys")
+            mode2 = "TSYSCODE"
+        else:
+            self.combo_mode.SetSelection(1)
+            mode =  _("Mainline")
+            mode2 = "MAINLINENAME"
+        # dvlc stop categories and mainlines/TSys
+        self.dvlc_scml.AppendTextColumn(mode, width=90)
+        choices = dv.DataViewChoiceRenderer(["1", "2", "3"], mode=dv.DATAVIEW_CELL_EDITABLE)
+        col = dv.DataViewColumn(_("StopType"), choices, 1, width=60)
+        self.dvlc_scml.AppendColumn(col)
+        self._setDefaultModes(mode2)
+        
     def __set_properties(self):
         font = self.label_ti.GetFont()
         font.MakeBold()
@@ -315,6 +343,17 @@ class MyDialog(wx.Dialog):
         addInParam.SaveParameter(param)
         self.OnExit(None)
         
+    def OnModeChanged(self,event):
+        mode = [_("TSys"), _("Mainline")][self.combo_mode.GetSelection()]
+        mode2 = ["TSYSCODE", "MAINLINENAME"][self.combo_mode.GetSelection()]
+        if mode2 == "MAINLINENAME" and not sorted({row[1] for row in Visum.Net.Lines.GetMultiAttValues("MAINLINENAME", True)})[0]: # True if at least one active Line has MAINLINENAME ''
+            addIn.ReportMessage(_("At least one active line has no mainline"))
+            self.combo_mode.SetSelection(0)
+            return
+        self.dvlc_scml.DeleteAllItems()
+        self.dvlc_scml.GetColumn(0).SetTitle(mode)
+        self._setDefaultModes(mode2)
+        
     def OnRemoveClip(self,event):
         selections = list(self.listbox_clip.GetSelections())
         selections.reverse()  # remove from bottom to top
@@ -329,14 +368,14 @@ class MyDialog(wx.Dialog):
             
     def _get_scml_data(self):
         '''
-        Erstelle pandas df mit den Werten aus den Spalten MAINLINE und STOPTYPE
+        Erstelle pandas df mit den Werten aus den Spalten MODE und STOPTYPE
         '''
         rows = []
         for r in range(self.dvlc_scml.GetItemCount()):
             a = self.dvlc_scml.GetTextValue(r, 0)
             b = int(self.dvlc_scml.GetTextValue(r, 1))
             rows.append((a, b))
-        data_scml = pd.DataFrame(rows, columns=["MAINLINE", "STOPTYPE"])
+        data_scml = pd.DataFrame(rows, columns=["MODE", "STOPTYPE"])
         return data_scml
         
     def _get_ti_data(self):
@@ -360,6 +399,19 @@ class MyDialog(wx.Dialog):
             prev_end = end
         return data_ti
         
+    def _setDefaultModes(self, _mode2):
+        if _mode2 == "TSYSCODE":
+            values_default = dict(zip(["S", "U", "FV", "RV", "SPNV"], 
+                              ["1", "1", "1", "1", "1"]))
+        else:
+            values_default = dict(zip(["IC", "ICE", "ICE(S)", "Nightjet", "RE", "RB", "S-Bahn", "AKN", "U-Bahn",
+                                       "XpressBus", "Metrobus", "Nachtbus", "Bus", "Schiff"], 
+                              ["1", "1", "1", "1", "1", "1", "1", "1", "1",
+                               "3", "3", "3", "3", "3"]))
+        mode_values = sorted({row[1] for row in Visum.Net.Lines.GetMultiAttValues(_mode2, True)})
+        for m in mode_values:
+            self.dvlc_scml.AppendItem([m, values_default.get(m, "3")])
+    
     def _setParameter(self):
         param = dict()
         try:
@@ -385,6 +437,7 @@ class MyDialog(wx.Dialog):
                 return None, False
             param["poi"] = self.combo_poi.GetSelection() # get index of selection
             param["poidel"] = self.cb_poidel.GetValue()
+            param["mode"] = self.combo_mode.GetSelection() # get index of selection
             return param, True
         except:
             addIn.HandleException(_("PT quality level, value error: "))
@@ -401,14 +454,8 @@ def CheckNetwork():
     if not Visum.Net.Stops.CountActive:
         addIn.ReportMessage(_("Current Version has no active Stops"))
         return _error()
-    if any(row[1] == "" for row in Visum.Net.Lines.GetMultiAttValues("MAINLINENAME", True)):
-        addIn.ReportMessage(_("At least one active line has no mainline"))
-        return _error()
     if Visum.Net.CalendarPeriod.AttValue("TYPE") == "CALENDARPERIODYEAR":
         addIn.ReportMessage(_("Not available for annual calendar"))
-        return _error()
-    if not Visum.Net.POICategories.Count:
-        addIn.ReportMessage(_("Current Version has no POI catgeory"))
         return _error()
     return True
 
