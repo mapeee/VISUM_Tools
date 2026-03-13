@@ -14,6 +14,7 @@ _ = AddIn.gettext
 
 def Run(param):
     Visum.Log(20480,_("Starting..."))
+    createPOICat(Visum)
     createUDA(Visum)
     Stops = StopCategories(Visum)
     GeoJSONPath, DataSource, GeoJSONDef = CreateGeoJSON(Visum)
@@ -141,13 +142,13 @@ def ImportGeoJSONPOI(Visum, _GeoJSON):
 
 def StopCategories(Visum):
     '''
-
     '''
     Visum.Log(20480, _("Calculate stop categories for %s stops") %(str(Visum.Net.Stops.CountActive)))
     intervals = param["ti"]
     lineend = param["le"]
     weekday = param["wd"]
     dict_scml = param["scml"]
+    mode = ["TSYSCODE", "MAINLINENAME"][param["mode"]]
 
     # chose only VJ on valid days (valid day or daily (all))
     if Visum.Net.CalendarPeriod.AttValue("TYPE") == "CALENDARPERIODWEEK":
@@ -157,8 +158,8 @@ def StopCategories(Visum):
     
     VJI = pd.DataFrame(Visum.Net.VehicleJourneyItems.GetMultipleAttributes(
         ["VEHJOURNEYNO", "INDEX", "Dep",r"TIMEPROFILEITEM\LINEROUTEITEM\STOPPOINT\STOPAREA\STOPNO",
-         r"VEHJOURNEY\LINEROUTE\LINE\MAINLINENAME", r"COUNT:COUPLEDVEHJOURNEYITEMS", day], True))
-    VJI.columns = ["VJNO", "INDEX", "DEP", "STOPNO", "MAINLINE", "CHAINED", "DAY"]
+         rf"VEHJOURNEY\LINEROUTE\LINE\{mode}", r"COUNT:COUPLEDVEHJOURNEYITEMS", day], True))
+    VJI.columns = ["VJNO", "INDEX", "DEP", "STOPNO", "MODE", "CHAINED", "DAY"]
     VJI = VJI[VJI["DEP"].notna()]
     VJI = VJI[VJI["DAY"] == 1] # only valid days
     
@@ -177,25 +178,25 @@ def StopCategories(Visum):
     VJI = VJI.reset_index(drop=True)
 
     # Adding StopTypes to VJI
-    VJI = VJI.merge(dict_scml[["MAINLINE", "STOPTYPE"]], on="MAINLINE", how="left")
+    VJI = VJI.merge(dict_scml[["MODE", "STOPTYPE"]], on="MODE", how="left")
 
     # get corresponding Stops
     StopsDF = pd.DataFrame(Visum.Net.Stops.GetMultipleAttributes(
-        ["NO", "NAME", r"DISTINCTACTIVE:STOPAREAS\DISTINCTACTIVE:STOPPOINTS\DISTINCTACTIVE:SERVINGVEHJOURNEYS\LINEROUTE\LINE\MAINLINENAME",
+        ["NO", "NAME", rf"DISTINCT:STOPAREAS\DISTINCT:STOPPOINTS\DISTINCTACTIVE:SERVINGVEHJOURNEYS\LINEROUTE\LINE\{mode}",
          "XCOORD", "YCOORD"], True))
-    StopsDF.columns = ["STOPNO", "STOPNAME", "MAINLINES", "X", "Y"]
+    StopsDF.columns = ["STOPNO", "STOPNAME", "MODES", "X", "Y"]
     
     # StopType_all for later difference between HKAT in different stoptype-level
     for i in [["StopType1", 1, "HKAT1"], ["StopType2", 2, "HKAT2"], ["StopType3", 3, "HKAT3"], ["StopType_all", None, "HKAT"]]:
         _Stops = StopsDF.copy()
         # Get StopType (all or of specific type)
         if i[0] == "StopType_all":
-            df_mainline = dict_scml
+            df_mode = dict_scml
         else:
-            df_mainline = dict_scml[dict_scml["STOPTYPE"] == i[1]]
-        df_mainline = df_mainline.set_index("MAINLINE")["STOPTYPE"].to_dict()
-        # get minimum StopType for each MAINLINE at Stop (calculate PT Quality Level for each StopType and for all)
-        _Stops[i[0]] = _Stops['MAINLINES'].apply(lambda x: min(df_mainline.get(e, 10) for e in x.split(',')))
+            df_mode = dict_scml[dict_scml["STOPTYPE"] == i[1]]
+        df_mode = df_mode.set_index("MODE")["STOPTYPE"].to_dict()
+        # get minimum StopType for each MODE at Stop (calculate PT Quality Level for each StopType and for all)
+        _Stops[i[0]] = _Stops['MODES'].apply(lambda x: min(df_mode.get(e, 10) for e in x.split(',')))
 
         # count StopDepartures in VHI for each stop and each StopType
         if i[0] == "StopType_all": StopCounts = VJI.groupby("STOPNO", as_index = False)["nDEP"].sum()
@@ -248,12 +249,18 @@ def StopCategories(Visum):
 
     return _Stops
 
+def createPOICat(Visum):
+    if not any(i.AttValue("NO") == param["poi"] for i in Visum.Net.POICategories.GetAll): # only True if poi == "New Category"
+        poi = Visum.Net.AddPOICategory()
+        poi.SetAttValue("NAME", "New Category")
+        Visum.Log(20480,_("POI Category 'New Category' added"))
+
 def createUDA(Visum):
     '''
     Erstelle die noch nicht vorhanden und benötigten BDA.
     '''
     poi = param["poi"]
-    poiNO = [i.AttValue("NO") for i in Visum.Net.POICategories.GetAll][poi]
+    poiNO, poiNAME = [(i.AttValue("NO"), i.AttValue("NAME")) for i in Visum.Net.POICategories.GetAll][poi]
     n = 0
     for e, i in enumerate(["HKAT", "HKAT_FHH", "HKAT1", "HKAT2", "HKAT3"]):
         if Visum.Net.Stops.AttrExists(i):
@@ -275,13 +282,13 @@ def createUDA(Visum):
         n+=1
     if not Visum.Net.POICategories.ItemByKey(poiNO).POIs.AttrExists("Szenario"):
         Visum.Net.POICategories.ItemByKey(poiNO).POIs.AddUserDefinedAttribute("Szenario", "Szenario", "Szenario", 5)
-        uda = Visum.Net.Stops.Attributes.ItemByKey(i)
+        uda = Visum.Net.POICategories.ItemByKey(poiNO).POIs.Attributes.ItemByKey("Szenario")
         uda.Comment = _("PT Qualities: Scenario")
         uda.MaxStringLen = 30
         uda.StringValueDefault = "X"
         n+=1
     if n > 0:
-        Visum.Log(20480,_("%s UDA added") %(str(n)))
+        Visum.Log(20480,_("%s UDA added (to POI Category: %s)") %(str(n), poiNAME))
         
 def _stopcat_fhh(Visum):
     _StopsDF = pd.DataFrame(Visum.Net.Stops.GetMultipleAttributes(
