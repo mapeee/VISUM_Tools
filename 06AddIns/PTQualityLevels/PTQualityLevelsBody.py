@@ -124,8 +124,7 @@ def ImportGeoJSONPOI(Visum, _GeoJSON):
     '''
     Importiere Polygone nach PTV Visum
     '''
-    poi = param["poi"]
-    poiNO = [i.AttValue("NO") for i in Visum.Net.POICategories.GetAll][poi] # get Number of POI category
+    poiNO = next((i.AttValue("NO") for i in Visum.Net.POICategories.GetAll if i.AttValue("NAME") == param["poi"]),None)
     deloldPOI = param["poidel"]
     
     if deloldPOI:
@@ -250,17 +249,17 @@ def StopCategories(Visum):
     return _Stops
 
 def createPOICat(Visum):
-    if not any(i.AttValue("NO") == param["poi"] for i in Visum.Net.POICategories.GetAll): # only True if poi == "New Category"
+    if not any(i.AttValue("NAME") == param["poi"] for i in Visum.Net.POICategories.GetAll): # only True if poi == "New Category"
         poi = Visum.Net.AddPOICategory()
-        poi.SetAttValue("NAME", "New Category")
-        Visum.Log(20480,_("POI Category 'New Category' added"))
+        poi.SetAttValue("NAME", param["poi"])
+        Visum.Log(20480,_("POI Category '%s' added") %(param["poi"]))
 
 def createUDA(Visum):
     '''
     Erstelle die noch nicht vorhanden und benötigten BDA.
     '''
-    poi = param["poi"]
-    poiNO, poiNAME = [(i.AttValue("NO"), i.AttValue("NAME")) for i in Visum.Net.POICategories.GetAll][poi]
+    poiNAME = param["poi"]
+    poiNO = next((i.AttValue("NO") for i in Visum.Net.POICategories.GetAll if i.AttValue("NAME") == poiNAME),None)
     n = 0
     for e, i in enumerate(["HKAT", "HKAT_FHH", "HKAT1", "HKAT2", "HKAT3"]):
         if Visum.Net.Stops.AttrExists(i):
