@@ -101,6 +101,7 @@ class MyDialog(wx.Dialog):
         self.combo_poi = wx.ComboBox(self, -1, "")
         self.label_poidel = wx.StaticText(self, -1, _("Delete existing POI"))
         self.cb_poidel = wx.CheckBox(self, -1, "")
+        self.Bind(wx.EVT_TEXT, self.OnPOIBox, self.combo_poi)
         
         # clip
         self.label_clip = wx.StaticText(self, -1, _("Use Clip polygons"))
@@ -354,6 +355,22 @@ class MyDialog(wx.Dialog):
         self.dvlc_scml.GetColumn(0).SetTitle(mode)
         self._setDefaultModes(mode2)
         
+    def OnPOIBox(self, event):
+        text = self.combo_poi.GetValue()
+        font = self.combo_poi.GetFont()
+        if text == "New Category":
+            font.SetStyle(wx.FONTSTYLE_ITALIC)
+            self.combo_poi.SetFont(font)
+            self.combo_poi.SetForegroundColour(wx.Colour(150, 150, 150))
+            self.combo_poi.SetInsertionPointEnd()
+        else:
+            font = wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+            self.combo_poi.SetFont(font)
+            self.combo_poi.SetForegroundColour(wx.Colour(0, 0, 0))
+            self.combo_poi.SetInsertionPointEnd()
+        self.combo_poi.Refresh()
+        event.Skip()
+        
     def OnRemoveClip(self,event):
         selections = list(self.listbox_clip.GetSelections())
         selections.reverse()  # remove from bottom to top
@@ -435,7 +452,7 @@ class MyDialog(wx.Dialog):
             if not param["sc"]:
                 addIn.ReportMessage(_("Scenario must not be empty"))
                 return None, False
-            param["poi"] = self.combo_poi.GetSelection() # get index of selection
+            param["poi"] = self.combo_poi.GetValue() # get index of selection
             param["poidel"] = self.cb_poidel.GetValue()
             param["mode"] = self.combo_mode.GetSelection() # get index of selection
             return param, True
