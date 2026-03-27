@@ -251,7 +251,7 @@ class MyDialog(wx.Dialog):
         self.button_remove_clip.Disable()
         self.listbox_clip.Enable(False)
         # misc
-        self.cb_le.SetValue(False)
+        self.cb_le.SetValue(True)
         self.cb_poidel.SetValue(True)
         self.label_lines.SetLabel(_("Active lines: %s") %(str(Visum.Net.Lines.CountActive)))
         self.label_stops.SetLabel(_("Active stops: %s") %(str(Visum.Net.Stops.CountActive)))
