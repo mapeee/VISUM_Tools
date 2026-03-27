@@ -21,7 +21,7 @@ def Run(param):
     CreatePolygons(Visum, GeoJSONDef, Stops, DataSource)
     if param["clip"]:
         GeoJSONPath = ClipGeoJSON(Visum, GeoJSONPath)
-    ImportGeoJSONPOI(Visum, GeoJSONPath)
+    ImportPOI2Visum(Visum, GeoJSONPath, param["clip"])
     Visum.Graphic.Redraw()
     
     Visum.Log(20480,_("Finished!"))
@@ -120,7 +120,7 @@ def CreatePolygons(Visum ,_GeoJSON, _stops, _data_source):
     _data_source.FlushCache()
     Visum.Log(20480, _("%s Polygons created") %(str(polygon_count)))
     
-def ImportGeoJSONPOI(Visum, _GeoJSON):
+def ImportPOI2Visum(Visum, _GeoJSON, _clip):
     '''
     Importiere Polygone nach PTV Visum
     '''
@@ -130,14 +130,31 @@ def ImportGeoJSONPOI(Visum, _GeoJSON):
     if deloldPOI:
         Visum.Net.POICategories.ItemByKey(poiNO).POIs.RemoveAll()
     
-    GeoJSONImport = Visum.IO.CreateImportGeoJSONPara()
-    GeoJSONImport.AddAttributeAllocation("StopName", "Name")
-    GeoJSONImport.AddAttributeAllocation("Class", "Code")
-    GeoJSONImport.AddAttributeAllocation("Category", "Comment")
-    GeoJSONImport.AddAttributeAllocation("Scenario", "Szenario")
-    GeoJSONImport.ObjectType = 9 # import as POI
-    GeoJSONImport.SetAttValue("POIKEY", poiNO)
-    Visum.IO.ImportGeoJSON(_GeoJSON, GeoJSONImport)
+    if _clip:
+        # import als Shape, da clip geojson nicht in spezifikation RFC7946 gespeichert werden kann und dann fehlerhaft importiert wird.
+        import geopandas as gpd
+        _Shape = _GeoJSON.with_suffix(".shp")
+        _GeoJSON_data = gpd.read_file(_GeoJSON)
+        _GeoJSON_data.to_file(_Shape, driver='ESRI Shapefile')
+        
+        ShapeImport = Visum.IO.CreateImportShapeFilePara()
+        ShapeImport.AddAttributeAllocation("StopName", "Name")
+        ShapeImport.AddAttributeAllocation("Class", "Code")
+        ShapeImport.AddAttributeAllocation("Category", "Comment")
+        ShapeImport.AddAttributeAllocation("Scenario", "Szenario")
+        ShapeImport.ObjectType = 9 # import as POI
+        ShapeImport.SetAttValue("POIKEY", poiNO)
+        Visum.IO.ImportShapefile(_Shape, ShapeImport)
+    
+    else:
+        GeoJSONImport = Visum.IO.CreateImportGeoJSONPara()
+        GeoJSONImport.AddAttributeAllocation("StopName", "Name")
+        GeoJSONImport.AddAttributeAllocation("Class", "Code")
+        GeoJSONImport.AddAttributeAllocation("Category", "Comment")
+        GeoJSONImport.AddAttributeAllocation("Scenario", "Szenario")
+        GeoJSONImport.ObjectType = 9 # import as POI
+        GeoJSONImport.SetAttValue("POIKEY", poiNO)
+        Visum.IO.ImportGeoJSON(_GeoJSON, GeoJSONImport)
 
 def StopCategories(Visum):
     '''
