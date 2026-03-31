@@ -71,6 +71,7 @@ class MyDialog(wx.Dialog):
         self.button_transferEFW = wx.Button(self, -1, _("Transfer EFW"), name = "transferEFW")
         self.button_PerformanceStatement = wx.Button(self, -1, _("Performance statement"), name = "PerformanceStatement")
         self.button_setParameters = wx.Button(self, -1, _("Set Parameters"), name = "setParameters")
+        self.button_DefaultParameters = wx.Button(self, -1, _("Default Parameters"), name = "DefaultParameters")
         self.button_openLAR = wx.Button(self, -1, _("Open invoice"), name = "openLAR")
         self.button_exportMETN = wx.Button(self, -1, _("Open METN-List"), name = "exportMETN")
         
@@ -90,6 +91,7 @@ class MyDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_transferEFW)
         self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_PerformanceStatement)
         self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_setParameters)
+        self.Bind(wx.EVT_BUTTON, self.OnDefault, self.button_DefaultParameters)
         self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_openLAR)
         self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_exportMETN)
         
@@ -195,7 +197,8 @@ class MyDialog(wx.Dialog):
         grid_para.AddSpacer(15)
         grid_para.Add(self.button_PerformanceStatement, 0, flag = wx.EXPAND)
         grid_para.Add(self.button_setParameters, 0, flag = wx.EXPAND)
-        grid_para.AddSpacer(15)
+        grid_para.Add((0,0))
+        grid_para.Add(self.button_DefaultParameters, 0, flag = wx.EXPAND)
         grid_para.AddSpacer(15)
         sbSizer_para.Add(grid_para, 1, wx.ALL | wx.ALIGN_CENTER, 10)
         
@@ -259,6 +262,13 @@ class MyDialog(wx.Dialog):
         if not any(f"{TN} EFW" in item for item in BDT):
             addIn.ReportMessage(_("EFW of SN %s not available.") %(TN))
             self.cbEFW.SetValue(False)
+    
+    def OnDefault(self,event):
+        self.spinSW.SetValue(40)
+        self.spinFW.SetValue(12)
+        self.cbEFW.SetValue(True)
+        self.comboFB.SetValue("M1")
+        self.cbUEL.SetValue(True)
         
     def OnExecute(self,event):
         param, paramOK = self.setParameter()
