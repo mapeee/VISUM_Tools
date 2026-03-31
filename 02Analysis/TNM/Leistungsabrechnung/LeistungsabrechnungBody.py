@@ -32,7 +32,7 @@ def Run(param):
         # Schaue, ob in den Verfahren Fehler auftauchen (18 = 19 Verfahrensschritte (start bei Index 0)) (über Start- und End-Index von LAR)
         index_LAR_start = [o.AttValue("COMMENT") for o in Visum.Procedures.Operations.GetAll].index("TNM Leistungsabrechnung")
         index_LAR_end = [o.AttValue("COMMENT") for o in Visum.Procedures.Operations.GetAll].index("TNM Endabrechnung")
-        n_errors = int(sum([o.AttValue("ERRORCOUNT") or 0 for o in Visum.Procedures.Operations.GetAll][index_LAR_start:index_LAR_end]))
+        n_errors = int(sum([o.AttValue("ERRORCOUNT") or 0 for o in Visum.Procedures.Operations.GetAll][index_LAR_start:index_LAR_end+1]))
         if n_errors > 0: # wenn Fehler, dann kein Excel-Export, sondern Hinweis
             addIn.ReportMessage(_("%s errors occurred, please check the messages.") %(str(n_errors)))
         else:

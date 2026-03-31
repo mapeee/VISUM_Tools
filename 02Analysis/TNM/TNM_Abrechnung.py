@@ -14,7 +14,7 @@ Version: 0.81
 import pandas as pd
 from VisumPy.helpers import SetMulti
 from create.TNM_BDA import bda_fahrzeugkombinationen, entferne_bda_fahrzeugkombinationen
-from utils.TNM_Checks import check_zeitintervalle, check_bda, check_fahrplanfahrtabschnitte
+from utils.TNM_Checks import check_zeitintervalle, check_bda, check_fahrplanfahrtabschnitte, check_fahrzeugkombinationen
 
 
 def main(Visum):
@@ -120,6 +120,8 @@ def _checks(Visum):
     if not check_zeitintervalle(Visum):
         return False
     if not check_fahrplanfahrtabschnitte(Visum, True):
+        return False
+    if not check_fahrzeugkombinationen(Visum):
         return False
     return True
 

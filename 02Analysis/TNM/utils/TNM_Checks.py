@@ -99,6 +99,7 @@ def check_fahrzeugkombinationen(Visum):
     '''Führe folgende Checks für alle Fahrzeugkombinationen durch:
         - notwendige BDA vorhanden?
         - Fahrzeugkombinationen vorhanden?
+        - Sind Ränge doppelt vergeben?
         - Verwendung der zugelassenen Zeichen in Attribut CODE?
     '''
     if not check_bda(Visum, Visum.Net.VehicleCombinations, "Fahrzeugkombinationen", "RANG"):
@@ -106,8 +107,11 @@ def check_fahrzeugkombinationen(Visum):
     if Visum.Net.VehicleCombinations.Count == 0:
         Visum.Log(12288, "Das Netz enthält keine Fahrzeugkombinationen")
         return False
-    df_fahrzeugkomb = pd.DataFrame(Visum.Net.VehicleCombinations.GetMultipleAttributes(["CODE"], False),
-                               columns = ["CODE"])
+    df_fahrzeugkomb = pd.DataFrame(Visum.Net.VehicleCombinations.GetMultipleAttributes(["CODE", "RANG"], False),
+                               columns = ["CODE", "RANG"])
+    if df_fahrzeugkomb['RANG'].duplicated().any():
+        Visum.Log(12288, "Ränge von Fahrzeugkombinationen sind mehrfach vergeben")
+        return False
     if not _check_zeichen(Visum, "Fahrzeugkombinationen", df_fahrzeugkomb):
         return False
     return True
