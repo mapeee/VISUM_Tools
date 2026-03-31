@@ -38,11 +38,20 @@ def Run(param):
         else:
             on_excel_LAR(param["TN"])
             addIn.ReportMessage(_("Service billing: completed"), 2)
-    if param["Proc"] == "transferEFW":
+    if param["Proc"] == "initEFW":
         # alle Verfahren deaktivieren
         for o in Visum.Procedures.Operations.GetAll:
             o.SetAttValue("ACTIVE", False)
-            if o.AttValue("CODE") in ["TNM", "TNM_EFW", "TNM_BEGINN"]:
+            if o.AttValue("CODE") in ["TNM", "TNM_BEGINN", "TNM_FILTER"]:
+                o.SetAttValue("ACTIVE", True)
+        Visum.Procedures.Execute()
+        addIn.ReportMessage(_("EFW for LineRouteItems of SN: initialized"), 2)
+    if param["Proc"] == "transferEFW":
+        Visum.Net.SetAttValue("EFW", True)
+        # alle Verfahren deaktivieren
+        for o in Visum.Procedures.Operations.GetAll:
+            o.SetAttValue("ACTIVE", False)
+            if o.AttValue("CODE") in ["TNM", "TNM_BEGINN", "TNM_EFW", "TNM_FILTER"]:
                 o.SetAttValue("ACTIVE", True)
         Visum.Procedures.Execute()
         addIn.ReportMessage(_("EFW of SN: transfered"), 2)

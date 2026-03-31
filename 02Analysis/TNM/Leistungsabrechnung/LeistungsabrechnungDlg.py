@@ -67,6 +67,7 @@ class MyDialog(wx.Dialog):
         self.cbEFW = wx.CheckBox(self, -1, label="")
 
         self.button_createEFW = wx.Button(self, -1, _("Create EFW"), name = "createEFW")
+        self.button_initEFW = wx.Button(self, -1, _("Init EFW"), name = "initEFW")
         self.button_transferEFW = wx.Button(self, -1, _("Transfer EFW"), name = "transferEFW")
         self.button_PerformanceStatement = wx.Button(self, -1, _("Performance statement"), name = "PerformanceStatement")
         self.button_setParameters = wx.Button(self, -1, _("Set Parameters"), name = "setParameters")
@@ -85,6 +86,7 @@ class MyDialog(wx.Dialog):
         self.Bind(wx.EVT_CHECKBOX, self._on_checkbox, self.cbEFW)
         
         self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_createEFW)
+        self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_initEFW)
         self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_transferEFW)
         self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_PerformanceStatement)
         self.Bind(wx.EVT_BUTTON, self.OnExecute, self.button_setParameters)
@@ -167,7 +169,7 @@ class MyDialog(wx.Dialog):
         grid_para.Add(self.comboTN, 0)
         grid_para.Add((0,0))
         grid_para.Add(self.button_createEFW, 0)
-        grid_para.Add((0,0))
+        grid_para.Add(self.button_initEFW, 0)
         grid_para.Add(self.button_transferEFW, 0)
         grid_para.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 8)
         grid_para.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 8)
