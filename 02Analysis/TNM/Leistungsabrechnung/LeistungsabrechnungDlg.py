@@ -155,10 +155,11 @@ class MyDialog(wx.Dialog):
             self.button_transferEFW.Disable()
         if not Visum.Net.VehicleCombinations.AttrExists(f"{TN}_GESAMTKOSTEN"):
             self.button_openLAR.Disable()
+        font = self.button_PerformanceStatement.GetFont()
+        font.SetWeight(wx.FONTWEIGHT_BOLD)
+        self.button_PerformanceStatement.SetFont(font)
         if not Visum.UserPreferences.DocumentName.endswith(".ver"):
             self.button_PerformanceStatement.Disable() # nicht im Szenario-Management ausführen. Dort nur über die Szenarien ausführen.
-        else:
-            self.button_PerformanceStatement.SetBackgroundColour(wx.Colour(184, 255, 184))
 
         
     def __do_layout(self):      
@@ -199,7 +200,6 @@ class MyDialog(wx.Dialog):
         grid_para.Add(self.button_setParameters, 0, flag = wx.EXPAND)
         grid_para.Add((0,0))
         grid_para.Add(self.button_DefaultParameters, 0, flag = wx.EXPAND)
-        grid_para.AddSpacer(15)
         sbSizer_para.Add(grid_para, 1, wx.ALL | wx.ALIGN_CENTER, 10)
         
         sb_pref = wx.StaticBox(self, -1, _("Procedures"))
@@ -229,11 +229,11 @@ class MyDialog(wx.Dialog):
         vbox = wx.BoxSizer(wx.VERTICAL)
         vbox.AddSpacer(10)
         vbox.Add(sbSizer_para, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
-        vbox.AddSpacer(10)
+        vbox.AddSpacer(20)
         vbox.Add(sbSizer_pref, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
-        vbox.AddSpacer(10)
+        vbox.AddSpacer(20)
         vbox.Add(sbSizer_end, proportion = 1, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
-        vbox.AddSpacer(10)
+        vbox.AddSpacer(20)
 
         self.SetSizerAndFit(vbox)
         self.Layout()
