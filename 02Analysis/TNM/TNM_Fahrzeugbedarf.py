@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 from VisumPy.helpers import SetMulti
 from create.TNM_BDA import bda_linien, erstelle_bda_fahrzeugkombinationen, check_bdg
-from utils.TNM_Checks import check_zeitintervalle, check_bda, check_fahrplanfahrtabschnitte
+from utils.TNM_Checks import check_zeitintervalle, check_bda, check_fahrplanfahrtabschnitte, check_fahrzeugkombinationen
 
 
 def main(Visum):
@@ -94,6 +94,10 @@ def FZG_Linien(Visum, _FPLTabelle, _Saisons, _Tage, _FZG, _Gebiete, _AnAbOverlap
                 
 def FZG_TN(Visum, _FPLTabelle, _Saisons, _Tage, _FZG, _TN, _AnAbOverlap):
     '''
+    1. Es wird ein Gesamtbedarf über alle FZG über alle Tage und Saisons ermittelt.
+    2. Es wird ein Fahrzeugbedarf je FZG über alle Tage und Saisons ermittelt.
+    3. Es werden der Rangfolge aufsteigend nach nur Fahrzeugbedarfe generiert, bis der Gesamtbedarf erreicht ist.
+    
     Parameters
     ----------
     Visum : Visum-Instanz
@@ -121,23 +125,22 @@ def FZG_TN(Visum, _FPLTabelle, _Saisons, _Tage, _FZG, _TN, _AnAbOverlap):
         for t in _Tage:
             if t == "AP": # nicht relevant auf Ebene Teilnetz
                 continue
-            FZG_FK = _berechne_FZG_TN(_FPLTabelle, _FZG, s, t, _AnAbOverlap)
+            FZG_FK = _berechne_FZG_TN(_FPLTabelle, s, t, _AnAbOverlap)
             FZG_METN[FZG_FK.columns] = FZG_FK # Füge Spalten mit Namen aus Saison, Tag, Fahrzeugtyp hinzu
-    spalte_daten = []
-    for _, f in Visum.Net.VehicleCombinations.GetMultiAttValues("CODE"):
-        if FZG_METN.columns.str.startswith(f"{f}_").any():
-            # Schreibt alle Spalten, in denen Fahrzeug f und _S_ für Normalwoche vorkommen
-            cols = [c for c in FZG_METN.columns if "_S_" in c and c.startswith(f"{f}_")]
-            # Maximum über alle Wochentage
-            max_S = FZG_METN[cols].sum().max() # sum() wird benötigt, obwohl es nur eine Zeile gibt
-            cols = [c for c in FZG_METN.columns if "_F_" in c and c.startswith(f"{f}_")]
-            max_F = FZG_METN[cols].sum().max()
-            # Maximum über Saison (je Saison Maximum am Wochetag, somit Gesamtmaximum)
-            fmax = max(max_S, max_F)
-        else: # Wenn Fahrzeugkombination im TN nicht enthalten ist
-            fmax = 0
-        spalte_daten.append(fmax)
-        SetMulti(Visum.Net.VehicleCombinations, f"{_TN}_FZG_METN", spalte_daten)
+    fzg_daten = []
+    # Ermittle maximalen Gesamt-Fahrzeugbedarf über alle Saisons und Tage
+    FZG_ALL = FZG_METN.loc[:, FZG_METN.columns.str.startswith("ALL_")].max().max()
+    for f in _FZG["FZG"]:
+        # Ermittle maximalen Bedarf je Fahrzeugtyp über alle Saisons und Tage
+        fmax = FZG_METN.loc[:, FZG_METN.columns.str.startswith(f"{f}_")].max().max()
+        # Ziehe vom Gesamtbedarf in absteigender Reihenfolge die Bedarfe je Fahrzeugtyp ab
+        fzg_daten.append([f, min(fmax, FZG_ALL)])
+        # Wenn Gesamtbedarf = 0, keine Zuweisung weiterer Fahrzeuge und schreiben der Bedarfe in Visum
+        FZG_ALL = max(0, FZG_ALL - fmax)
+    # Bringe die Liste fzg_daten in die Reihenfolge der FahrzeugKombinationen in Visum
+    order = {name: idx for idx, name in Visum.Net.VehicleCombinations.GetMultiAttValues("CODE")}
+    fzg_daten = [x[1] for x in sorted(fzg_daten, key=lambda x: order[x[0]])]
+    SetMulti(Visum.Net.VehicleCombinations, f"{_TN}_FZG_METN", fzg_daten)
 
 
 def _berechne_FZG_Linien(_FPLTabelle, _linie, _FZG, _s, _t, _AnAbOverlap):
@@ -190,20 +193,16 @@ def _berechne_FZG_Linien(_FPLTabelle, _linie, _FZG, _s, _t, _AnAbOverlap):
     return LinienListe
 
 
-def _berechne_FZG_TN(_FPLTabelle, _FZG, _s, _t, _AnAbOverlap):
+def _berechne_FZG_TN(_FPLTabelle, _s, _t, _AnAbOverlap):
     '''
-    Der Fahrzeugbedarf auf Ebene der Teilnetze ergibt sich wie folgt:
-        Aufsteigend (nach Rang von klein zu groß) wird der maximale Fahrzeugbedarf je Tag und Saison ermittelt
-        Fahrzeuge dürfen andere Fahrzeuge ersetzen, wenn sie einen höheren oder gleichen Rang aufweisen
-        Es wird also für jede Tagesminute ermittelt, wie viele Fahrzeuge benötigt werden und wie viele Fahrzeuge mit
-        einem kleineren Rang frei sind und diese ersetzen können.
+    1. Berechnung des Gesamtbedarfs über alle FZG je Tag und Saison
+    2. Berechnung des Fahrzeugbedarfs je FZG je Tag und Saison
+    3. return (weitere Berechnung in ZFG_TN())
     
     Parameters
     ----------
     _FPLTabelle : pandas DataFrame
         Beinhaltet alle Fahrplanfahrten mit Fahrzeug (inkl. RANG), Abafahrt, Ankunft, Saison und Verkehrstag
-    _FZG : pandas DataFrame
-        Alle Fahrzeugkombinationen im aktiven TN mit Fahrzeug-CODE und RANG
     _s : string
         Saison: 'S' oder 'F'
     _t : string
@@ -213,39 +212,18 @@ def _berechne_FZG_TN(_FPLTabelle, _FZG, _s, _t, _AnAbOverlap):
 
     Returns
     -------
-    LinienListe
-        Fahrzeugbedarf über alle Fahrzeuge in Saison, an Tag und für Linie (_linie)
+    Liste
+        Gesamtbedarf (ALL) und Fahrzeugbedarf je FZG je Saison und Tag
     '''
     # Filter Fahrplanfahrten nach Saison und Tag
     _FPLTabelle = _FPLTabelle[(_FPLTabelle[_s] == 1) & (_FPLTabelle["Tag"] == _t)]
     timeline = _erstelle_timeline(_FPLTabelle, _AnAbOverlap)
-    timeline["FREI"] = 0 # Spalte mit freien Fahrzeugen je Tagesminute
-    Rang0 = 0
-    for f, Rang1 in zip(_FZG["FZG"], _FZG["RANG"]):
-        if not f in timeline.columns: # Falls Fahrzeug zwar in Teilnetz aber nicht in gefiltern Fahrplandaten vorhanden 
-            continue
-        # prüft, ob Rang aus vorheriger Iteration kleiner oder gleich Rang aus aktueller Iteration
-        # Wenn WAHR, dann dürfen Fahrzeuge aus aktueller Iteration durch freie Fahrzeuge ersetzt werden
-        # Muss immer WAHR sein, da Fahrzeuge nach RANG sortiert (ggf. IF-Bedingung entfernen)
-        if Rang0 <= Rang1:
-            # in neuer Spalte wird eingetragen, wie viele Fahrzeuge durch freie Fahrzeuge zur Tagesminute ersetzt werden
-            # Wenn Fahrzeuge zur Tagesminute FREI sind, wird minimum aus FREI und f als Ersatz genommen
-            # Es könne nur Fahrzeuge ersetzen die FREI sind aber auch nicht mehr, als benötigt werden.
-            timeline[f"{f}ersatz"] = timeline[["FREI", f]].min(axis=1).where(timeline["FREI"] > 0, 0)
-            # Zieht zeilenweise (Tagesminuten) den Fahrzeugersatz von den freien und benötigten Fahrzeugen ab.
-            # Anschließend sind weniger Fahrzeuge FREI und es werden weniger (oder keine) vom Typ f benötigt (fneu).
-            timeline[[f"{f}neu", "FREI"]] = timeline[[f, "FREI"]].sub(timeline[f"{f}ersatz"], axis=0)
-        timeline[f"{f}max"] = timeline[f"{f}neu"].max() # Maximalbedarf nach Ersatz von Fahrzeug f
-        # Fur alle tagesminmuten (Zeilen): Freie Fahrzeuge = Maximalbedarf f über Tag im Bedarf zu dieser Minute
-        timeline["FREI"] = timeline["FREI"] + (timeline[f"{f}max"] - timeline[f"{f}neu"])
-        Rang0 = Rang1
-    # Als Export werden nur die Spalten mit den Maximalbedarfen je Fahrzeugtyp benötigt
+    timeline.drop(columns=["minute", "time"], inplace=True)
+    timeline_max = timeline.max().to_frame().T
+    timeline_max.columns = timeline_max.columns + f"_{_s}_({_t})"
     if _s == "S" and _t == "Mo": # ermöglichst späteres Einfügen in Excel
-        timeline.to_clipboard(index=False)
-    TNListe = timeline.filter(like="max").copy()
-    TNListe.drop(TNListe.index[1:], inplace=True) # Lösche alle Zeilen außer der ersten, da Maximalbedarfe über Tag immer identisch
-    TNListe.rename(columns=lambda c: c.replace("max", f"_{_s}_({_t})"), inplace=True)
-    return TNListe
+        timeline_max.to_clipboard(index=False)
+    return timeline_max
 
 
 def _checks(Visum):
@@ -263,6 +241,7 @@ def _checks(Visum):
     check_bda(Visum, Visum.Net.VehicleCombinations, "FahrzeugKombinationen", "RANG"),
     check_zeitintervalle(Visum),
     check_fahrplanfahrtabschnitte(Visum, True),
+    check_fahrzeugkombinationen(Visum),
     ))
 
 
