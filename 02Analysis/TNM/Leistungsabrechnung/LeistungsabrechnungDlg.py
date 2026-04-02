@@ -58,12 +58,12 @@ class MyDialog(wx.Dialog):
         self.labelFW = wx.StaticText(self, -1, _("Holiday weeks"))
         self.labelFB = wx.StaticText(self, -1, _("Vehicle needs"))
         self.labelEFW = wx.StaticText(self, -1, _("EFW"))
-        self.labelUEL = wx.StaticText(self, -1, _("Overlap"))
+        self.labelWZ = wx.StaticText(self, -1, _("Turnaround time (minutes)"))
         self.comboTN = wx.ComboBox(self, -1, "...")
         self.comboFB = wx.ComboBox(self, -1, "...")
         self.spinSW = wx.SpinCtrl(self, -1, min=0, max=52)
         self.spinFW = wx.SpinCtrl(self, -1, min=0, max=52)
-        self.cbUEL = wx.CheckBox(self, -1, label="")
+        self.spinWZ = wx.SpinCtrl(self, -1, min=-60, max=60)
         self.cbEFW = wx.CheckBox(self, -1, label="")
 
         self.button_createEFW = wx.Button(self, -1, _("Create EFW"), name = "createEFW")
@@ -108,7 +108,7 @@ class MyDialog(wx.Dialog):
         self.__set_properties()
         
         defaultParam = {"TN" : False, "SW" : False, "FW" : False, "EFW" : False, "FB" : False,
-                        "UEL" : False}
+                        "WZ" : False}
         addInParam.Check(False, defaultParam)
         
     def __do_comboChoice(self):
@@ -132,7 +132,7 @@ class MyDialog(wx.Dialog):
     def __do_parameters(self):
         self.spinSW.SetValue(int(Visum.Net.AttValue("S_WOCHEN")))
         self.spinFW.SetValue(int(Visum.Net.AttValue("F_WOCHEN")))
-        self.cbUEL.SetValue(bool(Visum.Net.AttValue("ANABOVERLAP")))
+        self.spinWZ.SetValue(int(Visum.Net.AttValue("WENDEZEIT")))
         self.cbEFW.SetValue(bool(Visum.Net.AttValue("EFW")))
         
     def __set_properties(self):
@@ -144,7 +144,7 @@ class MyDialog(wx.Dialog):
         self.labelFW.SetFont(font)
         self.labelFB.SetFont(font)
         self.labelEFW.SetFont(font)
-        self.labelUEL.SetFont(font)
+        self.labelWZ.SetFont(font)
         
         TN = self.comboTN.GetValue()
         BDT = Visum.Net.TableDefinitions.GetMultiAttValues("NAME")
@@ -188,8 +188,8 @@ class MyDialog(wx.Dialog):
         grid_para.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 8)
         grid_para.Add(self.labelFB, 0, flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
         grid_para.Add(self.comboFB, 0)
-        grid_para.Add(self.labelUEL, 0, flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-        grid_para.Add(self.cbUEL, 0, flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.labelWZ, 0, flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.spinWZ, 0, flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
         grid_para.AddSpacer(5)
         grid_para.AddSpacer(5)
         grid_para.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 0, (1, 2))
@@ -268,7 +268,7 @@ class MyDialog(wx.Dialog):
         self.spinFW.SetValue(12)
         self.cbEFW.SetValue(True)
         self.comboFB.SetValue("M1")
-        self.cbUEL.SetValue(True)
+        self.spinWZ.SetValue(0)
         
     def OnExecute(self,event):
         param, paramOK = self.setParameter()
@@ -326,7 +326,7 @@ class MyDialog(wx.Dialog):
             param["FW"] = self.spinFW.GetValue()
             param["EFW"] = self.cbEFW.GetValue()
             param["FB"] = self.comboFB.GetValue()
-            param["UEL"] = self.cbUEL.GetValue()
+            param["WZ"] = self.spinWZ.GetValue()
             return param, True
         except:
             addIn.HandleException(_("Performance statement, value error: "))
@@ -340,7 +340,7 @@ def CheckNetwork():
     if Visum.Net.VehicleJourneyItems.Count == 0:
         addIn.ReportMessage(_("Current Visum Version has no VehicleJourneyItems. Create PT-Network first."))
         return _error()
-    for i in ["TN", "S_WOCHEN", "F_WOCHEN", "EFW", "ANABOVERLAP", "M_FAHRZEUGBEDARF"]:
+    for i in ["TN", "S_WOCHEN", "F_WOCHEN", "EFW", "WENDEZEIT", "M_FAHRZEUGBEDARF"]:
         if not Visum.Net.AttrExists(i):
             addIn.ReportMessage(_("Network UDA '%s' not existing.") %(i))
             return _error()

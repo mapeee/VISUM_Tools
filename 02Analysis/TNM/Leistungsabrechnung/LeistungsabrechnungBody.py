@@ -19,7 +19,7 @@ def Run(param):
         Visum.Net.SetAttValue("F_WOCHEN", param["FW"])
         Visum.Net.SetAttValue("EFW", param["EFW"])
         Visum.Net.SetAttValue("M_FAHRZEUGBEDARF", param["FB"])
-        Visum.Net.SetAttValue("ANABOVERLAP", param["UEL"])
+        Visum.Net.SetAttValue("WENDEZEIT", param["WZ"])
     if param["Proc"] == "setParameters":
         addIn.ReportMessage(_("Parameters: set"), 2)
     if param["Proc"] == "PerformanceStatement":

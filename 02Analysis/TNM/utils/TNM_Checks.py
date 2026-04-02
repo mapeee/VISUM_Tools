@@ -159,7 +159,7 @@ def check_net(Visum):
     ''' 
     if not all((
         check_bda(Visum, Visum.Net, "Network", "TN"),
-        check_bda(Visum, Visum.Net, "Network", "ANABOVERLAP"),
+        check_bda(Visum, Visum.Net, "Network", "WENDEZEIT"),
         check_bda(Visum, Visum.Net, "Network", "M_FAHRZEUGBEDARF"),
         check_bda(Visum, Visum.Net, "Network", "F_WOCHEN"),
         check_bda(Visum, Visum.Net, "Network", "S_WOCHEN"),

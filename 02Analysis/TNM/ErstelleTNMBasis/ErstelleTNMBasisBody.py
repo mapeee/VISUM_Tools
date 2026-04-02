@@ -34,14 +34,14 @@ def _erstelle_bda(Visum):
         _bda.UserDefinedGroup = _bdg
         if _string:
             _bda.MaxStringLen = _string
-        return n+1
+        return _n+1
 
     # Netz-Parameter
     n = 0
-    if not Visum.Net.AttrExists("ANABOVERLAP"):
-        bda = Visum.Net.AddUserDefinedAttribute("ANABOVERLAP", "ANABOVERLAP", "ANABOVERLAP", 9, DefVal = False)
-        bda = Visum.Net.Attributes.ItemByKey("ANABOVERLAP")
-        n = __attribute_bda(bda, r"Identische Ankunfts- und Abfahrtszeit gilt als Überlappung", "TNM_Parameter", n)
+    if not Visum.Net.AttrExists("WENDEZEIT"):
+        bda = Visum.Net.AddUserDefinedAttribute("WENDEZEIT", "WENDEZEIT", "WENDEZEIT", 1, 0, False, -60, 60, 0)
+        bda = Visum.Net.Attributes.ItemByKey("WENDEZEIT")
+        n = __attribute_bda(bda, r"Wendezeit bei der Ermittlung vom Fahrzeugbedarf", "TNM_Parameter", n)
     if not Visum.Net.AttrExists("EFW"):
         bda = Visum.Net.AddUserDefinedAttribute("EFW", "EFW", "EFW", 9, DefVal = True)
         bda = Visum.Net.Attributes.ItemByKey("EFW")
