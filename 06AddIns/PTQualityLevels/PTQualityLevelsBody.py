@@ -77,16 +77,22 @@ def CreateGeoJSON(Visum):
 
 def CreatePolygons(Visum ,_GeoJSON, _stops, _data_source):
     HKAT = ["HKAT", "HKAT_FHH"][param["bt"]]
-    scenario = param["sc"]
+    list_sa = param["sa"]
+    scenario = param["scen"]
+    sa1 = list_sa[0]
+    sa2 = list_sa[1]
+    sa3 = list_sa[2]
+    sa4 = list_sa[3]
+    sa5 = list_sa[4]
     # Zuordung HstKategorie zur Entfernungsklasse (Luflinie)
     categories = {
-        "I": ["300m:A", "400m:A", "600m:B", "1000m:C", "1500m:D"],
-        "II": ["300m:A", "400m:B", "600m:C", "1000m:D", "1500m:E"],
-        "III": ["300m:B", "400m:C", "600m:D", "1000m:E", "1500m:F"],
-        "IV": ["300m:C", "400m:D", "600m:E", "1000m:F", "1500m:G"],
-        "V": ["300m:D", "400m:E", "600m:F", "1000m:G", "1500m:I"],
-        "VI": ["300m:E", "400m:F", "600m:G", "1500m:I"],
-        "VII": ["300m:F", "400m:G", "1500m:I"],
+        "I": [[sa1, "A"], [sa2, "A"], [sa3, "B"], [sa4, "C"], [sa5, "D"]],
+        "II": [[sa1, "A"], [sa2, "B"], [sa3, "C"], [sa4, "D"], [sa5, "E"]],
+        "III": [[sa1, "B"], [sa2, "C"], [sa3, "D"], [sa4, "E"], [sa5, "F"]],
+        "IV": [[sa1, "C"], [sa2, "D"], [sa3, "E"], [sa4, "F"], [sa5, "G"]],
+        "V": [[sa1, "D"], [sa2, "E"], [sa3, "F"], [sa4, "G"], [sa5, "H"]],
+        "VI": [[sa1, "E"], [sa2, "F"], [sa3, "G"], [sa4, "H"], [sa5, "I"]],
+        "VII": [[sa1, "F"], [sa2, "G"], [sa3, "H"], [sa4, "I"], [sa5, "I"]],
     }
     
     polygon_count = 0
@@ -98,9 +104,7 @@ def CreatePolygons(Visum ,_GeoJSON, _stops, _data_source):
             point.AddPoint(x, y)
             point.AssignSpatialReference(_GeoJSON.GetSpatialRef())
         
-            for distance_class in distances:
-                distance = int(distance_class.split("m:")[0]) # nutze split "m:", um m nicht abtrennen zu müssen
-                PTClass = distance_class.split("m:")[1]
+            for distance, PTClass in distances:
                 # buffer
                 feature_def = _GeoJSON.GetLayerDefn()
                 feature = ogr.Feature(feature_def)
@@ -163,6 +167,7 @@ def StopCategories(Visum):
     intervals = param["ti"]
     lineend = param["le"]
     weekday = param["wd"]
+    list_sc = param["sc"]
     dict_scml = param["scml"]
     mode = ["TSYSCODE", "MAINLINENAME"][param["mode"]]
 
@@ -225,24 +230,24 @@ def StopCategories(Visum):
         
         # Stop categories from StopType and departures in PTV Visum
         conditions = [
-            (_Stops["DepHour"] >= 24) & (_Stops[i[0]] == 1),
-            (_Stops["DepHour"] >= 24) & (_Stops[i[0]] == 2),
-            (_Stops["DepHour"] >= 24) & (_Stops[i[0]] == 3),
-            (_Stops["DepHour"] >= 12) & (_Stops[i[0]] == 1),
-            (_Stops["DepHour"] >= 12) & (_Stops[i[0]] == 2),
-            (_Stops["DepHour"] >= 12) & (_Stops[i[0]] == 3),
-            (_Stops["DepHour"] >= 6) & (_Stops[i[0]] == 1),
-            (_Stops["DepHour"] >= 6) & (_Stops[i[0]] == 2),
-            (_Stops["DepHour"] >= 6) & (_Stops[i[0]] == 3),
-            (_Stops["DepHour"] >= 4) & (_Stops[i[0]] == 1),
-            (_Stops["DepHour"] >= 4) & (_Stops[i[0]] == 2),
-            (_Stops["DepHour"] >= 4) & (_Stops[i[0]] == 3),
-            (_Stops["DepHour"] >= 2) & (_Stops[i[0]] == 1),
-            (_Stops["DepHour"] >= 2) & (_Stops[i[0]] == 2),
-            (_Stops["DepHour"] >= 2) & (_Stops[i[0]] == 3),
-            (_Stops["DepHour"] >= 1) & (_Stops[i[0]] == 1),
-            (_Stops["DepHour"] >= 1) & (_Stops[i[0]] == 2),
-            (_Stops["DepHour"] >= 1) & (_Stops[i[0]] == 3)
+            (_Stops["DepHour"] >= list_sc[0]) & (_Stops[i[0]] == 1),
+            (_Stops["DepHour"] >= list_sc[0]) & (_Stops[i[0]] == 2),
+            (_Stops["DepHour"] >= list_sc[0]) & (_Stops[i[0]] == 3),
+            (_Stops["DepHour"] >= list_sc[1]) & (_Stops[i[0]] == 1),
+            (_Stops["DepHour"] >= list_sc[1]) & (_Stops[i[0]] == 2),
+            (_Stops["DepHour"] >= list_sc[1]) & (_Stops[i[0]] == 3),
+            (_Stops["DepHour"] >= list_sc[2]) & (_Stops[i[0]] == 1),
+            (_Stops["DepHour"] >= list_sc[2]) & (_Stops[i[0]] == 2),
+            (_Stops["DepHour"] >= list_sc[2]) & (_Stops[i[0]] == 3),
+            (_Stops["DepHour"] >= list_sc[3]) & (_Stops[i[0]] == 1),
+            (_Stops["DepHour"] >= list_sc[3]) & (_Stops[i[0]] == 2),
+            (_Stops["DepHour"] >= list_sc[3]) & (_Stops[i[0]] == 3),
+            (_Stops["DepHour"] >= list_sc[4]) & (_Stops[i[0]] == 1),
+            (_Stops["DepHour"] >= list_sc[4]) & (_Stops[i[0]] == 2),
+            (_Stops["DepHour"] >= list_sc[4]) & (_Stops[i[0]] == 3),
+            (_Stops["DepHour"] >= list_sc[5]) & (_Stops[i[0]] == 1),
+            (_Stops["DepHour"] >= list_sc[5]) & (_Stops[i[0]] == 2),
+            (_Stops["DepHour"] >= list_sc[5]) & (_Stops[i[0]] == 3)
             ]
     
         choices = [

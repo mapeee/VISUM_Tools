@@ -74,6 +74,7 @@ class MyDialog(wx.Dialog):
         self.label_stops = wx.StaticText(self, -1, _(""))
         
         # time intervals
+        self.label_time = wx.StaticText(self, -1, _("Time reference"))
         self.label_wd = wx.StaticText(self, -1, _("Weekday"))
         self.combo_wd = wx.ComboBox(self, -1, "")
         self.label_ti = wx.StaticText(self, -1, _("Time intervals"))
@@ -84,19 +85,59 @@ class MyDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnAddTi, self.button_ti)
         self.Bind(wx.EVT_BUTTON, self.OnRemoveTi, self.button_ti_remove)
         
-        # modes and stop categories
+        # stop types
+        self.label_st = wx.StaticText(self, -1, _("Stop types"))
         self.label_mode = wx.StaticText(self, -1, _("Aggregation level"))
         self.combo_mode = wx.ComboBox(self, -1, "")
         self.dvlc_scml = dv.DataViewListCtrl(self, -1, style=wx.BORDER_SUNKEN)
         self.Bind(wx.EVT_COMBOBOX, self.OnModeChanged, self.combo_mode)
+        
+        # stop categories
+        self.label_sc = wx.StaticText(self, -1, _("Stop categories"))
+        self.label1_sc = wx.StaticText(self, -1, _("service frequency 1"))
+        self.label2_sc = wx.StaticText(self, -1, _("service frequency 2"))
+        self.label3_sc = wx.StaticText(self, -1, _("service frequency 3"))
+        self.label4_sc = wx.StaticText(self, -1, _("service frequency 4"))
+        self.label5_sc = wx.StaticText(self, -1, _("service frequency 5"))
+        self.label6_sc = wx.StaticText(self, -1, _("service frequency 6"))
+        self.spin1_sc = wx.SpinCtrl(self, id=0, min=0, max=100, initial=24)
+        self.spin2_sc = wx.SpinCtrl(self, id=1, min=0, max=100, initial=12)
+        self.spin3_sc = wx.SpinCtrl(self, id=2, min=0, max=100, initial=6)
+        self.spin4_sc = wx.SpinCtrl(self, id=3, min=0, max=100, initial=4)
+        self.spin5_sc = wx.SpinCtrl(self, id=4, min=0, max=100, initial=2)
+        self.spin6_sc = wx.SpinCtrl(self, id=5, min=0, max=100, initial=1)
+        self.Bind(wx.EVT_SPINCTRL, self.OnSpin_sc, self.spin1_sc)
+        self.Bind(wx.EVT_SPINCTRL, self.OnSpin_sc, self.spin2_sc)
+        self.Bind(wx.EVT_SPINCTRL, self.OnSpin_sc, self.spin3_sc)
+        self.Bind(wx.EVT_SPINCTRL, self.OnSpin_sc, self.spin4_sc)
+        self.Bind(wx.EVT_SPINCTRL, self.OnSpin_sc, self.spin5_sc)
+        self.Bind(wx.EVT_SPINCTRL, self.OnSpin_sc, self.spin6_sc)
+        
+        # service areas
+        self.label_sa = wx.StaticText(self, -1, _("Service areas"))
+        self.label1_sa = wx.StaticText(self, -1, _("threshold 1"))
+        self.label2_sa = wx.StaticText(self, -1, _("threshold 2"))
+        self.label3_sa = wx.StaticText(self, -1, _("threshold 3"))
+        self.label4_sa = wx.StaticText(self, -1, _("threshold 4"))
+        self.label5_sa = wx.StaticText(self, -1, _("threshold 5"))
+        self.spin1_sa = wx.SpinCtrl(self, id=6, min=0, max=2000, initial=300)
+        self.spin2_sa = wx.SpinCtrl(self, id=7, min=0, max=2000, initial=400)
+        self.spin3_sa = wx.SpinCtrl(self, id=8, min=0, max=2000, initial=600)
+        self.spin4_sa = wx.SpinCtrl(self, id=9, min=0, max=2000, initial=1000)
+        self.spin5_sa = wx.SpinCtrl(self, id=10, min=0, max=2000, initial=1500)
+        self.Bind(wx.EVT_SPINCTRL, self.OnSpin_sa, self.spin1_sa)
+        self.Bind(wx.EVT_SPINCTRL, self.OnSpin_sa, self.spin2_sa)
+        self.Bind(wx.EVT_SPINCTRL, self.OnSpin_sa, self.spin3_sa)
+        self.Bind(wx.EVT_SPINCTRL, self.OnSpin_sa, self.spin4_sa)
+        self.Bind(wx.EVT_SPINCTRL, self.OnSpin_sa, self.spin5_sa)
         
         # misc
         self.label_le = wx.StaticText(self, -1, _("End of line double"))
         self.cb_le = wx.CheckBox(self, -1, "")
         self.label_bt = wx.StaticText(self, -1, _("Calculation type"))
         self.combo_bt = wx.ComboBox(self, -1, "")
-        self.label_sc = wx.StaticText(self, -1, _("Scenario"))
-        self.text_sc = wx.TextCtrl(self, -1, value="/")
+        self.label_scen = wx.StaticText(self, -1, _("Scenario"))
+        self.text_scen = wx.TextCtrl(self, -1, value="/")
         self.label_poi = wx.StaticText(self, -1, _("POI category"))
         self.combo_poi = wx.ComboBox(self, -1, "")
         self.label_poidel = wx.StaticText(self, -1, _("Delete existing POI"))
@@ -130,47 +171,94 @@ class MyDialog(wx.Dialog):
         self.__set_properties()
         
         defaultParam = {"ti" : False, "wd" : False, "le" : False, "scml" : False, "clipfiles" : False,
-                        "bt" : False, "sc" : False, "poi" : False, "poidel" : False, "clip" : False,
-                        "mode" : False}
+                        "bt" : False, "scen" : False, "poi" : False, "poidel" : False, "clip" : False,
+                        "mode" : False, "sa" : False, "sc" : False}
         addInParam.Check(False, defaultParam)
 
     def __do_layout(self):
-        # Time intervals
-        sb_time = wx.StaticBox(self, -1, _("Time reference"))
-        sb_time.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.BOLD))
+        # Time intervals / Stop types
+        sb_time = wx.StaticBox(self, -1, "")
         sbSizer_time = wx.StaticBoxSizer(sb_time, wx.VERTICAL)
-        grid_time = wx.GridBagSizer(vgap=7, hgap=10)
-        grid_time.Add(self.label_wd, pos=(0,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-        grid_time.Add(self.combo_wd, pos=(0,1), flag = wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
-        grid_time.Add(self.label_ti, pos=(1,0), span=(1,2), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-        grid_time.Add(self.list_ti, pos=(2,0), span=(1,2), flag = wx.EXPAND)
-        grid_time.Add(self.button_ti, pos=(3,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-        grid_time.Add(self.button_ti_remove, pos=(3,1), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-        grid_time.AddGrowableCol(1, 1)   # right column grows
-        grid_time.AddGrowableRow(2, 1)   # list row grows
-        sbSizer_time.Add(grid_time, 1, wx.ALL | wx.EXPAND, 10)
-        # Stop type
-        sb_st = wx.StaticBox(self, -1, _("Stop type"))
-        sb_st.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.BOLD))
+        fgSizer_time = wx.FlexGridSizer(rows=0, cols=2, vgap=0, hgap=40)
+        fgSizer_time.AddGrowableCol(0, 1)
+        fgSizer_time.AddGrowableCol(1, 1)
+        grid_time_left = wx.GridBagSizer(vgap=7, hgap=10)
+        grid_time_left.Add(self.label_time, pos=(0,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_time_left.Add(self.label_wd, pos=(1,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_time_left.Add(self.combo_wd, pos=(1,1), flag = wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        grid_time_left.Add(self.label_ti, pos=(2,0), span=(1,2), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_time_left.Add(self.list_ti, pos=(3,0), span=(1,2), flag = wx.EXPAND)
+        grid_time_left.Add(self.button_ti, pos=(4,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_time_left.Add(self.button_ti_remove, pos=(4,1), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_time_left.AddGrowableCol(1, 1)
+        grid_time_left.AddGrowableRow(2, 1)
+        grid_time_right = wx.GridBagSizer(vgap=7, hgap=10)
+        grid_time_right.Add(self.label_st, pos=(0,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_time_right.Add(self.label_mode, pos=(1,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_time_right.Add(self.combo_mode, pos=(1,1), flag = wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        grid_time_right.Add(self.dvlc_scml, pos=(2,0), span=(1,2), flag= wx.EXPAND | wx.ALL)
+        grid_time_right.AddGrowableCol(1, 1)
+        grid_time_right.AddGrowableRow(1, 1) 
+        fgSizer_time.Add(grid_time_left, 1, wx.TOP)
+        fgSizer_time.Add(grid_time_right, 1, wx.TOP)
+        sbSizer_time.Add(fgSizer_time, 1, wx.ALL | wx.EXPAND, 10)
+        # Stop cat / Service areas
+        sb_st = wx.StaticBox(self, -1, "")
         sbSizer_st = wx.StaticBoxSizer(sb_st, wx.VERTICAL)
-        grid_st = wx.GridBagSizer(vgap=7, hgap=10)
-        grid_st.Add(self.label_mode, pos=(0,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
-        grid_st.Add(self.combo_mode, pos=(0,1), flag = wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
-        grid_st.Add(self.dvlc_scml, pos=(1,0), span=(1,2), flag= wx.EXPAND | wx.ALL)
-        grid_st.AddGrowableCol(1, 1)   # let the right column take extra width
-        grid_st.AddGrowableRow(1, 1) 
-        sbSizer_st.Add(grid_st, 1, wx.ALL | wx.EXPAND, 10)
+        fgSizer_st = wx.FlexGridSizer(rows=0, cols=2, vgap=0, hgap=40)
+        fgSizer_st.AddGrowableCol(0, 1)
+        fgSizer_st.AddGrowableCol(1, 1)
+        grid_st_left = wx.GridBagSizer(vgap=7, hgap=10)
+        grid_st_left.Add(self.label_sc, pos=(0,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_st_left.Add(self.label1_sc, pos=(1,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_st_left.Add(self.spin1_sc, pos=(1,1), flag = wx.EXPAND)
+        grid_st_left.Add(wx.StaticText(self, -1, "/h"), pos=(1,2), flag = wx.ALIGN_CENTER_VERTICAL)
+        grid_st_left.Add(self.label2_sc, pos=(2,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_st_left.Add(self.spin2_sc, pos=(2,1), flag = wx.EXPAND)
+        grid_st_left.Add(wx.StaticText(self, -1, "/h"), pos=(2,2), flag = wx.ALIGN_CENTER_VERTICAL)
+        grid_st_left.Add(self.label3_sc, pos=(3,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_st_left.Add(self.spin3_sc, pos=(3,1), flag = wx.EXPAND)
+        grid_st_left.Add(wx.StaticText(self, -1, "/h"), pos=(3,2), flag = wx.ALIGN_CENTER_VERTICAL)
+        grid_st_left.Add(self.label4_sc, pos=(4,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_st_left.Add(self.spin4_sc, pos=(4,1), flag = wx.EXPAND)
+        grid_st_left.Add(wx.StaticText(self, -1, "/h"), pos=(4,2), flag = wx.ALIGN_CENTER_VERTICAL)
+        grid_st_left.Add(self.label5_sc, pos=(5,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_st_left.Add(self.spin5_sc, pos=(5,1), flag = wx.EXPAND)
+        grid_st_left.Add(wx.StaticText(self, -1, "/h"), pos=(5,2), flag = wx.ALIGN_CENTER_VERTICAL)
+        grid_st_left.Add(self.label6_sc, pos=(6,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_st_left.Add(self.spin6_sc, pos=(6,1), flag = wx.EXPAND)
+        grid_st_left.Add(wx.StaticText(self, -1, "/h"), pos=(6,2), flag = wx.ALIGN_CENTER_VERTICAL)
+        grid_st_right = wx.GridBagSizer(vgap=7, hgap=10)
+        grid_st_right.Add(self.label_sa, pos=(0,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_st_right.Add(self.label1_sa, pos=(1,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_st_right.Add(self.spin1_sa, pos=(1,1), flag = wx.EXPAND)
+        grid_st_right.Add(wx.StaticText(self, -1, "m"), pos=(1,2), flag = wx.ALIGN_CENTER_VERTICAL)
+        grid_st_right.Add(self.label2_sa, pos=(2,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_st_right.Add(self.spin2_sa, pos=(2,1), flag = wx.EXPAND)
+        grid_st_right.Add(wx.StaticText(self, -1, "m"), pos=(2,2), flag = wx.ALIGN_CENTER_VERTICAL)
+        grid_st_right.Add(self.label3_sa, pos=(3,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_st_right.Add(self.spin3_sa, pos=(3,1), flag = wx.EXPAND)
+        grid_st_right.Add(wx.StaticText(self, -1, "m"), pos=(3,2), flag = wx.ALIGN_CENTER_VERTICAL)
+        grid_st_right.Add(self.label4_sa, pos=(4,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_st_right.Add(self.spin4_sa, pos=(4,1), flag = wx.EXPAND)
+        grid_st_right.Add(wx.StaticText(self, -1, "m"), pos=(4,2), flag = wx.ALIGN_CENTER_VERTICAL)
+        grid_st_right.Add(self.label5_sa, pos=(5,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
+        grid_st_right.Add(self.spin5_sa, pos=(5,1), flag = wx.EXPAND)
+        grid_st_right.Add(wx.StaticText(self, -1, "m"), pos=(5,2), flag = wx.ALIGN_CENTER_VERTICAL)
+        fgSizer_st.Add(grid_st_left, 1, wx.EXPAND)
+        fgSizer_st.Add(grid_st_right, 1, wx.EXPAND)
+        sbSizer_st.Add(fgSizer_st, 1, wx.ALL | wx.EXPAND, 10)
         # Parameters
         sb_para = wx.StaticBox(self, -1, _("Parameters"))
         sb_para.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.BOLD))
         sbSizer_para = wx.StaticBoxSizer(sb_para, wx.VERTICAL)
-        grid_para = wx.GridBagSizer(vgap=8, hgap=10)
+        grid_para = wx.GridBagSizer(vgap=7, hgap=10)
         grid_para.Add(self.label_bt, pos=(0,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-        grid_para.Add(self.combo_bt, pos=(0,1), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.combo_bt, pos=(0,1), flag = wx.ALIGN_LEFT | wx.EXPAND)
         grid_para.Add(self.label_le, pos=(1,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
         grid_para.Add(self.cb_le, pos=(1,1), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-        grid_para.Add(self.label_sc, pos=(2,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-        grid_para.Add(self.text_sc, pos=(2,1), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.label_scen, pos=(2,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_para.Add(self.text_scen, pos=(2,1), flag = wx.ALIGN_LEFT | wx.EXPAND)
         grid_para.Add(self.label_poi, pos=(3,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
         grid_para.Add(self.combo_poi, pos=(3,1), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
         grid_para.Add(self.label_poidel, pos=(4,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
@@ -180,12 +268,11 @@ class MyDialog(wx.Dialog):
         grid_para.Add(self.listbox_clip, pos=(6,0), span=(1,2), flag= wx.EXPAND | wx.ALL)
         grid_para.Add(self.button_add_clip, pos=(7,0), flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM)
         grid_para.Add(self.button_remove_clip, pos=(7,1), flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM)
-        sbSizer_para.Add(grid_para, 1, wx.ALL | wx.ALIGN_CENTER, 10)
+        sbSizer_para.Add(grid_para, 1, wx.ALL | wx.EXPAND, 10)
         # End
         sb_end = wx.StaticBox(self, -1, _("End"))
         sb_end.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.BOLD))
         sbSizer_end = wx.StaticBoxSizer(sb_end, wx.VERTICAL)
-        sbSizer_end.SetMinSize((200, 50))
         grid_end = wx.FlexGridSizer(rows=2, cols=2, hgap=5, vgap=5)
         grid_end.Add(self.button_ok, flag = wx.EXPAND)
         grid_end.Add(self.button_exit, flag = wx.EXPAND)
@@ -206,6 +293,7 @@ class MyDialog(wx.Dialog):
         vbox.Add(sbSizer_para, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 20)
         vbox.AddSpacer(15)
         vbox.Add(sbSizer_end, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 20)
+        vbox.AddSpacer(15)
 
         self.SetSizerAndFit(vbox)
         self.Layout()
@@ -241,8 +329,8 @@ class MyDialog(wx.Dialog):
             idx = next((i for i, v in enumerate(poi_cat)
                 if any(k in v.lower() for k in ("klasse", "sochrone"))), 0) # Standardauswahl von erster Kategorie, die string enthält.
             self.combo_poi.SetSelection(idx)
-        self.combo_poi.SetMinSize((120, -1))
-        self.combo_poi.SetMaxSize((120, -1))
+        self.combo_poi.SetMinSize((150, -1))
+        self.combo_poi.SetMaxSize((150, -1))
 
     def __do_parameters(self):
         # clip
@@ -282,8 +370,11 @@ class MyDialog(wx.Dialog):
         font.SetPointSize(8)
         self.label_ti.SetFont(font)
         self.list_ti.SetMinSize((-1, 100))
-        self.dvlc_scml.SetMinSize((-1, 180))
-        
+        self.dvlc_scml.SetMinSize((-1, 120))
+        self.label_time.SetFont(font)
+        self.label_st.SetFont(font)
+        self.label_sa.SetFont(font)
+        self.label_sc.SetFont(font)
 
     def OnAddClip(self,event):
         start_dir = os.path.dirname(os.path.abspath(__file__))
@@ -337,13 +428,6 @@ class MyDialog(wx.Dialog):
         title = _("Info")
         frame = InfoFrame(title=title)
         
-    def OnOK(self,event):
-        param, paramOK = self._setParameter()
-        if not paramOK:
-            return
-        addInParam.SaveParameter(param)
-        self.OnExit(None)
-        
     def OnModeChanged(self,event):
         mode = [_("TSys"), _("Mainline")][self.combo_mode.GetSelection()]
         mode2 = ["TSYSCODE", "MAINLINENAME"][self.combo_mode.GetSelection()]
@@ -354,6 +438,50 @@ class MyDialog(wx.Dialog):
         self.dvlc_scml.DeleteAllItems()
         self.dvlc_scml.GetColumn(0).SetTitle(mode)
         self._setDefaultModes(mode2)
+        
+    def OnOK(self,event):
+        param, paramOK = self._setParameter()
+        if not paramOK:
+            return
+        addInParam.SaveParameter(param)
+        self.OnExit(None)
+        
+    def OnSpin_sa(self,event):
+        list_sa = [self.spin1_sa.GetValue(), self.spin2_sa.GetValue(), self.spin3_sa.GetValue(),
+                   self.spin4_sa.GetValue(), self.spin5_sa.GetValue()]
+        index = event.GetId()-6
+        index_value = list_sa[index]
+        for i, v in enumerate(list_sa):
+            if i == index:
+                continue
+            elif i < index:
+                list_sa[i] = min(v, index_value)
+            else:
+                list_sa[i] = max(v, index_value)
+        self.spin1_sa.SetValue(list_sa[0])
+        self.spin2_sa.SetValue(list_sa[1])
+        self.spin3_sa.SetValue(list_sa[2])
+        self.spin4_sa.SetValue(list_sa[3])
+        self.spin5_sa.SetValue(list_sa[4])
+        
+    def OnSpin_sc(self,event):
+        list_sc = [self.spin1_sc.GetValue(), self.spin2_sc.GetValue(), self.spin3_sc.GetValue(),
+                   self.spin4_sc.GetValue(), self.spin5_sc.GetValue(), self.spin6_sc.GetValue()]
+        index = event.GetId()
+        index_value = list_sc[index]
+        for i, v in enumerate(list_sc):
+            if i == index:
+                continue
+            elif i < index:
+                list_sc[i] = max(v, index_value)
+            else:
+                list_sc[i] = min(v, index_value)
+        self.spin1_sc.SetValue(list_sc[0])
+        self.spin2_sc.SetValue(list_sc[1])
+        self.spin3_sc.SetValue(list_sc[2])
+        self.spin4_sc.SetValue(list_sc[3])
+        self.spin5_sc.SetValue(list_sc[4])
+        self.spin6_sc.SetValue(list_sc[5])
         
     def OnPOIBox(self, event):
         text = self.combo_poi.GetValue()
@@ -448,8 +576,12 @@ class MyDialog(wx.Dialog):
                 addIn.ReportMessage(_("No clip file selected"))
                 return None, False
             param["scml"] = self._get_scml_data()
-            param["sc"] = self.text_sc.GetValue()
-            if not param["sc"]:
+            param["sa"] = [self.spin1_sa.GetValue(), self.spin2_sa.GetValue(), self.spin3_sa.GetValue(),
+                       self.spin4_sa.GetValue(), self.spin5_sa.GetValue()]
+            param["sc"] = [self.spin1_sc.GetValue(), self.spin2_sc.GetValue(), self.spin3_sc.GetValue(),
+                       self.spin4_sc.GetValue(), self.spin5_sc.GetValue(), self.spin6_sc.GetValue()]
+            param["scen"] = self.text_scen.GetValue()
+            if not param["scen"]:
                 addIn.ReportMessage(_("Scenario must not be empty"))
                 return None, False
             param["poi"] = self.combo_poi.GetValue() # get index of selection
