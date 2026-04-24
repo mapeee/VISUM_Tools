@@ -18,7 +18,8 @@ def Run(param):
     createUDA(Visum)
     Stops = StopCategories(Visum)
     GeoJSONPath, DataSource, GeoJSONDef = CreateGeoJSON(Visum)
-    CreatePolygons(Visum, GeoJSONDef, Stops, DataSource)
+    if not CreatePolygons(Visum, GeoJSONDef, Stops, DataSource):
+        return False
     if param["clip"]:
         GeoJSONPath = ClipGeoJSON(Visum, GeoJSONPath)
     ImportPOI2Visum(Visum, GeoJSONPath, param["clip"])
@@ -101,8 +102,16 @@ def CreatePolygons(Visum ,_GeoJSON, _stops, _data_source):
         stops_cat = list(zip(stops_cat["STOPNO"].astype(int), stops_cat["STOPNAME"], stops_cat["X"], stops_cat["Y"], stops_cat["DepHour"].astype(int)))
         for StopNo, StopName, x, y, Dep in stops_cat:
             point = ogr.Geometry(ogr.wkbPoint)
-            point.AddPoint(x, y)
-            point.AssignSpatialReference(_GeoJSON.GetSpatialRef())
+            if "GCS_WGS_1984" in Visum.Net.AttValue("PROJECTIONDEFINITION"):
+                point.AddPoint(y, x)
+                src_srs = osr.SpatialReference()
+                src_srs.ImportFromEPSG(4326) # EPSG:4325 (GCS_WGS_1984)
+                dst_srs = osr.SpatialReference()
+                dst_srs.ImportFromEPSG(25832) # EPSG:25832 (ETRS89 / UTM zone 32N)
+                transform = osr.CoordinateTransformation(src_srs, dst_srs)
+                point.Transform(transform)
+            else:
+                point.AddPoint(x, y)
         
             for distance, PTClass in distances:
                 # buffer
@@ -122,7 +131,11 @@ def CreatePolygons(Visum ,_GeoJSON, _stops, _data_source):
                 polygon_count+=1
                 
     _data_source.FlushCache()
+    if not polygon_count:
+        Visum.Log(12288, _("No active VehicleJourneys at active Stops in Timeintervals or at valid day"))
+        return False
     Visum.Log(20480, _("%s Polygons created") %(str(polygon_count)))
+    return True
     
 def ImportPOI2Visum(Visum, _GeoJSON, _clip):
     '''
@@ -166,20 +179,22 @@ def StopCategories(Visum):
     Visum.Log(20480, _("Calculate stop categories for %s stops") %(str(Visum.Net.Stops.CountActive)))
     intervals = param["ti"]
     lineend = param["le"]
-    weekday = param["wd"]
+    day = param["day"]
     list_sc = param["sc"]
     dict_scml = param["scml"]
     mode = ["TSYSCODE", "MAINLINENAME"][param["mode"]]
 
     # chose only VJ on valid days (valid day or daily (all))
     if Visum.Net.CalendarPeriod.AttValue("TYPE") == "CALENDARPERIODWEEK":
-        day = ["ISVALID(MO)", "ISVALID(TU)", "ISVALID(WE)", "ISVALID(TH)", "ISVALID(FR)", "ISVALID(SA)", "ISVALID(SU)"][weekday]
+        validday = ["ISVALID(MO)", "ISVALID(TU)", "ISVALID(WE)", "ISVALID(TH)", "ISVALID(FR)", "ISVALID(SA)", "ISVALID(SU)"][day]
+    elif Visum.Net.CalendarPeriod.AttValue("TYPE") == "CALENDARPERIODYEAR":
+        validday = f"ISVALID({day})"
     else:
-        day = "ISVALID(1)"
+        validday = "ISVALID(1)"
     
     VJI = pd.DataFrame(Visum.Net.VehicleJourneyItems.GetMultipleAttributes(
         ["VEHJOURNEYNO", "INDEX", "Dep",r"TIMEPROFILEITEM\LINEROUTEITEM\STOPPOINT\STOPAREA\STOPNO",
-         rf"VEHJOURNEY\LINEROUTE\LINE\{mode}", r"COUNT:COUPLEDVEHJOURNEYITEMS", day], True))
+         rf"VEHJOURNEY\LINEROUTE\LINE\{mode}", r"COUNT:COUPLEDVEHJOURNEYITEMS", validday], True))
     VJI.columns = ["VJNO", "INDEX", "DEP", "STOPNO", "MODE", "CHAINED", "DAY"]
     VJI = VJI[VJI["DEP"].notna()]
     VJI = VJI[VJI["DAY"] == 1] # only valid days
@@ -320,7 +335,7 @@ def _stopcat_fhh(Visum):
     roman_to_int = {'I':1, 'II':2, 'III':3, 'IV':4, 'V':5, 'VI':6, 'VII':7, 'VIII':8, 'IX':9, 'X':10}
     int_to_roman = {v: k for k, v in roman_to_int.items()}
     # Convert to integers
-    _StopsDF_int = _StopsDF.replace(roman_to_int)
+    _StopsDF_int = _StopsDF.replace(roman_to_int).infer_objects(copy=False)
     # Calculate new column
     # in FHH: HKAT is (best from HKAT1 to HKAT3 minus 1) if worse than HKAT over all
     _StopsDF['HKAT_FHH'] = (_StopsDF_int[['HKAT1', 'HKAT2', 'HKAT3']].min(axis=1) - 1).clip(lower=1)
