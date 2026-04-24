@@ -3,7 +3,10 @@ import wx
 import wx.lib.mixins.listctrl as listmix
 import wx.dataview as dv
 import sys
+import subprocess
+from pathlib import Path
 import os
+from datetime import datetime, timedelta
 import importlib.util
 import pandas as pd
 import re
@@ -15,10 +18,10 @@ class InfoFrame(wx.Frame):
         super(InfoFrame, self).__init__(None, id=-1, title=title, style=wx.CAPTION | wx.STAY_ON_TOP, size=(190, 190))
         self.Centre()
         
-        img = wx.Image(addIn.DirectoryPath +"logo.png",wx.BITMAP_TYPE_ANY)
-        img = img.Scale(55,30,wx.IMAGE_QUALITY_BOX_AVERAGE)
-        img = img.ConvertToBitmap()
-        png = wx.StaticBitmap(self, -1, img, (0, 0))
+        img_hvv = wx.Image(addIn.DirectoryPath +"logo.png",wx.BITMAP_TYPE_ANY)
+        img_hvv = img_hvv.Scale(55,30,wx.IMAGE_QUALITY_BOX_AVERAGE)
+        img_hvv = img_hvv.ConvertToBitmap()
+        png_hvv = wx.StaticBitmap(self, -1, img_hvv, (0, 0))
         
         self.button = wx.Button(self, -1, _("OK"))
         self.Bind(wx.EVT_BUTTON, self.__OnOK, self.button)
@@ -28,7 +31,7 @@ class InfoFrame(wx.Frame):
         self.label.SetFont(wx.Font(8, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.BOLD))
         
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(png,0,wx.LEFT,5)
+        sizer.Add(png_hvv,0,wx.LEFT,5)
         sizer.AddSpacer(10)
         sizer.Add(self.label,0,wx.LEFT,10)
         sizer.AddSpacer(2)
@@ -75,8 +78,8 @@ class MyDialog(wx.Dialog):
         
         # time intervals
         self.label_time = wx.StaticText(self, -1, _("Time reference"))
-        self.label_wd = wx.StaticText(self, -1, _("Weekday"))
-        self.combo_wd = wx.ComboBox(self, -1, "")
+        self.label_day = wx.StaticText(self, -1, _("Day"))
+        self.combo_day = wx.ComboBox(self, -1, "")
         self.label_ti = wx.StaticText(self, -1, _("Time intervals"))
         self.list_ti = List_ti(self)
         self.list_ti.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.OnEditTi)
@@ -94,12 +97,12 @@ class MyDialog(wx.Dialog):
         
         # stop categories
         self.label_sc = wx.StaticText(self, -1, _("Stop categories"))
-        self.label1_sc = wx.StaticText(self, -1, _("service frequency 1"))
-        self.label2_sc = wx.StaticText(self, -1, _("service frequency 2"))
-        self.label3_sc = wx.StaticText(self, -1, _("service frequency 3"))
-        self.label4_sc = wx.StaticText(self, -1, _("service frequency 4"))
-        self.label5_sc = wx.StaticText(self, -1, _("service frequency 5"))
-        self.label6_sc = wx.StaticText(self, -1, _("service frequency 6"))
+        self.label1_sc = wx.StaticText(self, -1, _("F1: service frequency 1"))
+        self.label2_sc = wx.StaticText(self, -1, _("F2: service frequency 2"))
+        self.label3_sc = wx.StaticText(self, -1, _("F3: service frequency 3"))
+        self.label4_sc = wx.StaticText(self, -1, _("F4: service frequency 4"))
+        self.label5_sc = wx.StaticText(self, -1, _("F5: service frequency 5"))
+        self.label6_sc = wx.StaticText(self, -1, _("F6: service frequency 6"))
         self.spin1_sc = wx.SpinCtrl(self, id=0, min=0, max=100, initial=24)
         self.spin2_sc = wx.SpinCtrl(self, id=1, min=0, max=100, initial=12)
         self.spin3_sc = wx.SpinCtrl(self, id=2, min=0, max=100, initial=6)
@@ -115,21 +118,26 @@ class MyDialog(wx.Dialog):
         
         # service areas
         self.label_sa = wx.StaticText(self, -1, _("Service areas"))
-        self.label1_sa = wx.StaticText(self, -1, _("threshold 1"))
-        self.label2_sa = wx.StaticText(self, -1, _("threshold 2"))
-        self.label3_sa = wx.StaticText(self, -1, _("threshold 3"))
-        self.label4_sa = wx.StaticText(self, -1, _("threshold 4"))
-        self.label5_sa = wx.StaticText(self, -1, _("threshold 5"))
-        self.spin1_sa = wx.SpinCtrl(self, id=6, min=0, max=2000, initial=300)
-        self.spin2_sa = wx.SpinCtrl(self, id=7, min=0, max=2000, initial=400)
-        self.spin3_sa = wx.SpinCtrl(self, id=8, min=0, max=2000, initial=600)
-        self.spin4_sa = wx.SpinCtrl(self, id=9, min=0, max=2000, initial=1000)
-        self.spin5_sa = wx.SpinCtrl(self, id=10, min=0, max=2000, initial=1500)
+        self.label1_sa = wx.StaticText(self, -1, _("E1: distance 1"))
+        self.label2_sa = wx.StaticText(self, -1, _("E2: distance 2"))
+        self.label3_sa = wx.StaticText(self, -1, _("E3: distance 3"))
+        self.label4_sa = wx.StaticText(self, -1, _("E4: distance 4"))
+        self.label5_sa = wx.StaticText(self, -1, _("E5: distance 5"))
+        self.spin1_sa = wx.SpinCtrl(self, id=6, min=0, max=5000, initial=300)
+        self.spin2_sa = wx.SpinCtrl(self, id=7, min=0, max=5000, initial=400)
+        self.spin3_sa = wx.SpinCtrl(self, id=8, min=0, max=5000, initial=600)
+        self.spin4_sa = wx.SpinCtrl(self, id=9, min=0, max=5000, initial=1000)
+        self.spin5_sa = wx.SpinCtrl(self, id=10, min=0, max=5000, initial=1500)
         self.Bind(wx.EVT_SPINCTRL, self.OnSpin_sa, self.spin1_sa)
         self.Bind(wx.EVT_SPINCTRL, self.OnSpin_sa, self.spin2_sa)
         self.Bind(wx.EVT_SPINCTRL, self.OnSpin_sa, self.spin3_sa)
         self.Bind(wx.EVT_SPINCTRL, self.OnSpin_sa, self.spin4_sa)
         self.Bind(wx.EVT_SPINCTRL, self.OnSpin_sa, self.spin5_sa)
+        
+        # Info PNG
+        img_ql = wx.Image(addIn.DirectoryPath +"PTQualityLevels.png",wx.BITMAP_TYPE_ANY)
+        img_ql = img_ql.ConvertToBitmap()
+        self.png_ql = wx.StaticBitmap(self, -1, img_ql, (0, 0))
         
         # misc
         self.label_le = wx.StaticText(self, -1, _("End of line double"))
@@ -170,7 +178,7 @@ class MyDialog(wx.Dialog):
         self.__do_stoptypes()
         self.__set_properties()
         
-        defaultParam = {"ti" : False, "wd" : False, "le" : False, "scml" : False, "clipfiles" : False,
+        defaultParam = {"ti" : False, "day" : False, "le" : False, "scml" : False, "clipfiles" : False,
                         "bt" : False, "scen" : False, "poi" : False, "poidel" : False, "clip" : False,
                         "mode" : False, "sa" : False, "sc" : False}
         addInParam.Check(False, defaultParam)
@@ -184,8 +192,8 @@ class MyDialog(wx.Dialog):
         fgSizer_time.AddGrowableCol(1, 1)
         grid_time_left = wx.GridBagSizer(vgap=7, hgap=10)
         grid_time_left.Add(self.label_time, pos=(0,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
-        grid_time_left.Add(self.label_wd, pos=(1,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-        grid_time_left.Add(self.combo_wd, pos=(1,1), flag = wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        grid_time_left.Add(self.label_day, pos=(1,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
+        grid_time_left.Add(self.combo_day, pos=(1,1), flag = wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
         grid_time_left.Add(self.label_ti, pos=(2,0), span=(1,2), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
         grid_time_left.Add(self.list_ti, pos=(3,0), span=(1,2), flag = wx.EXPAND)
         grid_time_left.Add(self.button_ti, pos=(4,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
@@ -205,9 +213,7 @@ class MyDialog(wx.Dialog):
         # Stop cat / Service areas
         sb_st = wx.StaticBox(self, -1, "")
         sbSizer_st = wx.StaticBoxSizer(sb_st, wx.VERTICAL)
-        fgSizer_st = wx.FlexGridSizer(rows=0, cols=2, vgap=0, hgap=40)
-        fgSizer_st.AddGrowableCol(0, 1)
-        fgSizer_st.AddGrowableCol(1, 1)
+        grid_st = wx.GridBagSizer(vgap=0, hgap=40)
         grid_st_left = wx.GridBagSizer(vgap=7, hgap=10)
         grid_st_left.Add(self.label_sc, pos=(0,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
         grid_st_left.Add(self.label1_sc, pos=(1,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
@@ -245,9 +251,13 @@ class MyDialog(wx.Dialog):
         grid_st_right.Add(self.label5_sa, pos=(5,0), flag = wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL, border = 10)
         grid_st_right.Add(self.spin5_sa, pos=(5,1), flag = wx.EXPAND)
         grid_st_right.Add(wx.StaticText(self, -1, "m"), pos=(5,2), flag = wx.ALIGN_CENTER_VERTICAL)
-        fgSizer_st.Add(grid_st_left, 1, wx.EXPAND)
-        fgSizer_st.Add(grid_st_right, 1, wx.EXPAND)
-        sbSizer_st.Add(fgSizer_st, 1, wx.ALL | wx.EXPAND, 10)
+        grid_st.Add(grid_st_left,  pos=(0,0), flag = wx.EXPAND)
+        grid_st.Add(grid_st_right, pos=(0,1), flag = wx.EXPAND)
+        grid_st.Add((20, 20), pos=(1, 0))
+        grid_st.Add(self.png_ql, pos=(2,0), span=(1,2), flag = wx.EXPAND)
+        grid_st.AddGrowableCol(0)
+        grid_st.AddGrowableCol(1)
+        sbSizer_st.Add(grid_st, 1, wx.ALL | wx.EXPAND, 10)
         # Parameters
         sb_para = wx.StaticBox(self, -1, _("Parameters"))
         sb_para.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.BOLD))
@@ -268,6 +278,8 @@ class MyDialog(wx.Dialog):
         grid_para.Add(self.listbox_clip, pos=(6,0), span=(1,2), flag= wx.EXPAND | wx.ALL)
         grid_para.Add(self.button_add_clip, pos=(7,0), flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM)
         grid_para.Add(self.button_remove_clip, pos=(7,1), flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM)
+        grid_para.AddGrowableCol(0)
+        grid_para.AddGrowableCol(1)
         sbSizer_para.Add(grid_para, 1, wx.ALL | wx.EXPAND, 10)
         # End
         sb_end = wx.StaticBox(self, -1, _("End"))
@@ -301,14 +313,23 @@ class MyDialog(wx.Dialog):
 
     def __do_comboChoice(self):
         # weekday
-        self.combo_wd.Clear()
+        self.combo_day.Clear()
         if Visum.Net.CalendarPeriod.AttValue("TYPE") == "CALENDARPERIODWEEK":
-            self.combo_wd.Append([_("Monday"), _("Tuesday"), _("Wednesday"),
+            self.combo_day.Append([_("Monday"), _("Tuesday"), _("Wednesday"),
                                   _("Thursday"), _("Friday"), _("Saturday"), _("Sunday")])
+        elif Visum.Net.CalendarPeriod.AttValue("TYPE") == "CALENDARPERIODYEAR":
+            start_date = datetime.strptime(Visum.Net.CalendarPeriod.AttValue("VALIDFROM"), "%d.%m.%Y")
+            end_date = datetime.strptime(Visum.Net.CalendarPeriod.AttValue("VALIDUNTIL"), "%d.%m.%Y")
+            dates = []
+            current = start_date
+            while current <= end_date:
+                dates.append(current.strftime("%d.%m.%Y"))
+                current += timedelta(days=1)
+            self.combo_day.Append(dates)
         else:
-            self.combo_wd.Append([_("daily")])
-            self.combo_wd.Enable(False)
-        self.combo_wd.SetSelection(0)
+            self.combo_day.Append([_("daily")])
+            self.combo_day.Enable(False)
+        self.combo_day.SetSelection(0)
         # calculation type
         self.combo_bt.Clear()
         self.combo_bt.Append(["HKAT", "HKAT FHH"])
@@ -347,18 +368,20 @@ class MyDialog(wx.Dialog):
     def __do_stoptypes(self):
         # calculation type
         self.combo_mode.Clear()
-        self.combo_mode.Append([_("TSys"), _("Mainlines")])
         # Select Mainlines as default if not first active Mainline is '' (not all Lines with Mainline)
-        if not sorted({row[1] for row in Visum.Net.Lines.GetMultiAttValues("MAINLINENAME", True)})[0]: # True if at least one active Line has MAINLINENAME ''
+        if not sorted({row[1] for row in Visum.Net.Lines.GetMultiAttValues("MAINLINENAME", True)})[0]: # True if at least one active Line has no MAINLINENAME
+            self.combo_mode.Append([_("TSys")])
             self.combo_mode.SetSelection(0)
+            self.combo_mode.Enable(False)
             mode = _("TSys")
             mode2 = "TSYSCODE"
         else:
+            self.combo_mode.Append([_("TSys"), _("Mainlines")])
             self.combo_mode.SetSelection(1)
             mode =  _("Mainline")
             mode2 = "MAINLINENAME"
         # dvlc stop categories and mainlines/TSys
-        self.dvlc_scml.AppendTextColumn(mode, width=90)
+        self.dvlc_scml.AppendTextColumn(mode, width=60)
         choices = dv.DataViewChoiceRenderer(["1", "2", "3"], mode=dv.DATAVIEW_CELL_EDITABLE)
         col = dv.DataViewColumn(_("StopType"), choices, 1, width=60)
         self.dvlc_scml.AppendColumn(col)
@@ -420,7 +443,12 @@ class MyDialog(wx.Dialog):
         
     def OnHelp(self,event):
         try:
-            os.startfile(addIn.DirectoryPath + _("HelpPTQualityLevels.htm"))
+            try:
+                file = Path(addIn.DirectoryPath + _("HelpPTQualityLevels.htm")).resolve()
+                url = file.as_uri() + "#_Toc226985244"
+                subprocess.run(["cmd", "/c", "start", "", "msedge", url], check=False)
+            except:
+                os.startfile(addIn.DirectoryPath + _("HelpPTQualityLevels.htm"))
         except:
             addIn.HandleException() 
             
@@ -564,8 +592,11 @@ class MyDialog(wx.Dialog):
             if not param["ti"]:
                 addIn.ReportMessage(_("Overlapping time intervals"))
                 return None, False
-            param["wd"] = self.combo_wd.GetSelection() # get index of selection
-            param["bt"] = self.combo_wd.GetSelection() # get index of selection
+            if Visum.Net.CalendarPeriod.AttValue("TYPE") == "CALENDARPERIODYEAR":
+                param["day"] = self.combo_day.GetValue()
+            else:
+                param["day"] = self.combo_day.GetSelection() # get index of selection
+            param["bt"] = self.combo_bt.GetSelection() # get index of selection
             param["le"] = self.cb_le.GetValue()
             param["clip"] = self.cb_clip.GetValue()
             if param["clip"] and not importlib.util.find_spec("geopandas"):
@@ -602,9 +633,6 @@ def CheckNetwork():
         return _error()
     if not Visum.Net.Stops.CountActive:
         addIn.ReportMessage(_("Current Version has no active Stops"))
-        return _error()
-    if Visum.Net.CalendarPeriod.AttValue("TYPE") == "CALENDARPERIODYEAR":
-        addIn.ReportMessage(_("Not available for annual calendar"))
         return _error()
     return True
 
