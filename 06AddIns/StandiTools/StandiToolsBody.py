@@ -38,7 +38,7 @@ def CheckCon():
         _TSysSet = con.AttValue("TSYSSET").split(",")
         if "OVF" in _TSysSet and len(_TSysSet)>1: 
             PUTWALK_PRT += 1
-        if "OVF" in _TSysSet and con.AttValue("NODE\COUNT:STOPAREAS") == 0:
+        if "OVF" in _TSysSet and con.AttValue(r"NODE\COUNT:STOPAREAS") == 0:
             PUTStopArea += 1
     if PUTWALK_PRT > 0:
         Visum.Log(20480,_("%s Connector(s) are open for PUTWALK and PrT!") %(str(PUTWALK_PRT)))
@@ -120,7 +120,7 @@ def SetCon():
         addIn.ReportMessage(_("ZONE UDA 'LAGE' is missing!"))
         return False
     
-    locations = Visum.Net.Connectors.GetMultiAttValues("ZONE\LAGE",False)
+    locations = Visum.Net.Connectors.GetMultiAttValues(r"ZONE\LAGE",False)
     
     newPuT = [[i[0],_conTimes(i[0], i[1])] for i in Visum.Net.Connectors.GetMultiAttValues("LENGTHDIR",False)]
     Visum.Net.Connectors.SetMultiAttValues("T0_TSYS(OVF)",newPuT)
@@ -175,15 +175,15 @@ def SetPtt():
     Line.Init()
     #Bus lane
     Line.AddCondition("OP_NONE",False,"TSYSCODE",13,"Bus")
-    LineRouteItem.AddCondition("OP_NONE",False,"OUTLINK\BUSSPUR",3,0)
-    LineRouteItem.AddCondition("OP_AND",False,"OUTLINK\BUSSPUR",1,5)
+    LineRouteItem.AddCondition("OP_NONE",False,r"OUTLINK\BUSSPUR",3,0)
+    LineRouteItem.AddCondition("OP_AND",False,r"OUTLINK\BUSSPUR",1,5)
     SetMulti(Visum.Net.LineRouteItems,"ABSAUFSCHLAG",[1.2]*Visum.Net.LineRouteItems.CountActive,True)
     SetMulti(Visum.Net.LineRouteItems,"RELAUFSCHLAG",[0.12]*Visum.Net.LineRouteItems.CountActive,True)
     Line.Init()
     LineRouteItem.Init()
     #S-Bahn Mischbetrieb
     Line.AddCondition("OP_NONE",False,"TSYSCODE",13,"S")
-    LineRouteItem.AddCondition("OP_NONE",False,"OUTLINK\KLASSE",9,101)
+    LineRouteItem.AddCondition("OP_NONE",False,r"OUTLINK\KLASSE",9,101)
     SetMulti(Visum.Net.LineRouteItems,"ABSAUFSCHLAG",[1.2]*Visum.Net.LineRouteItems.CountActive,True)
     SetMulti(Visum.Net.LineRouteItems,"RELAUFSCHLAG",[0.12]*Visum.Net.LineRouteItems.CountActive,True)
     Line.Init()

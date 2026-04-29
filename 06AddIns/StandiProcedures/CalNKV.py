@@ -91,7 +91,7 @@ def calc(Visum,Table):
     #OEV
     #Betrieb
     VehComb = pd.DataFrame(Visum.Net.VehicleCombinations.GetMultipleAttributes(
-        ["NO","MIN:VEHUNITS\ENERGIE","ENERGIEV_O", "ENERGIEV_M"], True))
+        ["NO",r"MIN:VEHUNITS\ENERGIE","ENERGIEV_O", "ENERGIEV_M"], True))
     VehComb.columns = ["VehCombNo","Energy","Ev_O","Ev_M"]
     VehComb["CO2Diff"] = VehComb.apply(_CO2Diff_PuTService, _emissionfactor = emissionfactor, axis=1)
     OEV_B = VehComb["CO2Diff"].sum() * 0.001
@@ -140,7 +140,7 @@ def calc(Visum,Table):
     
     #PENERGIE - Primärenergieverbrauch
     PENERGIE_OEV = pd.DataFrame(Visum.Net.VehicleCombinations.GetMultipleAttributes(
-        ["NO","MIN:VEHUNITS\ENERGIE","ENERGIEV_O", "ENERGIEV_M"], False))
+        ["NO",r"MIN:VEHUNITS\ENERGIE","ENERGIEV_O", "ENERGIEV_M"], False))
     PENERGIE_OEV.columns = ["VehCombNo","Energy","Ev_O","Ev_M"]
     PENERGIE_OEV["PENERGIE"] = PENERGIE_OEV.apply(_PENERGY_PuTService, _penergyfactor = penergyfactor, axis=1)
     PENERGIE_OEV = PENERGIE_OEV["PENERGIE"].sum()
