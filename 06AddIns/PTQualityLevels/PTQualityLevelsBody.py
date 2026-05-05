@@ -3,6 +3,7 @@ import numpy as np
 import os
 from osgeo import ogr, osr
 import pandas as pd
+pd.set_option('future.no_silent_downcasting', True)
 from pathlib import Path
 import tempfile
 import sys
@@ -345,7 +346,7 @@ def _stopcat_fhh(Visum):
 
     _stopcat_fhh = _StopsDF['HKAT_FHH'].tolist()
     SetMulti(Visum.Net.Stops, 'HKAT_FHH', _stopcat_fhh, True)
-    
+
     return _StopsDF
 
 
