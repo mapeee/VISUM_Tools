@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+from datetime import datetime, timedelta
 import pandas as pd
 import wx
 import win32com.client
@@ -68,32 +69,64 @@ def Run(param):
     
     
 def on_excel_LAR(TN):
+        # Excel
         pythoncom.CoInitialize()  # important inside GUI event
-        xls = _get_excel()
+        ws_param, wb = _get_excel()
+        
+        # Parameter
+        ws_param.Name = "Parameter"
+        ws_param.Range("A1").Value = "Parameter"
+        ws_param.Range("B1").Value = "Wert"
+        ws_param.Range("A2").Value = "Teilnetz"
+        ws_param.Range("B2").Value = Visum.Net.AttValue("TN")
+        ws_param.Range("A3").Value = "Entfernungswerk"
+        ws_param.Range("B3").Value = "Ja" if Visum.Net.AttValue("EFW") == 1 else "Nein"
+        ws_param.Range("A4").Value = "Methode Fahrzeugbedarf"
+        ws_param.Range("B4").Value = Visum.Net.AttValue("M_FAHRZEUGBEDARF")
+        ws_param.Range("A5").Value = "Wendezeit"
+        ws_param.Range("B5").Value = Visum.Net.AttValue("WENDEZEIT")
+        ws_param.Range("A6").Value = "Normalwochen"
+        ws_param.Range("B6").Value = Visum.Net.AttValue("S_WOCHEN")
+        ws_param.Range("A7").Value = "Ferienwochen"
+        ws_param.Range("B7").Value = Visum.Net.AttValue("F_WOCHEN")
+        ws_param.Range("A9").Value = "Datum"
+        ws_param.Range("B9").Value = datetime.now()
+        ws_param.Range("B9").NumberFormat = "TT.MM.JJJJ"
+        ws_param.Range("A10").Value = "Uhrzeit"
+        ws_param.Range("B10").Value = datetime.now() + timedelta(hours=2)
+        ws_param.Range("B10").NumberFormat = "HH:MM"
+        # Formatierung Parameter
+        ws_param.Columns.AutoFit()
+        ws_param.Rows(1).Font.Bold = True
+        ws_param.Columns("B").HorizontalAlignment = -4131 # linksbündig
+        
+        # Abrechnung
+        ws_LAR = wb.Worksheets.Add()
+        ws_LAR.Activate()
+        ws_LAR.Name = "Abrechnung"
         werte = _get_abrechnungs_werte(TN)
-        top_left = xls.Range("A1")
+        top_left = ws_LAR.Range("A1")
         bottom_right = top_left.Offset(len(werte), len(werte[0]))
-        write_range = xls.Range(top_left, bottom_right)
+        write_range = ws_LAR.Range(top_left, bottom_right)
         write_range.Value = tuple(tuple(w) for w in werte)
-    
-        # Formatierung
-        xls.Columns.AutoFit()
-        xls.Rows(1).Font.Bold = True
+        # Formatierung Abrechnung
+        ws_LAR.Columns.AutoFit()
+        ws_LAR.Rows(1).Font.Bold = True
         letter = chr(ord('A') + len(werte[0]))
-        xls.Columns(f"E:{letter}").NumberFormat = "#.##0"
-        
-        
+        ws_LAR.Columns(f"E:{letter}").NumberFormat = "#.##0"
+
+
 def on_excel_METN():
         pythoncom.CoInitialize()  # important inside GUI event
-        xls = _get_excel()
+        ws_METN, wb = _get_excel()
         werte = _get_METN_werte()
-        top_left = xls.Range("A1")
+        top_left = ws_METN.Range("A1")
         bottom_right = top_left.Offset(len(werte), len(werte[0]))
-        write_range = xls.Range(top_left, bottom_right)
+        write_range = ws_METN.Range(top_left, bottom_right)
         write_range.Value = tuple(tuple(w) for w in werte)
-        xls.Range("A1").ClearContents()
-        xls.Range("E1").ClearContents()
-        xls.Range("F1").Value = _("LENGTH")
+        ws_METN.Range("A1").ClearContents()
+        ws_METN.Range("E1").ClearContents()
+        ws_METN.Range("F1").Value = _("LENGTH")
         
 
 def _get_abrechnungs_werte(TN):
@@ -171,7 +204,7 @@ def _get_excel():
         win = xl.Windows(wb.Name)
         win.Visible = True
         ws = wb.ActiveSheet
-        return ws
+        return ws, wb
     
     
 def __seconds_to_hhmm(seconds):
