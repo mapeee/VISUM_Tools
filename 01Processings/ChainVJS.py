@@ -22,8 +22,8 @@ import pandas as pd
 
 
 ## Input ##
-Line = "S5"
-StopNo = 41951
+Line = "RE83"
+StopNo = 8000237
 
 
 
@@ -34,10 +34,13 @@ StopNo = 41951
 
 
 
-def chainVJS(_Visum, fromVJS, toVJSdf, dayIndex):
-    fromVJS = _Visum.Net.VehicleJourneySections.ItemByKey(fromVJS, 1)
+def chainVJS(_Visum, fromVJSdf, toVJSdf, dayIndex):
+    fromVJS = fromVJSdf["VEHJOURNEYNO"]
+    fromVJSNO = fromVJSdf["NO"]
+    fromVJS = _Visum.Net.VehicleJourneySections.ItemByKey(fromVJS, fromVJSNO)
     toVJS = toVJSdf["VEHJOURNEYNO"]
-    toVJS = _Visum.Net.VehicleJourneySections.ItemByKey(toVJS, 1)
+    toVJSNO = toVJSdf["NO"]
+    toVJS = _Visum.Net.VehicleJourneySections.ItemByKey(toVJS, toVJSNO)
     
     fromVJS.SetChainedUpSection(toVJS, dayIndex, True, True)
 
@@ -74,12 +77,12 @@ def identifier(_Visum, _VJSline, _StopNo):
                 if row[day] == 0:
                     continue
                 times = row["TIME"]
-                matches = _VJSdirect[(_VJSdirect['TIME'].between(times, times+600)) & 
+                matches = _VJSdirect[(_VJSdirect['TIME'].between(times, times+1200)) & 
                                      (_VJSdirect['FROM'] == _StopNo) & 
                                      (_VJSdirect[day] == 1)]
                 if not matches.empty:
                     matches = matches.iloc[0]
-                    chainVJS(_Visum, row["VEHJOURNEYNO"], matches, _dayIndex+1)
+                    chainVJS(_Visum, row, matches, _dayIndex+1)
 
 
 # def VisumOpen(Net):
