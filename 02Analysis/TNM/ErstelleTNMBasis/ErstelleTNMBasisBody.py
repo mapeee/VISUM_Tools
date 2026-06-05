@@ -2,7 +2,6 @@
 
 import sys
 import wx
-from VisumPy.helpers import SetMulti
 from VisumPy.AddIn import AddIn, AddInState, AddInParameter
 _ = AddIn.gettext
 
@@ -115,13 +114,15 @@ def _erstelle_bdg(Visum):
             n+=1
     if n > 0:
         Visum.Log(20480, _("%s UDG: created") %(str(n)))
-    
+
+
 def _fahrzeuge(Visum):
     n = Visum.Net.VehicleCombinations.Count
-    Visum.IO.LoadSQLiteDatabase(addIn.DirectoryPath+"data\Fahrzeuge.sqlite3", True)
+    Visum.IO.LoadSQLiteDatabase(addIn.DirectoryPath+r"data\Fahrzeuge.sqlite3", True)
     diff_n = Visum.Net.VehicleCombinations.Count - n
     if diff_n > 0:
         Visum.Log(20480, _("%s VehicleCombinations: imported") %(str(diff_n)))
+
 
 def _import_gebiete(Visum):
     n = Visum.Net.Territories.Count
@@ -130,10 +131,11 @@ def _import_gebiete(Visum):
     JSONImport.AddAttributeAllocation("CODE", "CODE")
     JSONImport.AddAttributeAllocation("TYPENO", "TYPENO")
     JSONImport.ObjectType = 8 # Gebiete als Fläche
-    Visum.IO.ImportGeoJSON(addIn.DirectoryPath+"data\TNM_Gebiete.geojson", JSONImport)
+    Visum.IO.ImportGeoJSON(addIn.DirectoryPath+r"data\TNM_Gebiete.geojson", JSONImport)
     diff_n = Visum.Net.Territories.Count - n
     if diff_n > 0:
         Visum.Log(20480, _("%s Territories: imported") %(str(diff_n)))
+
 
 def _kalender(Visum):
     '''
@@ -143,19 +145,18 @@ def _kalender(Visum):
     if Visum.Net.CalendarPeriod.AttValue("TYPE") != "CALENDARPERIODWEEK":
         Visum.Net.CalendarPeriod.SetAttValue("TYPE", "CALENDARPERIODWEEK")
         Visum.Log(20480, _("Calendar: changed to weekly calendar"))
-    if Visum.Net.CalendarPeriod.AttValue("ANALYSISPERIODENDDAYINDEX") != 7:
-        Visum.Net.CalendarPeriod.SetAttValue("ANALYSISPERIODENDDAYINDEX",7)
-        Visum.Log(20480, _("Calendar: Analysis period changed to Mon-Sun"))
-        
+
+
 def _verfahrensablauf(Visum):
     '''
     Importiere Verfahrensablauf (keine Verfahrensparameter und Verfahrensvariablen)
     Setze den neuen Verfahrensablauf an den Anfang aber nur, wenn es die Gruppe 'TNM Leistungsabrechnung' noch nicht gibt.
     '''
     if not any(o.AttValue("COMMENT") == "TNM Leistungsabrechnung" for o in Visum.Procedures.Operations.GetAll):
-        Visum.Procedures.OpenXmlWithOptions(addIn.DirectoryPath+"data\TNM_Verfahrensablauf.xml", True, False, 2, 0, False)
+        Visum.Procedures.OpenXmlWithOptions(addIn.DirectoryPath+r"data\TNM_Verfahrensablauf.xml", True, False, 2, 0, False)
         Visum.Log(20480, _("Procedure sequence: imported"))
-        
+
+
 def _zeitintervallmengen(Visum):
     '''
     - Stelle Analyseperiode von Montag bis Sonntag
@@ -164,7 +165,9 @@ def _zeitintervallmengen(Visum):
     - Füge Zeitintervalle für Mo-So hinzu
     - Setze die Zeitintervallmenge aktiv
     '''
-    if Visum.Net.CalendarPeriod.AttValue("ANALYSISPERIODENDDAYINDEX") != 7:
+    if Visum.Net.CalendarPeriod.AttValue("ANALYSISPERIODSTARTDAYINDEX") != 1 or \
+        Visum.Net.CalendarPeriod.AttValue("ANALYSISPERIODENDDAYINDEX") != 7:
+        Visum.Net.CalendarPeriod.SetAttValue("ANALYSISPERIODSTARTDAYINDEX",1)
         Visum.Net.CalendarPeriod.SetAttValue("ANALYSISPERIODENDDAYINDEX",7)
         Visum.Log(20480, _("Calendar: Analysis period changed to Mon-Sun"))
     _zi = Visum.Net.TimeIntervalSets.GetMultiAttValues("NO")
