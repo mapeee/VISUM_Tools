@@ -134,8 +134,7 @@ def FZG_TN(Visum, _FPLTabelle, _Saisons, _Tage, _FZG, _TN):
         FZG_ALL = max(0, FZG_ALL - fmax)
     # Bringe die Liste fzg_daten in die Reihenfolge der FahrzeugKombinationen in Visum
     order = {name: idx for idx, name in Visum.Net.VehicleCombinations.GetMultiAttValues("CODE")}
-    fzg_daten = [x[1] for x in sorted(fzg_daten, key=lambda x: order[x[0]])]
-    SetMulti(Visum.Net.VehicleCombinations, f"{_TN}_FZG_METN", fzg_daten)
+    SetMulti(Visum.Net.VehicleCombinations, f"{_TN}_FZG_METN", [dict(fzg_daten).get(code, 0) for code in order])
 
 
 def _berechne_FZG_Linien(_FPLTabelle, _linie, _FZG, _s, _t):
