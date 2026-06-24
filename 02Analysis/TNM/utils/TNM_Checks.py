@@ -198,8 +198,12 @@ def check_zeitintervalle(Visum):
         Visum.Log(12288, "'TNM_Tage' ist nicht als Zeitintervallmenge vorhanden")
         return False
     if df_zeitintervalmengen.loc[df_zeitintervalmengen["AKTIV"] == 1, "CODE"].iloc[0] != "TNM_Tage":
-        Visum.Log(12288, "'TNM_Tage' ist nicht die aktive Zeitintervallmenge")
-        return False
+        Visum.Log(16384, "'TNM_Tage' ist nicht die aktive Zeitintervallmenge")
+        ziNO = df_zeitintervalmengen.loc[df_zeitintervalmengen["CODE"] == "TNM_Tage", "NO"].iloc[0]
+        Visum.Net.CalendarPeriod.SetAttValue("ANALYSISTIMEINTERVALSETNO", ziNO)
+        df_zeitintervalmengen["AKTIV"] = 0
+        df_zeitintervalmengen.loc[df_zeitintervalmengen["CODE"] == "TNM_Tage", "AKTIV"] = 1
+        Visum.Log(20480, "'TNM_Tage' als Zeitintervallmenge aktiviert")
     TNM_Zeitintervall = df_zeitintervalmengen.loc[df_zeitintervalmengen["AKTIV"] == 1]
     zeitintervalle = Visum.Net.TimeIntervalSets.ItemByKey(TNM_Zeitintervall["NO"][0])
     if zeitintervalle.TimeIntervals.Count != 7:

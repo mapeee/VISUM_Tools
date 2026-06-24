@@ -170,13 +170,11 @@ def _zeitintervallmengen(Visum):
         Visum.Net.CalendarPeriod.SetAttValue("ANALYSISPERIODSTARTDAYINDEX",1)
         Visum.Net.CalendarPeriod.SetAttValue("ANALYSISPERIODENDDAYINDEX",7)
         Visum.Log(20480, _("Calendar: Analysis period changed to Mon-Sun"))
-    _zi = Visum.Net.TimeIntervalSets.GetMultiAttValues("NO")
-    _ziNO = {int(v) for _, v in _zi} 
-    _ersteNO = 1
-    while _ersteNO in _ziNO:
-        _ersteNO += 1
+        
     if not any(ts.AttValue("CODE") == "TNM_Tage" for ts in Visum.Net.TimeIntervalSets.GetAll):
-        ts = Visum.Net.AddTimeIntervalSet(_ersteNO)
+        used = {int(v) for _, v in Visum.Net.TimeIntervalSets.GetMultiAttValues("NO")}
+        no = next(i for i in range(1, max(used, default=0) + 2) if i not in used)
+        ts = Visum.Net.AddTimeIntervalSet(no)
         ts.SetAttValue("CODE", "TNM_Tage")
         ts.SetAttValue("NAME", "TNM Wochentage")
         tage = [("Mo", "Montag"),
@@ -189,9 +187,21 @@ def _zeitintervallmengen(Visum):
         for i, (tag1, tag2) in enumerate(tage):
             ti = ts.AddTimeInterval(tag1, 0, 86400, DayIndex=i+1)
             ti.SetAttValue("NAME", tag2)
-        Visum.Net.CalendarPeriod.SetAttValue("ANALYSISTIMEINTERVALSETNO", _ersteNO)
-        Visum.Log(20480, _("Time intervals: created and activated"))
-
+        Visum.Net.CalendarPeriod.SetAttValue("ANALYSISTIMEINTERVALSETNO", no)
+        Visum.Log(20480, _(r"Time interval 'TNM_Tage': created and activated"))
+        
+    if not any(ts.AttValue("CODE") == "TNM_Kennzahlen" for ts in Visum.Net.TimeIntervalSets.GetAll):
+        used = {int(v) for _, v in Visum.Net.TimeIntervalSets.GetMultiAttValues("NO")}
+        no = next(i for i in range(1, max(used, default=0) + 2) if i not in used)
+        ts = Visum.Net.AddTimeIntervalSet(no)
+        ts.SetAttValue("CODE", "TNM_Kennzahlen")
+        ts.SetAttValue("NAME", "TNM Kennzahlen")
+        tage = ["Mo", "Di", "Mi", "Do", "Fr"]
+        for i, tag in enumerate(tage):
+            ti = ts.AddTimeInterval(f"{tag}0622", 21600, 79200, DayIndex=i+1)
+            ti.SetAttValue("NAME", f"{tag} 06:00-22:00")
+        Visum.Log(20480, _(r"Time interval 'TNM_Kennzahlen': created"))
+        
 
 if len(sys.argv) > 1:
     addIn = AddIn()
