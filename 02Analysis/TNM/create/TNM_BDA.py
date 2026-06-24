@@ -7,7 +7,7 @@ Ebenen:
 
 Erstellt: 28.08.2025
 @author: mape
-Version: 0.8
+Version: 0.9
 """
 
 import pandas as pd
@@ -90,12 +90,16 @@ def bda_linien(Visum, stdkm=None):
         Einheiten_txt = "Fahrzeugbedarf"
         Einheiten = [["M1", "Fahrzeugbedarf Methode 1", "_FZG", True], ["M2", "Fahrzeugbedarf Methode 2","_FZG", True]]
     for s, sname in Saisons:
+        if stdkm:
+            for e, ename, _, __ in Einheiten:
+                erstelle_bda_linien(Visum, f"{s}_{e}", "TNM", [2, 6], "Auswertungsattribut", f"{sname} {ename}", True)
+                erstelle_bda_linien(Visum, f"{s}_MoFr0622_{e}", "TNM", [2, 6], "Auswertungsattribut", f"{sname} Mo-Fr 06-22 {ename}", False)  
         for f, fname in FZG:
             for e, ename, _, __ in Einheiten:
-                erstelle_bda_linien(Visum, f"{s}_{f}_{e}", "TNM_FZG", [2, 6], f"{sname} {fname} {ename}")
+                erstelle_bda_linien(Visum, f"{s}_{f}_{e}", "TNM_FZG", [2, 6], "Rechenattribut", f"{sname} {fname} {ename}", True)
             for g, gname in Gebiete:
                 for e, ename, gr, formel in Einheiten:
-                    if not erstelle_bda_linien(Visum, f"{g}_{s}_{f}_{e}", f"TNM_{g}{gr}", [2, 6], f"{gname} {sname} {fname} {ename}", formel):
+                    if not erstelle_bda_linien(Visum, f"{g}_{s}_{f}_{e}", f"TNM_{g}{gr}", [2, 6], "Rechenattribut", f"{gname} {sname} {fname} {ename}", True, formel):
                         return False
     
     Visum.Log(20480, f"TNM-Rechenattribute der Linien erzeugt: {Einheiten_txt}")
@@ -108,6 +112,8 @@ def check_bdg(Visum, _Gebiete):
         Wenn Teilnetz-CODE, dann zweiter Wert False
     '''
     BDGs = Visum.Net.UserDefinedGroups.GetMultiAttValues("NAME")
+    if not any("TNM" in BDG for _, BDG in BDGs):
+        Visum.Net.AddUserDefinedGroup("TNM", "Teilnetzmanagement")
     for g, gname in _Gebiete:
         # if False, g ist CODE von Teilnetz (TNM_Fahrzeugbedarf)
         if not gname:
@@ -165,7 +171,7 @@ def erstelle_bda_fahrzeugkombinationen(Visum, _name, _group, _type, _comment, _f
     return True
 
 
-def erstelle_bda_linien(Visum, _name, _group, _type, _comment, _formel=None):
+def erstelle_bda_linien(Visum, _name, _group, _type, _tnmType, _comment, _subattr, _formel=None):
     '''Erstellung von BDA zur Speicherung von Leistungsmengen.
     Erstelle diese BDA nur, wenn sie noch nicht vorhanden sind.
     Ordne alle BDA einer BDG zur Strukturierung zu.
@@ -179,8 +185,12 @@ def erstelle_bda_linien(Visum, _name, _group, _type, _comment, _formel=None):
     _type : list[int, int]
         list[0] = Werttyp
         list[1] = Anzahl Dezimalstellen
+    _tnmType : string
+        Typ im TNM (Rechenattribut oder Auswertungsattribut)
     _comment : string
         Kommentar des neuen BDA
+    _subbattr : bool
+        Erstelle mit Zeitintervallmenge als Subattribut ja oder nein
     _formel : bool, optional
         Erstelle als Formel-BDA ja oder nein
 
@@ -208,9 +218,12 @@ def erstelle_bda_linien(Visum, _name, _group, _type, _comment, _formel=None):
         formel = f"([{attr[0]}] / [{attr[1]}]) * [{attr[2]}]"
         Visum.Net.Lines.AddUserDefinedAttribute(_name, _name, _name, _type[0], _type[1], Formula = formel, SubAttr = f'TISET_{_ziNO}') 
     else:
-        Visum.Net.Lines.AddUserDefinedAttribute(_name, _name, _name, _type[0], _type[1], False, 0, None, 0, SubAttr = f'TISET_{_ziNO}')
+        if _subattr:
+            Visum.Net.Lines.AddUserDefinedAttribute(_name, _name, _name, _type[0], _type[1], False, 0, None, 0, SubAttr = f'TISET_{_ziNO}')
+        else:
+            Visum.Net.Lines.AddUserDefinedAttribute(_name, _name, _name, _type[0], _type[1], False, 0, None, 0)
     bda = Visum.Net.Lines.Attributes.ItemByKey(_name)
-    bda.Comment = f"{_comment} | TNM-Rechenattribut"
+    bda.Comment = f"{_comment} | TNM-{_tnmType}"
     bda.UserDefinedGroup = _group
     return True
       

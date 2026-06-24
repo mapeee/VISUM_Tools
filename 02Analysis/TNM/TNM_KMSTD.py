@@ -8,7 +8,7 @@ Ebenen:
 
 Erstellt: 28.08.2025
 @author: mape
-Version: 0.8
+Version: 0.9
 """
 
 import pandas as pd
@@ -54,14 +54,21 @@ def main(Visum):
 
     for s in Saisons:
         df_oev_s = df_oevgebietedetail[df_oevgebietedetail[s] == 1]
-        for f in FZG:
+        for t in Tage: # für weitere TNM-Auswertungen
+            # Gesamt FPLKM und FPLSTD je Saison und Tag (über alle Kreise) für weitere TNM-Auswertungen
+            KennzahlSTD, KennzahlKM = f"{s}_STD({t})", f"{s}_KM({t})"
+            edictSTD, edictKM = df_oev_s.groupby("LINE")[f"{t}STD"].sum().to_dict(), df_oev_s.groupby("LINE")[f"{t}KM"].sum().to_dict()
+            # erstelle Liste in Linienreihenfolge passend zur Reihenfolge in Visum
+            SetMulti(Visum.Net.Lines, KennzahlSTD, [edictSTD.get(line, 0) for _, line in Visum.Net.Lines.GetMultiAttValues("NAME",True)], True)
+            SetMulti(Visum.Net.Lines, KennzahlKM, [edictKM.get(line, 0) for _, line in Visum.Net.Lines.GetMultiAttValues("NAME",True)], True)
+        for f in FZG: # für TNM-Abrechnung
             df_oev_s_f = df_oev_s[df_oev_s["FZG"] == f]
             for t in Tage:
                 # Gesamt FPLKM und FPLSTD je Saison, Fahrzeugkombination und Tag (über alle Kreise)
                 KennzahlSTD, KennzahlKM = f"{s}_{f}_STD({t})", f"{s}_{f}_KM({t})"
                 edictSTD, edictKM = df_oev_s_f.groupby("LINE")[f"{t}STD"].sum().to_dict(), df_oev_s_f.groupby("LINE")[f"{t}KM"].sum().to_dict()
-                SetMulti(Visum.Net.Lines, KennzahlSTD, [edictSTD.get(line, 0) for _, line in Visum.Net.Lines.GetMultiAttValues("NAME",True)], True)
                 # erstelle Liste in Linienreihenfolge passend zur Reihenfolge in Visum
+                SetMulti(Visum.Net.Lines, KennzahlSTD, [edictSTD.get(line, 0) for _, line in Visum.Net.Lines.GetMultiAttValues("NAME",True)], True)
                 SetMulti(Visum.Net.Lines, KennzahlKM, [edictKM.get(line, 0) for _, line in Visum.Net.Lines.GetMultiAttValues("NAME",True)], True)
                 for g in Gebiete:
                     # FPLKM und FPLSTD je Gebiet (Kreis) je Saison, Fahrzeugkombination und Tag
