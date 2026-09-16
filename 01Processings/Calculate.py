@@ -2,7 +2,7 @@
 #!/usr/bin/python
 
 import win32com.client.dynamic
-Visum = win32com.client.dynamic.Dispatch("Visum.Visum.24")
+Visum = win32com.client.dynamic.Dispatch("Visum.Visum")
 import ast
 import os
 import time
