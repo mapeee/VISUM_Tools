@@ -58,11 +58,6 @@ class MyDialog(wx.Dialog):
         self.button_PTFilter = wx.Button(self, -1, _("PT Filter"), name = "PTFilter")
         self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_InitFilter)
         self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_PTFilter)
-        
-        self.button_InitSRtimeBus = wx.Button(self, -1, _("Init bus link times"), name = "InitSRtimeBus")
-        self.button_SetSRtimeBus = wx.Button(self, -1, _("Set bus link times on SR"), name = "SetSRtimeBus")
-        self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_InitSRtimeBus)
-        self.Bind(wx.EVT_BUTTON, self.OnProc, self.button_SetSRtimeBus)
 
         self.button_export = wx.Button(self, -1, _('Export'), name = "Export")
         self.button_import = wx.Button(self, -1, _('Import'), name = "Import")
@@ -96,13 +91,6 @@ class MyDialog(wx.Dialog):
         sbSizer_filter.AddSpacer(10)
         sbSizer_filter.Add(self.button_InitFilter, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
         sbSizer_filter.Add(self.button_PTFilter, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
-        
-        sb_systemroute = wx.StaticBox(self, -1, _("SystemRoutes (SR)"))
-        sb_systemroute.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.BOLD))
-        sbSizer_systemroute = wx.StaticBoxSizer(sb_systemroute, wx.VERTICAL)
-        sbSizer_systemroute.AddSpacer(10)
-        sbSizer_systemroute.Add(self.button_InitSRtimeBus, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
-        sbSizer_systemroute.Add(self.button_SetSRtimeBus, flag = wx.ALIGN_CENTER | wx.ALL, border = 2)
 
         sizer_export = wx.BoxSizer(wx.HORIZONTAL)
         sizer_export.Add(self.button_export, 0, 5)
@@ -132,8 +120,6 @@ class MyDialog(wx.Dialog):
         vbox.Add(sbSizer_filter, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
         vbox.AddSpacer(10)
         vbox.Add(sbSizer_exportimport, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
-        vbox.AddSpacer(10)
-        vbox.Add(sbSizer_systemroute, proportion = 0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
         vbox.AddSpacer(10)
         vbox.Add(sbSizer_end, proportion = 1, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 10)
         vbox.AddSpacer(10)
@@ -165,12 +151,6 @@ class MyDialog(wx.Dialog):
         elif ProcName == "PTFilter":
             PTLEE.PTFilter(Visum)
             Visum.Log(20480,_("All filters ready for export"))
-        elif ProcName == "SetSRtimeBus":
-            PTLEE.SRtimeBus(Visum, True)
-            Visum.Log(20480,_("Set bus link times based on SystemRoutes"))
-        elif ProcName == "InitSRtimeBus":
-            PTLEE.SRtimeBus(Visum, False)
-            Visum.Log(20480,_("Init bus link times based on PT-Speed"))
         elif ProcName == "Finish":
             PTLEE.InitFilter(Visum)
             PTLEE.PTFilter(Visum)

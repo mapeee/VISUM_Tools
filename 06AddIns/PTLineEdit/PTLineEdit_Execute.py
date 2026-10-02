@@ -39,7 +39,7 @@ def PTExport(Visum, directory, Stops):
     Visum.Net.StopAreas.RemoveAll()
     Visum.Net.StopPoints.RemoveAll()
        
-    if Stops[0][0] == "0":
+    if Stops[0][0] == "0" or Nodes != [0]:
         return True, [vehjourneys, servingstops], [Nodes, chainedVSTable]
     conn = sqlite3.connect(sqlite_path)
     cursor = conn.cursor()    
@@ -162,17 +162,6 @@ def PTImport(Visum, nodes_chainedVS = [[0], []], PTcounts = False):
             return False
     return True
 
-def SRtimeBus(Visum, mode):
-    Visum.Filters.InitAll()
-    SRLinks = Visum.Filters.LinkFilter()
-    SRLinks.AddCondition("OP_NONE", False, "TSYSSET", "ContainsAll", "Bus")
-    if mode:
-        SRLinks.AddCondition("OP_AND", False, r"COUNTACTIVE:SYSROUTES", "GreaterVal", 0)
-        tBus = [i[0] / 200*60*60 for i in Visum.Net.Links.GetMultipleAttributes(["LENGTHPOLY"], True)]
-    else:
-        tBus = [i[0] / i[1]*60*60 for i in Visum.Net.Links.GetMultipleAttributes(["LENGTHPOLY", r"LINKTYPE\VDEF_PUTSYS(BUS)"], True)]
-    SetMulti(Visum.Net.Links, r"T_PUTSYS(BUS)", tBus, True)
-    Visum.Filters.InitAll()
 
 def _AddchainedVS(Visum, _chainedVSTable):
     TableFields = ["VEHJOURNEYNO", "VEHJOURNEYSECTIONNO", "CHAINEDUPVEHJOURNEYNO", "CHAINEDUPVEHJOURNEYSECTIONNO", "CALENDARDAY", "ISFORCEDCHAIN"]
