@@ -2,6 +2,7 @@
 import sys
 import wx
 import re
+import datetime
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "libs"))
 from VisumPy.AddIn import AddIn, AddInState, AddInParameter
@@ -19,8 +20,6 @@ warnings.filterwarnings(
 
 '''
 - Hash zu LR für Bündelung
-- Dokumentation
-    - Kleine Word-Hilfe und Verknüpfung mit Tool
 '''
 
 def Run(param):
@@ -44,6 +43,7 @@ def Run(param):
     -------
     None
     '''
+    # Validation
     dfExcel = pd.read_excel(param["ExcelFolder"], header=None)
     Validate_Excel(dfExcel)
     dfLineAttr, dfStopsTimes, dfVJAttr = GetTables(dfExcel) # creates all DataFrames
@@ -51,6 +51,8 @@ def Run(param):
     Validate_VJAttr(dfVJAttr, dfLineAttr) # validDays and vehicleCombinations
     Validate_Stops(dfStopsTimes, dfLineAttr)
     Validate_Times(dfStopsTimes)
+    # Preparation
+    LayerView = SetLayerViews(True)
     Visum.Filters.LineGroupFilter().Init() # Only init Line Filter
     SetMulti(Visum.Net.LineRoutes,"AddVal3",[0]*Visum.Net.LineRoutes.Count,False) # to identify new ones by 99 later
     Line, Direction = AddLine(dfLineAttr) # Creating or selecting Line
@@ -58,6 +60,8 @@ def Run(param):
     
     for VJIndex in range(2, dfStopsTimes.shape[1]):
         dfVJStopsTimes = dfStopsTimes.iloc[:, [0, 1, VJIndex]] # first two cols are StopName und StopNo
+        if dfVJStopsTimes[VJIndex].isna().all(): # head values (VJNo or Vehicle) but no Times
+            continue
         LRNetElements, VJTimes, DepVJ = GetStopsTimes(dfVJStopsTimes)
         LR = AddLineRoute(Line, Direction, LRNetElements)
         VJAttr = dfVJAttr[["VJAttr", VJIndex]]
@@ -82,7 +86,7 @@ def Run(param):
         ttss.CalculateStopSequenceFromLineSelection()
         Visum.Workbench.ActivateNetworkEditor()
     Visum.Graphic.Autozoom(Line)
-
+    SetLayerViews(False, LayerView)
 
 def AddLine(dfLineAttr):
     '''
@@ -126,9 +130,10 @@ def AddLine(dfLineAttr):
 
 def AddLineRoute(_Line, _Direction, LRNetElements):
     '''
-    1. Erstelle die Routingparameter
-    2. Erzeuge den Namen der neuen LinienRoute (darf noch nicht vergeben sein)
-    3. Erstelle die neue LinienRoute
+    1. Erstelle BDA "EXCEL_IMPORT" falls nicht vorhanden
+    2. Erstelle die Routingparameter
+    3. Erzeuge den Namen der neuen LinienRoute (darf noch nicht vergeben sein)
+    4. Erstelle die neue LinienRoute
 
     Parameters
     ----------
@@ -144,10 +149,14 @@ def AddLineRoute(_Line, _Direction, LRNetElements):
     LR : Visum-Objekt
         Neue Linienroute als Visum-Objekt
     '''
+    if not Visum.Net.LineRoutes.AttrExists("EXCEL_IMPORT"):
+        Visum.Net.LineRoutes.AddUserDefinedAttribute(ID = "EXCEL_IMPORT", ShortName = "EXCEL_IMPORT", \
+                                                     LongName = "EXCEL_IMPORT", VT = 5, DefVal = "", CanBeEmpty = True)
     RouteSearchTSys = _getRouteSearchTSys()
     nameLR = _getNameLR(_Line)
     LR = Visum.Net.AddLineRoute(nameLR, _Line, _Direction, LRNetElements, RouteSearchTSys) #create the line route
     LR.SetAttValue("ADDVAL3", 99)
+    LR.SetAttValue("EXCEL_IMPORT", str(datetime.datetime.now().replace(microsecond=0)))
     return LR
 
 def AddTimeProfile(_LR, _VJTimes):
@@ -298,7 +307,6 @@ def GetStopsTimes(_dfVJStopsTimes):
     for _, row in _dfVJStopsTimes.iterrows():
         if pd.isna(row.iloc[2]): # no time for StopNo
             continue
-        # RunTimeNew = row.iloc[2].hour * 3600 + row.iloc[2].minute * 60 + row.iloc[2].second
         RunTimeNew = row.iloc[2].total_seconds()
         if RunTime == -1: # first loop
             DepVJ = RunTimeNew
@@ -347,9 +355,48 @@ def GetTables(dfExcel):
     rowSP = dfExcel[0].eq("Haltepunkt").idxmax()
     dfStopsTimes = dfLineRoute.loc[rowSP+1:] # deletes first rows until 'Haltepunkt'
     dfStopsTimes = dfStopsTimes.mask(dfStopsTimes.isin(["|", ""]))
+    for col in dfStopsTimes.columns[2:]: # transform all times to timedelta
+        dfStopsTimes[col] = dfStopsTimes[col].map(_to_timedelta)
     dfVJAttr = dfLineRoute.loc[:rowSP-1, 1:]
     dfVJAttr.rename(columns={dfVJAttr.columns[0]: "VJAttr"}, inplace=True)
     return dfLineAttr, dfStopsTimes, dfVJAttr
+
+def SetLayerViews(mode=True, sLV=None):
+    '''
+    1. Wenn mode==True, dann Einlesen der aktuell aktiven Layer
+    2. Wenn mode==True, dann deaktivieren aller Layer
+    3. Wenn mode==False, dann behandle alle Layer wie in Liste sLV
+
+    Parameters
+    ----------
+    mode : Bool, optional
+        True: Lesen der aktuellen Layer, deaktiviere alle Layer
+        False: Aktivieren alle Layer gemäß sLV
+    sLV : List, optional
+        Liste mit 0 oder 1 für alle Layer in Abhängigkeit vom Status
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+    '''
+    vgp = Visum.Net.GraphicParameters
+    layers = [
+        (vgp.Nodes, "DRAW"),
+        (vgp.Links, "DRAW"),
+        (vgp.StopPoints, "DRAW"),
+        (vgp.StopAreas, "DRAW"),
+        (vgp.Stops, "DRAW"),
+        (vgp.Zones, "DRAW"),
+        (vgp.POIs, "DRAWPOINTS"),
+        (vgp.POIs, "DRAWLINES"),
+        (vgp.POIs, "DRAWSURFACES"),
+    ]
+    if mode:
+        _LayerViews = [obj.AttValue(att) for obj, att in layers]
+    for i, (obj, att) in enumerate(layers):
+        obj.SetAttValue(att, False if mode else sLV[i])
+    return _LayerViews if mode else None
 
 def Validate_Excel(dfExcel):
     '''
@@ -445,6 +492,8 @@ def Validate_Stops(dfStopsTimes, dfLineAttr):
     for vj in dfStopsTimes.columns[2:]:
         stopsvj = dfStopsTimes[[dfStopsTimes.columns[1], vj]]
         stopsvj = stopsvj.dropna(subset=[vj]).iloc[:, 0]
+        if stopsvj.empty:
+            continue
         if stopsvj.iloc[0] == stopsvj.iloc[1] or stopsvj.iloc[-1] == stopsvj.iloc[-2]:
             raise ValueError(_("Identical stops at beginning or end in Journey %s") % (vj-1))
 
@@ -500,7 +549,7 @@ def Validate_VJAttr(dfVJAttr, dfLineAttr):
     missing_vcs = [vc for vc in vc_Excel if vc not in vc_Visum]
     if missing_vcs:
         raise ValueError(_("VehicleCombinations are missing in Network: %s") % (", ".join(missing_vcs)))
-    
+
 
 def _getNameLR(_Line):
     '''
@@ -546,6 +595,28 @@ def _getRouteSearchTSys():
     RS.SetAttValue("WhatToDoIfStopPointIsBlocked", 2) # Open the StopPoint
     RS.SetAttValue("WhatToDoIfStopPointNotFound", 0) # Dont Read Line Route
     return RS
+
+def _to_timedelta(StopTime):
+    '''
+    Wandelt datetime.time in datetime.timedelta um
+
+    Parameters
+    ----------
+    StopTime : Values
+        Fahrzeiten (nan oder time oder timedelta)
+
+    Returns
+    -------
+    Values
+        nan oder timedelta
+    '''
+    if isinstance(StopTime, datetime.time):
+        return pd.Timedelta(
+            hours=StopTime.hour,
+            minutes=StopTime.minute,
+            seconds=StopTime.second
+        )
+    return StopTime
 
 
 if len(sys.argv) > 1:
