@@ -30,7 +30,7 @@ class InfoFrame(wx.Frame):
         sizer.Add(wx.StaticText(self,label= _("Marcus Peter")),0,wx.LEFT,10)
         sizer.Add(wx.StaticText(self,label= _("01.09.2026")),0,wx.LEFT,10)
         sizer.AddSpacer(2)
-        sizer.Add(wx.StaticText(self,label= _("Version 1.0.")),0,wx.LEFT,10)
+        sizer.Add(wx.StaticText(self,label= _("Version 1.1.")),0,wx.LEFT,10)
         sizer.AddSpacer(10)
         sizer.Add(self.button,0,wx.ALIGN_CENTER,5)
         sizer.AddSpacer(5)
@@ -74,6 +74,7 @@ class MyDialog(wx.Dialog):
         param = addInParam.Check(False, defaultParam)
         
     def __set_properties(self):
+        self.button_folder.SetFont(self.button_folder.GetFont().Bold())
         self.button_import.SetFont(self.button_import.GetFont().Bold())
         
     def __do_layout(self):   
@@ -87,12 +88,12 @@ class MyDialog(wx.Dialog):
 
         box_Import = wx.GridBagSizer()
         box_Import.Add(self.button_folder, (0,0), wx.DefaultSpan, wx.TOP|wx.ALIGN_CENTER_VERTICAL,5)
-        box_Import.Add(self.button_template, (0,1), wx.DefaultSpan, wx.TOP|wx.ALIGN_CENTER_VERTICAL,5)
-        box_Import.Add(self.button_import, (0,2), wx.DefaultSpan, wx.TOP|wx.ALIGN_CENTER_VERTICAL,5)
+        box_Import.Add(self.button_import, (0,1), wx.DefaultSpan, wx.TOP|wx.ALIGN_CENTER_VERTICAL,5)
+        box_Import.Add(self.button_template, (1,0), wx.DefaultSpan, wx.TOP|wx.ALIGN_CENTER_VERTICAL,5)
 
         sbSizer_exe.Add(box_PuTCon, 0, wx.EXPAND | wx.TOP, 5)
         sbSizer_exe.Add(box_Import, 0, wx.ALIGN_CENTER | wx.TOP, 5)
-        sbSizer_exe.AddSpacer(30)
+        sbSizer_exe.AddSpacer(20)
         sbSizer_exe.Add(self.button_help, flag = wx.ALIGN_CENTER | wx.TOP, border = 5)
         sbSizer_exe.Add(self.button_info, flag = wx.ALIGN_CENTER | wx.TOP, border = 5)
         sbSizer_exe.Add(self.button_close, flag = wx.ALIGN_CENTER | wx.TOP, border = 5)
